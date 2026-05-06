@@ -29,6 +29,7 @@ export const viewport: Viewport = {
 
 import { MainWrapper } from "@/components/layout/MainWrapper";
 import { AuthCheck } from "@/features/auth/AuthCheck";
+import { SidebarNav } from "@/components/layout/SidebarNav";
 
 export default function RootLayout({
   children,
@@ -37,19 +38,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className={cn("h-full antialiased font-sans", geist.variable)}>
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-hidden">
         <SyncProvider />
         <AuthCheck>
-          <MainWrapper>
-            {children}
-          </MainWrapper>
-          <BottomNav />
+          <div className="flex-1 flex w-full min-h-screen">
+            <SidebarNav />
+            <div className="flex-1 flex flex-col min-w-0 relative">
+              <MainWrapper>
+                {children}
+              </MainWrapper>
+              <BottomNav />
+            </div>
+          </div>
         </AuthCheck>
         <Toaster
-          position="top-center"
-          duration={2800}
-          gap={8}
-          visibleToasts={3}
+          position="bottom-right"
+          duration={3000}
+          expand={false}
+          richColors
+          toastOptions={{
+            className: 'rounded-2xl border-slate-100 shadow-2xl font-sans font-bold',
+          }}
         />
         {/* Service Worker Registration */}
         <script
