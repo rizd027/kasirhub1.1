@@ -55,19 +55,20 @@ export function SidebarNav() {
       )}
     >
       {/* Brand / Logo Section */}
-      <div className="h-20 flex items-center px-6 mb-4">
-        {!isSidebarCollapsed ? (
-          <div className="flex items-center gap-3">
-            <div className="size-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
-              <span className="text-xl font-black text-white">K</span>
-            </div>
-            <span className="text-xl font-black text-slate-800 tracking-tighter">KasirHub</span>
+      <div className={cn(
+        "h-20 flex items-center mb-4 transition-all duration-300",
+        isSidebarCollapsed ? "justify-center" : "px-6"
+      )}>
+        <div className="flex items-center gap-3">
+          <div className="size-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100 shrink-0">
+            <span className="text-xl font-black text-white">K</span>
           </div>
-        ) : (
-          <div className="size-10 bg-indigo-600 rounded-xl flex items-center justify-center mx-auto shadow-lg shadow-indigo-100">
-            <span className="text-lg font-black text-white">K</span>
-          </div>
-        )}
+          {!isSidebarCollapsed && (
+            <span className="text-xl font-black text-slate-800 tracking-tighter animate-in fade-in slide-in-from-left-2 duration-300">
+              KasirHub
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Navigation Items */}
