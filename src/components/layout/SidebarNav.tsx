@@ -82,19 +82,22 @@ export function SidebarNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-4 h-12 rounded-2xl transition-all group relative overflow-hidden",
+                "flex items-center gap-4 h-11 rounded-xl transition-all duration-300 group relative",
                 isActive 
-                  ? "bg-indigo-50 text-indigo-600 shadow-sm" 
-                  : "text-slate-400 hover:bg-slate-50 hover:text-slate-600",
+                  ? "bg-indigo-600/5 text-indigo-600" 
+                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-50",
                 isSidebarCollapsed ? "justify-center" : "px-4"
               )}
             >
-              <Icon className={cn("size-5 shrink-0", isActive ? "stroke-[2.5px]" : "stroke-2")} />
+              <Icon className={cn("size-5 shrink-0 transition-transform duration-300", isActive ? "stroke-[2.5px] scale-110" : "stroke-2 group-hover:scale-110")} />
               {!isSidebarCollapsed && (
-                <span className="text-sm font-bold tracking-tight">{item.label}</span>
+                <span className={cn(
+                  "text-sm tracking-tight transition-all",
+                  isActive ? "font-black" : "font-bold"
+                )}>{item.label}</span>
               )}
-              {isActive && (
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600 rounded-r-full" />
+              {isActive && !isSidebarCollapsed && (
+                <div className="absolute right-2 size-1.5 bg-indigo-600 rounded-full shadow-[0_0_8px_rgba(79,70,229,0.6)] animate-in fade-in zoom-in duration-500" />
               )}
             </Link>
           );

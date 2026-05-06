@@ -62,12 +62,18 @@ export function BottomNav() {
             onMouseEnter={() => router.prefetch(item.href)}
             onTouchStart={() => router.prefetch(item.href)}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 transition-colors",
-              isActive ? "text-primary" : "text-muted-foreground"
+              "flex flex-col items-center justify-center gap-1.5 transition-all duration-300 relative px-4",
+              isActive ? "text-indigo-600 scale-105" : "text-slate-400 hover:text-slate-600"
             )}
           >
-            <Icon className="h-5 w-5" />
-            <span className="text-[10px] font-medium">{item.label}</span>
+            <Icon className={cn("size-5 transition-all", isActive ? "stroke-[2.5px]" : "stroke-2")} />
+            <span className={cn(
+              "text-[9px] tracking-tight transition-all",
+              isActive ? "font-black" : "font-bold"
+            )}>{item.label}</span>
+            {isActive && (
+              <div className="absolute -bottom-1 size-1 bg-indigo-600 rounded-full animate-in fade-in zoom-in duration-500" />
+            )}
           </Link>
         );
       })}
