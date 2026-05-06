@@ -264,23 +264,104 @@ export default function KasirPage() {
       </header>
       )}
 
-      {/* Hold Order Bar */}
-      <HoldOrderBar />
-
-      {/* Main Content Area - Strict Layout */}
-      <main className="flex-1 overflow-hidden flex flex-col min-h-0 no-print bg-white">
-        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-          {viewMode === 'minimarket' ? (
-            <MinimarketMode products={products} isFullscreen={isFullscreen} setViewMode={setViewMode} toggleFullscreen={toggleFullscreen} />
-          ) : (
-            <RestoMode products={products} categories={categories} isFullscreen={isFullscreen} setViewMode={setViewMode} toggleFullscreen={toggleFullscreen} />
-          )}
+      {/* Main Content Area - Responsive Split Layout */}
+      <main className="flex-1 overflow-hidden flex lg:flex-row flex-col min-h-0 no-print bg-white">
+        {/* Left Side: Product Catalog / Modes */}
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0 border-r border-slate-100">
+          <HoldOrderBar />
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+            {viewMode === 'minimarket' ? (
+              <MinimarketMode products={products} isFullscreen={isFullscreen} setViewMode={setViewMode} toggleFullscreen={toggleFullscreen} />
+            ) : (
+              <RestoMode products={products} categories={categories} isFullscreen={isFullscreen} setViewMode={setViewMode} toggleFullscreen={toggleFullscreen} />
+            )}
+          </div>
         </div>
+
+        {/* Right Side: Desktop Cart Sidebar (Visible only on lg+) */}
+        <aside className="hidden lg:flex w-[380px] flex-col bg-slate-50/30 shrink-0 overflow-hidden">
+          {/* Header Sidebar */}
+          <div className="p-5 border-b bg-white flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Detail Pesanan</span>
+              <h2 className="text-sm font-black text-slate-800">{customerName || 'Pelanggan Umum'}</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="icon"
+                className="size-9 rounded-xl border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-100"
+                onClick={() => {
+                  const savedPin = localStorage.getItem('kasirhub_app_password');
+                  if (savedPin) setShowVoidPin(true);
+                  else setShowClearConfirm(true);
+                }}
+                disabled={items.length === 0}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Cart Items List - Desktop */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+             {items.map((item) => (
+               <div key={item.id} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+                 <div className="flex-1 min-w-0">
+                   <p className="text-xs font-black text-slate-800 truncate">{item.name}</p>
+                   <p className="text-[10px] font-bold text-indigo-600">
+                     {item.quantity} x Rp {item.price.toLocaleString('id-ID')}
+                   </p>
+                 </div>
+                 <div className="text-right">
+                   <p className="text-xs font-black text-slate-800">
+                     Rp {(item.price * item.quantity).toLocaleString('id-ID')}
+                   </p>
+                 </div>
+               </div>
+             ))}
+             {items.length === 0 && (
+               <div className="h-full flex flex-col items-center justify-center opacity-20 py-20">
+                 <ShoppingCart className="size-12 mb-2" />
+                 <p className="text-xs font-black uppercase tracking-widest">Keranjang Kosong</p>
+               </div>
+             )}
+          </div>
+
+          {/* Sidebar Footer - Totals & Pay */}
+          <div className="p-5 bg-white border-t space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold text-slate-400">Subtotal</span>
+                <span className="font-black text-slate-700">Rp {getSubtotal().toLocaleString('id-ID')}</span>
+              </div>
+              {getOrderDiscountAmount() > 0 && (
+                <div className="flex justify-between items-center text-xs text-amber-600">
+                  <span className="font-bold">Diskon</span>
+                  <span className="font-black">- Rp {getOrderDiscountAmount().toLocaleString('id-ID')}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-2 border-t border-slate-50">
+                <span className="text-sm font-black text-slate-800">Total</span>
+                <span className="text-xl font-black text-indigo-600">Rp {getTotal().toLocaleString('id-ID')}</span>
+              </div>
+            </div>
+
+            <Button 
+              className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-lg shadow-indigo-100 flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
+              disabled={items.length === 0}
+              onClick={() => setPayDialogOpen(true)}
+            >
+              <Check className="size-5" />
+              KONFIRMASI BAYAR
+            </Button>
+          </div>
+        </aside>
       </main>
 
-      {/* Footer / Summary Bar - Pinned to bottom */}
+      {/* Footer / Mobile Summary Bar - Hidden on lg+ Desktop Sidebar */}
       <div className={cn(
-        "p-4 border-t bg-white shrink-0 no-print shadow-[0_-8px_15px_rgba(0,0,0,0.05)] transition-all z-40",
+        "lg:hidden p-4 border-t bg-white shrink-0 no-print shadow-[0_-8px_15px_rgba(0,0,0,0.05)] transition-all z-40",
         isFullscreen && "rounded-t-3xl"
       )}>
         <div className="flex items-end justify-between mb-4">

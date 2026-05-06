@@ -178,8 +178,9 @@ export default function LaporanPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="flex items-center justify-between px-4 h-14 bg-white border-b sticky top-0 z-40">
+    <div className="min-h-screen bg-slate-50 pb-20">
+      <div className="max-w-7xl mx-auto bg-white min-h-screen shadow-sm border-x border-slate-100">
+        <header className="flex items-center justify-between px-4 h-14 bg-white border-b sticky top-0 z-40">
         <h1 className="text-lg font-semibold text-slate-800 tracking-tight">Laporan</h1>
         
         <DropdownMenu>
@@ -313,5 +314,6 @@ export default function LaporanPage() {
         </section>
       </div>
     </div>
+  </div>
   );
 }

@@ -263,59 +263,90 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
           )}
         </div>
       </div>
-
-      {loading ? (
-        <div className="flex flex-col gap-3 p-5">
-          {[1,2,3,4,5].map(i => (
-            <div key={i} className="h-20 bg-white rounded-2xl border border-slate-100 animate-pulse" />
-          ))}
-        </div>
-      ) : products.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
-          <Package className="size-12 text-slate-200 mb-4" />
-          <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Belum ada produk tersedia</p>
-        </div>
-      ) : (
-        <div className="p-5 flex flex-col gap-3">
-          {products.map(product => {
-            const inCart = cart.find(c => c.product.id === product.id);
-            return (
-              <div key={product.id} className="bg-white rounded-2xl border border-slate-100 flex items-center gap-4 p-4 shadow-sm">
-                <div className="w-16 h-16 rounded-xl bg-slate-50 border border-slate-100 flex-shrink-0 overflow-hidden">
-                  {product.image_url ? (
-                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Package className="size-6 text-slate-300" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black text-slate-800 truncate">{product.name}</p>
-                  <p className="text-base font-black text-indigo-600 mt-0.5">
-                    Rp {product.price_sell.toLocaleString('id-ID')}
-                  </p>
-                </div>
-                {inCart ? (
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => updateQty(product.id, -1)} className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 active:scale-90 transition-all">
-                      <Minus className="size-4" />
-                    </button>
-                    <span className="text-sm font-black text-slate-800 w-5 text-center">{inCart.quantity}</span>
-                    <button onClick={() => addToCart(product)} disabled={inCart.quantity >= product.stock_store} className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center active:scale-90 transition-all disabled:opacity-40">
-                      <Plus className="size-4" />
-                    </button>
+      {/* Main Content - Responsive Desktop Layout */}
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 p-5">
+        {/* Desktop Sidebar Navigation (lg+) */}
+        <aside className="hidden lg:flex w-64 flex-col gap-4 shrink-0">
+          <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm sticky top-24">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6">Navigasi</h3>
+            <div className="space-y-2">
+              <button onClick={() => setShowHelp(true)} className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-bold text-xs">
+                <HelpCircle className="size-4" /> Bantuan Pesan
+              </button>
+              {totalItems > 0 && (
+                <button onClick={() => setCartOpen(true)} className="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-100 font-bold text-xs">
+                  <div className="flex items-center gap-3">
+                    <ShoppingCart className="size-4" /> Keranjang
                   </div>
-                ) : (
-                  <button onClick={() => addToCart(product)} className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center active:scale-90 transition-all hover:bg-indigo-100">
-                    <Plus className="size-5" />
-                  </button>
-                )}
-              </div>
-            );
-          })}
+                  <span className="bg-white/20 px-2 py-0.5 rounded-lg">{totalItems}</span>
+                </button>
+              )}
+            </div>
+            
+            <div className="mt-8 pt-8 border-t border-slate-50">
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">
+                Pilih menu favorit Anda dan kirim pesanan langsung ke kasir kami.
+              </p>
+            </div>
+          </div>
+        </aside>
+
+        {/* Product Grid - Responsive Columns */}
+        <div className="flex-1">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1,2,3,4,5,6].map(i => (
+                <div key={i} className="h-28 bg-white rounded-2xl border border-slate-100 animate-pulse" />
+              ))}
+            </div>
+          ) : products.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+              <Package className="size-12 text-slate-200 mb-4" />
+              <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Belum ada produk tersedia</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {products.map(product => {
+                const inCart = cart.find(c => c.product.id === product.id);
+                return (
+                  <div key={product.id} className="bg-white rounded-2xl border border-slate-100 flex items-center gap-4 p-4 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all group">
+                    <div className="w-20 h-20 rounded-2xl bg-slate-50 border border-slate-100 flex-shrink-0 overflow-hidden">
+                      {product.image_url ? (
+                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="size-8 text-slate-300" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-black text-slate-800 truncate">{product.name}</p>
+                      <p className="text-base font-black text-indigo-600 mt-0.5">
+                        Rp {product.price_sell.toLocaleString('id-ID')}
+                      </p>
+                    </div>
+                    {inCart ? (
+                      <div className="flex flex-col items-center gap-1">
+                        <button onClick={() => updateQty(product.id, 1)} disabled={inCart.quantity >= product.stock_store} className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center active:scale-90 transition-all disabled:opacity-40">
+                          <Plus className="size-4" />
+                        </button>
+                        <span className="text-xs font-black text-slate-800">{inCart.quantity}</span>
+                        <button onClick={() => updateQty(product.id, -1)} className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 active:scale-90 transition-all">
+                          <Minus className="size-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button onClick={() => addToCart(product)} className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center active:scale-90 transition-all hover:bg-indigo-600 hover:text-white hover:border-indigo-600 shadow-sm">
+                        <Plus className="size-5" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Modals & Overlays (Help, Cart) simplified for clarity */}
       {showHelp && (
