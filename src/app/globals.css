@@ -146,6 +146,32 @@
       background: white !important;
     }
   }
+
+  /* Premium UI Utilities */
+  .premium-card {
+    @apply bg-white border border-slate-200/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_4px_6px_-2px_rgba(0,0,0,0.05)] rounded-[1.5rem] transition-all duration-300;
+  }
+
+  .premium-card:hover {
+    @apply shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.05)] border-indigo-100;
+  }
+
+  .premium-glow {
+    @apply relative;
+  }
+
+  .premium-glow::after {
+    content: '';
+    @apply absolute inset-0 -z-10 bg-indigo-500/10 blur-2xl rounded-full opacity-0 transition-opacity duration-500;
+  }
+
+  .premium-glow:hover::after {
+    @apply opacity-100;
+  }
+
+  .glass-panel {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl;
+  }
 }
 
 /* ============================================

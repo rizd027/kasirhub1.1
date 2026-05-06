@@ -16,6 +16,7 @@ import { id as localeId } from 'date-fns/locale';
 import { ReportStatCard } from '@/features/reports/ReportStatCard';
 import { SalesChart } from '@/features/reports/SalesChart';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -178,11 +179,12 @@ export default function LaporanPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      <div className="max-w-7xl mx-auto bg-white min-h-screen shadow-sm border-x border-slate-100">
-        <header className="flex items-center justify-between px-4 h-14 bg-white border-b sticky top-0 z-40">
-        <h1 className="text-lg font-semibold text-slate-800 tracking-tight">Laporan</h1>
-        
+    <div className="min-h-screen bg-background">
+      <div className="flex flex-col min-h-screen">
+        <header className="flex items-center justify-between px-6 h-16 bg-background/80 backdrop-blur-md border-b sticky top-0 z-40">
+          <div className="flex-1" />
+          <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-800">Laporan</h1>
+          <div className="flex-1 flex justify-end">
         <DropdownMenu>
           <DropdownMenuTrigger className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 transition-colors outline-none">
             <MoreVertical className="h-5 w-5" />
@@ -224,6 +226,7 @@ export default function LaporanPage() {
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </header>
 
       <div>
@@ -291,22 +294,27 @@ export default function LaporanPage() {
               <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.3em]">Daftar Laporan</h3>
               <div className="w-8 h-1 bg-indigo-400/50 rounded-full mt-2" />
             </div>
-            <div className="grid grid-cols-1 gap-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
               {reportMenus.map((menu) => (
                 <Link 
                   key={menu.href}
                   href={menu.href}
-                  className="group flex items-center gap-4 py-4 active:bg-slate-50 transition-all border-b border-slate-100 last:border-0"
+                  className="group flex items-center gap-4 p-4 hover:bg-slate-50 active:bg-slate-100 transition-all rounded-2xl border border-transparent hover:border-slate-100"
                 >
+                  <div className={cn("size-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-slate-100/50 group-hover:scale-110 transition-transform", menu.bg, menu.color)}>
+                    <menu.icon className="h-5 w-5" />
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-slate-800 leading-tight">
+                    <div className="text-[13px] font-black text-slate-800 tracking-tight leading-tight">
                       {menu.title}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1 truncate">
+                    <div className="text-[11px] font-bold text-slate-400 mt-0.5 truncate">
                       {menu.description}
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                  <div className="size-8 flex items-center justify-center rounded-full bg-white opacity-0 group-hover:opacity-100 transition-all shadow-sm">
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                  </div>
                 </Link>
               ))}
             </div>

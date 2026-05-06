@@ -199,243 +199,267 @@ export default function TokoSayaPage() {
         </Button>
       }
     >
-      <div className="max-w-2xl mx-auto p-4 md:p-12 flex flex-col gap-16">
-        {/* SECTION 1: IDENTITAS */}
-        <section className="space-y-8">
-          <div className="grid grid-cols-1 gap-8">
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest">Nama Bisnis</Label>
-              <Input
-                className="h-10 px-0 bg-transparent border-0 border-b border-muted-foreground/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-sm font-medium"
-                placeholder="Contoh: Warung Maju Jaya"
-                value={form.nama}
-                onChange={e => setForm({ ...form, nama: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest">URL Menu Digital (Username)</Label>
-              <div className="relative">
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground opacity-50">kasirhub.com/menu/</span>
-                <Input
-                  className="h-10 pl-[95px] pr-0 bg-transparent border-0 border-b border-muted-foreground/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-sm font-medium lowercase"
-                  placeholder="nama-toko-anda"
-                  value={form.slug}
-                  onChange={e => setForm({ ...form, slug: e.target.value.replace(/[^a-z0-9-]/g, '-') })}
-                />
+      <div className="max-w-6xl mx-auto p-6 lg:p-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16">
+          {/* Left Column: Form Fields */}
+          <div className="lg:col-span-2 space-y-12">
+            {/* SECTION 1: IDENTITAS */}
+            <section className="space-y-8">
+              <div>
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-6 flex items-center gap-2">
+                  <div className="size-1.5 rounded-full bg-indigo-600" />
+                  Identitas Bisnis
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nama Bisnis</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200"
+                      placeholder="Contoh: Warung Maju Jaya"
+                      value={form.nama}
+                      onChange={e => setForm({ ...form, nama: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL Menu Digital</Label>
+                    <div className="relative">
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 text-[10px] text-slate-300 font-medium">kasirhub.com/menu/</span>
+                      <Input
+                        className="h-10 pl-[95px] pr-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200 lowercase"
+                        placeholder="nama-toko-anda"
+                        value={form.slug}
+                        onChange={e => setForm({ ...form, slug: e.target.value.replace(/[^a-z0-9-]/g, '-') })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1 md:col-span-2">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Alamat Lengkap</Label>
+                    <Textarea
+                      className="min-h-[40px] px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200 resize-none overflow-hidden"
+                      placeholder="Jl. Contoh No. 1, Kota"
+                      value={form.alamat}
+                      onChange={e => setForm({ ...form, alamat: e.target.value })}
+                      rows={1}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bidang Usaha</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200"
+                      placeholder="Contoh: Minimarket, Cafe, dll"
+                      value={form.bidang_usaha}
+                      onChange={e => setForm({ ...form, bidang_usaha: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">NPWP (Opsional)</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200"
+                      placeholder="00.000.000.0-000.000"
+                      value={form.npwp}
+                      onChange={e => setForm({ ...form, npwp: e.target.value })}
+                    />
+                  </div>
+                </div>
               </div>
-              <p className="text-[9px] text-muted-foreground mt-1 italic">Gunakan huruf kecil, angka, dan tanda hubung saja.</p>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest">Alamat Lengkap</Label>
-              <Textarea
-                className="min-h-[40px] px-0 bg-transparent border-0 border-b border-muted-foreground/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-sm font-medium resize-none overflow-hidden"
-                placeholder="Jl. Contoh No. 1, Kota"
-                value={form.alamat}
-                onChange={e => setForm({ ...form, alamat: e.target.value })}
-                rows={1}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest">Nomor Telepon</Label>
-              <Input
-                className="h-10 px-0 bg-transparent border-0 border-b border-muted-foreground/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-sm font-medium"
-                type="tel"
-                placeholder="0812-3456-7890"
-                value={form.telepon}
-                onChange={e => setForm({ ...form, telepon: formatPhone(e.target.value) })}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest">Bidang Usaha</Label>
-              <Input
-                className="h-10 px-0 bg-transparent border-0 border-b border-muted-foreground/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-sm font-medium"
-                placeholder="Contoh: Minimarket, Cafe, dll"
-                value={form.bidang_usaha}
-                onChange={e => setForm({ ...form, bidang_usaha: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest">NPWP (Opsional)</Label>
-              <Input
-                className="h-10 px-0 bg-transparent border-0 border-b border-muted-foreground/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-sm font-medium"
-                placeholder="00.000.000.0-000.000"
-                value={form.npwp}
-                onChange={e => setForm({ ...form, npwp: e.target.value })}
-              />
-            </div>
+
+              <div className="pt-4">
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-6 flex items-center gap-2">
+                  <div className="size-1.5 rounded-full bg-indigo-600" />
+                  Kontak & Sosial Media
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nomor Telepon</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200"
+                      type="tel"
+                      placeholder="0812-3456-7890"
+                      value={form.telepon}
+                      onChange={e => setForm({ ...form, telepon: formatPhone(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email Bisnis</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200"
+                      type="email"
+                      placeholder="bisnis@toko.com"
+                      value={form.email_bisnis}
+                      onChange={e => setForm({ ...form, email_bisnis: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Instagram</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200"
+                      placeholder="@username_toko"
+                      value={form.instagram}
+                      onChange={e => setForm({ ...form, instagram: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">TikTok</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200"
+                      placeholder="@username_toko"
+                      value={form.tiktok}
+                      onChange={e => setForm({ ...form, tiktok: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1 md:col-span-2">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Google Maps Link</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200"
+                      placeholder="https://maps.app.goo.gl/..."
+                      value={form.google_maps_link}
+                      onChange={e => setForm({ ...form, google_maps_link: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
 
-          <div className="space-y-6">
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest">Instagram</Label>
-              <Input
-                className="h-10 px-0 bg-transparent border-0 border-b border-muted-foreground/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-sm font-medium"
-                placeholder="@username_toko"
-                value={form.instagram}
-                onChange={e => setForm({ ...form, instagram: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest">TikTok</Label>
-              <Input
-                className="h-10 px-0 bg-transparent border-0 border-b border-muted-foreground/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-sm font-medium"
-                placeholder="@username_toko"
-                value={form.tiktok}
-                onChange={e => setForm({ ...form, tiktok: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest">Email Bisnis</Label>
-              <Input
-                className="h-10 px-0 bg-transparent border-0 border-b border-muted-foreground/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-sm font-medium"
-                type="email"
-                placeholder="bisnis@toko.com"
-                value={form.email_bisnis}
-                onChange={e => setForm({ ...form, email_bisnis: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest">Google Maps</Label>
-              <Input
-                className="h-10 px-0 bg-transparent border-0 border-b border-muted-foreground/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-sm font-medium"
-                placeholder="https://maps.app.goo.gl/..."
-                value={form.google_maps_link}
-                onChange={e => setForm({ ...form, google_maps_link: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-4 pt-8">
-            <div className="flex items-center justify-between px-1">
-              <Label className="text-[10px] font-bold text-black dark:text-white uppercase tracking-[0.15em]">Logo Toko</Label>
-              {form.logo_url && (
-                <button
-                  onClick={() => setForm(prev => ({ ...prev, logo_url: '' }))}
-                  className="text-[10px] text-destructive hover:text-destructive/80 transition-colors font-bold uppercase tracking-wider"
-                >
-                  Hapus
-                </button>
-              )}
-            </div>
-            <div className="relative group">
-              <label className="flex flex-col items-center justify-center h-48 w-full cursor-pointer rounded-2xl border border-dashed border-muted-foreground/20 bg-muted/5 transition-all hover:bg-muted/10 hover:border-primary/30 overflow-hidden shadow-sm">
-                {form.logo_url ? (
-                  <div className="relative h-full w-full flex items-center justify-center p-6">
-                    <img src={form.logo_url} alt="Logo preview" className="max-h-full max-w-full object-contain drop-shadow-md" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
-                      <span className="text-white text-[10px] font-bold px-4 py-1.5 bg-black/50 rounded-full border border-white/20">GANTI LOGO</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-3 text-muted-foreground p-6">
-                    <div className="p-3 rounded-full bg-muted/50 text-primary/40">
-                      <UploadCloud className="h-6 w-6" />
-                    </div>
-                    <p className="text-[10px] font-bold text-foreground/50 uppercase tracking-widest">{uploadingLogo ? 'MENGUNGGAH...' : 'PILIH LOGO'}</p>
-                  </div>
+          {/* Right Column: Branding & Signature */}
+          <div className="space-y-10">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 flex items-center gap-2">
+                  <div className="size-1.5 rounded-full bg-indigo-600" />
+                  Logo Toko
+                </h3>
+                {form.logo_url && (
+                  <button
+                    onClick={() => setForm(prev => ({ ...prev, logo_url: '' }))}
+                    className="text-[9px] text-red-500 hover:text-red-600 transition-colors font-black uppercase tracking-widest"
+                  >
+                    Hapus
+                  </button>
                 )}
-                <Input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'logo_url')} />
-              </label>
-            </div>
-          </div>
-
-          <div className="space-y-4 pt-4">
-            <div className="flex items-center justify-between px-1">
-              <Label className="text-[10px] font-bold text-black dark:text-white uppercase tracking-[0.15em]">Tanda Tangan</Label>
-              <div className="flex p-1 bg-muted/40 rounded-xl border border-muted-foreground/10">
-                <button
-                  type="button"
-                  onClick={() => setSignatureMode('draw')}
-                  className={cn(
-                    "px-4 py-1 text-[9px] font-black rounded-lg transition-all tracking-widest",
-                    signatureMode === 'draw' ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  GAMBAR
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSignatureMode('upload')}
-                  className={cn(
-                    "px-4 py-1 text-[9px] font-black rounded-lg transition-all tracking-widest",
-                    signatureMode === 'upload' ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  UPLOAD
-                </button>
               </div>
-            </div>
-
-            <div className="h-48 flex flex-col">
-              {signatureMode === 'upload' ? (
-                <label className="flex flex-col items-center justify-center flex-1 cursor-pointer rounded-2xl border border-dashed border-muted-foreground/20 bg-muted/5 transition-all hover:bg-muted/10 hover:border-primary/30 overflow-hidden shadow-sm">
-                  {form.signature_url && signatureMode === 'upload' ? (
-                    <div className="relative h-full w-full flex items-center justify-center p-6">
-                      <img src={form.signature_url} alt="Signature preview" className="max-h-full max-w-full object-contain grayscale brightness-90" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
-                        <span className="text-white text-[10px] font-bold px-4 py-1.5 bg-black/50 rounded-full border border-white/20">GANTI FILE</span>
+              <div className="relative group">
+                <label className="flex flex-col items-center justify-center h-56 w-full cursor-pointer rounded-[2rem] border-2 border-dashed border-slate-100 bg-slate-50/50 transition-all hover:bg-white hover:border-indigo-200 overflow-hidden shadow-sm">
+                  {form.logo_url ? (
+                    <div className="relative h-full w-full flex items-center justify-center p-8">
+                      <img src={form.logo_url} alt="Logo preview" className="max-h-full max-w-full object-contain drop-shadow-xl" />
+                      <div className="absolute inset-0 bg-indigo-600/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
+                        <span className="text-white text-[10px] font-black px-5 py-2 bg-indigo-600 rounded-xl shadow-lg uppercase tracking-widest">Ganti Logo</span>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                      <div className="p-3 rounded-full bg-muted/50 text-primary/40">
+                    <div className="flex flex-col items-center gap-4 text-slate-300 p-8">
+                      <div className="p-4 rounded-[1.5rem] bg-white shadow-sm text-indigo-400">
                         <UploadCloud className="h-6 w-6" />
                       </div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest">{uploadingSignature ? 'MENGUNGGAH...' : 'UPLOAD TTD'}</span>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{uploadingLogo ? 'MENGUNGGAH...' : 'PILIH LOGO'}</p>
                     </div>
                   )}
-                  <Input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'signature_url')} />
+                  <Input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'logo_url')} />
                 </label>
-              ) : (
-                <div className="flex-1 flex flex-col gap-3">
-                  <div className="flex-1 relative rounded-2xl border border-muted-foreground/10 bg-white overflow-hidden shadow-inner ring-1 ring-black/5">
-                    <canvas
-                      ref={signatureCanvasRef}
-                      width={600}
-                      height={300}
-                      className={cn(
-                        "h-full w-full",
-                        isCanvasLocked ? "cursor-default" : "cursor-crosshair touch-none"
-                      )}
-                      onPointerDown={isCanvasLocked ? undefined : startDrawing}
-                      onPointerMove={isCanvasLocked ? undefined : draw}
-                      onPointerUp={isCanvasLocked ? undefined : endDrawing}
-                      onPointerLeave={isCanvasLocked ? undefined : endDrawing}
-                    />
+              </div>
+            </div>
 
-                    {isCanvasLocked && form.signature_url && (
-                      <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
-                        <img src={form.signature_url} alt="Saved signature" className="max-h-full max-w-full object-contain grayscale" />
-                      </div>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 flex items-center gap-2">
+                  <div className="size-1.5 rounded-full bg-indigo-600" />
+                  Tanda Tangan
+                </h3>
+                <div className="flex p-1 bg-slate-100/50 rounded-xl border border-slate-200/60">
+                  <button
+                    type="button"
+                    onClick={() => setSignatureMode('draw')}
+                    className={cn(
+                      "px-3 py-1 text-[8px] font-black rounded-lg transition-all tracking-widest uppercase",
+                      signatureMode === 'draw' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
                     )}
-
-                    {isCanvasLocked && (
-                      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 backdrop-blur-[1px] transition-all">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9 px-4 bg-white/80 border-primary/20 text-[10px] font-black tracking-widest shadow-xl shadow-black/5 rounded-xl hover:bg-primary hover:text-primary-foreground transition-all uppercase"
-                          onClick={() => setIsCanvasLocked(false)}
-                        >
-                          Edit Tanda Tangan
-                        </Button>
-                        <p className="mt-2 text-[9px] font-bold text-muted-foreground/60 tracking-wider uppercase">Tekan edit untuk menggambar tanda tangan</p>
-                      </div>
+                  >
+                    Gbr
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSignatureMode('upload')}
+                    className={cn(
+                      "px-3 py-1 text-[8px] font-black rounded-lg transition-all tracking-widest uppercase",
+                      signatureMode === 'upload' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
                     )}
-                  </div>
-                  <div className="flex gap-4">
-                    <button type="button" className="text-[10px] font-bold text-muted-foreground hover:text-destructive transition-colors uppercase tracking-wider" onClick={clearSignatureCanvas}>
-                      Hapus
-                    </button>
-                    <button type="button" className="flex-1 text-[10px] font-bold text-primary hover:underline transition-all uppercase tracking-wider text-left" onClick={useDrawnSignature}>
-                      Gunakan Tanda Tangan
-                    </button>
-                  </div>
+                  >
+                    File
+                  </button>
                 </div>
-              )}
+              </div>
+
+              <div className="h-56 flex flex-col">
+                {signatureMode === 'upload' ? (
+                  <label className="flex flex-col items-center justify-center flex-1 cursor-pointer rounded-[2rem] border-2 border-dashed border-slate-100 bg-slate-50/50 transition-all hover:bg-white hover:border-indigo-200 overflow-hidden shadow-sm">
+                    {form.signature_url && signatureMode === 'upload' ? (
+                      <div className="relative h-full w-full flex items-center justify-center p-8">
+                        <img src={form.signature_url} alt="Signature preview" className="max-h-full max-w-full object-contain grayscale opacity-80" />
+                        <div className="absolute inset-0 bg-indigo-600/10 opacity-0 hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
+                          <span className="text-white text-[10px] font-black px-5 py-2 bg-indigo-600 rounded-xl shadow-lg uppercase tracking-widest">Ganti File</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-4 text-slate-300">
+                        <div className="p-4 rounded-[1.5rem] bg-white shadow-sm text-indigo-400">
+                          <UploadCloud className="h-6 w-6" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">{uploadingSignature ? 'MENGUNGGAH...' : 'UPLOAD TTD'}</span>
+                      </div>
+                    )}
+                    <Input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'signature_url')} />
+                  </label>
+                ) : (
+                  <div className="flex-1 flex flex-col gap-4">
+                    <div className="flex-1 relative rounded-[2rem] border border-slate-100 bg-white overflow-hidden shadow-inner ring-1 ring-black/5">
+                      <canvas
+                        ref={signatureCanvasRef}
+                        width={600}
+                        height={300}
+                        className={cn(
+                          "h-full w-full",
+                          isCanvasLocked ? "cursor-default" : "cursor-crosshair touch-none"
+                        )}
+                        onPointerDown={isCanvasLocked ? undefined : startDrawing}
+                        onPointerMove={isCanvasLocked ? undefined : draw}
+                        onPointerUp={isCanvasLocked ? undefined : endDrawing}
+                        onPointerLeave={isCanvasLocked ? undefined : endDrawing}
+                      />
+
+                      {isCanvasLocked && form.signature_url && (
+                        <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
+                          <img src={form.signature_url} alt="Saved signature" className="max-h-full max-w-full object-contain grayscale opacity-60" />
+                        </div>
+                      )}
+
+                      {isCanvasLocked && (
+                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 backdrop-blur-[2px] transition-all">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-10 px-5 bg-white border-slate-200 text-[10px] font-black tracking-[0.2em] shadow-xl shadow-black/5 rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all uppercase"
+                            onClick={() => setIsCanvasLocked(false)}
+                          >
+                            Edit Signature
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between px-2">
+                      <button type="button" className="text-[9px] font-black text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest" onClick={clearSignatureCanvas}>
+                        Hapus
+                      </button>
+                      <button type="button" className="text-[9px] font-black text-indigo-600 hover:text-indigo-700 transition-all uppercase tracking-widest" onClick={useDrawnSignature}>
+                        Gunakan TTD
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </section>
+        </div>
       </div>
     </SettingsLayout>
   );

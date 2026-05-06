@@ -16,8 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { PinDialog } from "@/components/ui/PinDialog";
 
 import { useStaffStore } from '@/store/useStaffStore';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { List, LayoutGrid, Maximize2, Eye } from "lucide-react";
+import { List, LayoutGrid, Maximize2 } from "lucide-react";
 
 export function MinimarketMode({ 
   products, 
@@ -154,9 +153,9 @@ export function MinimarketMode({
     : [];
 
   return (
-    <div className="flex flex-col h-full gap-3 p-4 overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Search / Scan Input - Fixed at top */}
-      <div className="flex gap-2 shrink-0">
+      <div className="h-16 px-6 border-b flex items-center gap-4 shrink-0 bg-white">
         {/* ... existing search input ... */}
         <div className="relative flex-1 group">
           <button
@@ -191,7 +190,7 @@ export function MinimarketMode({
           <Input
             ref={inputRef}
             placeholder="Scan barcode / ketik nama..."
-            className="pl-10 pr-4 h-12 text-base shadow-none bg-transparent border-0 border-b-2 border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all placeholder:text-slate-300 font-medium"
+            className="pl-10 pr-4 h-12 text-base shadow-none bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all placeholder:text-slate-300 font-medium"
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleSearch}
@@ -248,38 +247,36 @@ export function MinimarketMode({
         
         {/* Fullscreen View Menu - Integrated into search row */}
         {isFullscreen && setViewMode && toggleFullscreen && (
-          <DropdownMenu>
-            <DropdownMenuTrigger className="h-11 w-11 rounded-xl bg-slate-50 text-slate-400 hover:text-indigo-600 border border-slate-100 flex items-center justify-center transition-all active:scale-90 shadow-sm">
-              <Eye className="h-5 w-5" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-fit w-auto rounded-2xl p-1.5 shadow-2xl border-slate-100 flex flex-row gap-1 items-center bg-white/80 backdrop-blur-md">
-              <DropdownMenuItem 
-                onClick={() => setViewMode('minimarket')} 
-                className={cn(
-                  "justify-center h-9 w-9 rounded-xl transition-all",
-                  "bg-indigo-50 text-indigo-600"
-                )}
-              >
-                <List className="h-4 w-4" />
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => setViewMode('resto')} 
-                className={cn(
-                  "justify-center h-9 w-9 rounded-xl transition-all",
-                  "text-slate-400"
-                )}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </DropdownMenuItem>
-              <div className="w-px h-6 bg-slate-100 mx-1" />
-              <DropdownMenuItem 
-                onClick={toggleFullscreen} 
-                className="justify-center h-9 w-9 rounded-xl transition-all bg-indigo-50 text-indigo-600"
-              >
-                <Maximize2 className="h-4 w-4" />
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-100 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setViewMode('minimarket')}
+              className="h-8 w-8 rounded-lg bg-white text-indigo-600 shadow-sm"
+              title="Mode Minimarket"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setViewMode('resto')}
+              className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600"
+              title="Mode Resto"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <div className="w-px h-4 bg-slate-200 mx-0.5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleFullscreen}
+              className="h-8 w-8 rounded-lg bg-white text-indigo-600 shadow-sm"
+              title="Layar Penuh"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </div>
 
@@ -308,7 +305,7 @@ export function MinimarketMode({
       </div>
 
       {/* Cart Table - Edge to Edge */}
-      <div className="flex-1 border-t border-slate-200 bg-white flex flex-col min-h-0 -mx-4 mt-1">
+      <div className="flex-1 bg-white flex flex-col min-h-0">
         <div className="overflow-y-auto flex-1 scrollbar-hide">
           <Table>
             <TableHeader className="bg-slate-50/80 sticky top-0 z-20 border-b border-slate-100">

@@ -383,9 +383,9 @@ export default function StockPage() {
         </div>
 
         {/* Stock List */}
-        <div className="flex flex-col border-t border-slate-200/60">
+        <div className="flex flex-col border-t border-slate-100">
           {filteredProducts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+            <div className="flex flex-col items-center justify-center py-24 text-muted-foreground bg-slate-50/30">
               <Package className="h-12 w-12 opacity-10 mb-3" />
               <p className="text-sm font-medium">Tidak ada produk yang ditemukan.</p>
             </div>
@@ -403,176 +403,182 @@ export default function StockPage() {
                 <div 
                   key={item.id}
                   className={cn(
-                    "group flex flex-col px-6 py-5 transition-colors border-b border-slate-200/60",
-                    isEditing ? "bg-indigo-50/30" : "hover:bg-slate-50/50"
+                    "group flex flex-col transition-all border-b border-slate-100",
+                    isEditing ? "bg-indigo-50/40" : "hover:bg-slate-50/50"
                   )}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="h-14 w-14 shrink-0 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center border border-slate-200/50">
+                  <div className="flex flex-col lg:flex-row lg:items-center px-6 py-5 gap-6 lg:gap-0">
+                    {/* Column 1: Identity */}
+                    <div className="flex items-center gap-4 min-w-0 lg:w-[35%] lg:pr-8">
+                      <div className="h-14 w-14 shrink-0 rounded-[1.2rem] bg-white overflow-hidden flex items-center justify-center border border-slate-100 shadow-sm group-hover:scale-105 transition-transform duration-300">
                         {item.image_url ? (
                           <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
                         ) : (
-                          <Package className="h-6 w-6 text-slate-300" />
+                          <Package className="h-6 w-6 text-slate-200" />
                         )}
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-sm font-black text-slate-800 truncate">
+                        <h3 className="text-[14px] font-black text-slate-800 truncate leading-tight mb-1 group-hover:text-indigo-600 transition-colors">
                           {item.name}
                         </h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] font-bold text-slate-400 font-mono bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 uppercase tracking-tighter">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-black text-slate-400 font-mono bg-white px-1.5 py-0.5 rounded-lg border border-slate-100 uppercase tracking-tighter">
                             {item.sku}
                           </span>
-                          <Badge variant="outline" className={cn("text-[9px] font-black h-4.5 px-1.5 uppercase tracking-wider", stockBadge.className)}>
+                          <Badge variant="outline" className={cn("text-[8px] font-black h-4 px-1.5 uppercase tracking-[0.1em] border-none", stockBadge.className)}>
                             {stockBadge.label}
                           </Badge>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1">
-                      {!isEditing ? (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            render={
-                              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 outline-none">
-                                <MoreVertical className="h-4 w-4" />
+                    {/* Column 2: Store Stock */}
+                    <div className="lg:flex-1">
+                       <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1.5">Stok Toko</span>
+                          {isEditing ? (
+                            <div className="flex flex-col gap-2 max-w-[140px]">
+                              <Input
+                                type="number"
+                                min={0}
+                                className="h-10 text-center font-black text-lg rounded-xl border-indigo-100 focus-visible:ring-indigo-500 bg-white"
+                                value={row.stock_store}
+                                onChange={(e) => updateDraft(item.id, 'stock_store', Number(e.target.value))}
+                              />
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-7 w-full rounded-lg font-bold text-[9px] uppercase tracking-wider border-indigo-50 text-indigo-400 hover:text-indigo-600 bg-white shadow-none"
+                                onClick={() => transferStock(item, 'toWarehouse')}
+                              >
+                                <ArrowRightLeft className="h-2.5 w-2.5 mr-1.5" />
+                                Pindah ke Gudang
                               </Button>
-                            }
-                          />
-                          <DropdownMenuContent align="end" className="w-44 rounded-xl p-2 shadow-xl border-slate-100">
-                            <DropdownMenuItem onClick={() => setEditingId(item.id)} className="flex items-start py-2.5 cursor-pointer">
-                              <Pencil className="mr-2 h-4 w-4 mt-0.5 shrink-0 text-indigo-500" />
-                              <span className="text-xs font-semibold whitespace-normal leading-tight">Edit Stok</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setHistoryProductId(item.id)} className="flex items-start py-2.5 cursor-pointer">
-                              <History className="mr-2 h-4 w-4 mt-0.5 shrink-0 text-slate-400" />
-                              <span className="text-xs font-semibold whitespace-normal leading-tight">Riwayat Stok</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator className="my-1 bg-slate-50" />
-                            <DropdownMenuItem 
-                              onClick={() => {
-                                setProductToManage(item);
-                                setShowResetAlert(true);
-                              }} 
-                              className="flex items-start py-2.5 cursor-pointer text-amber-600 focus:text-amber-600 focus:bg-amber-50"
-                            >
-                              <RotateCcw className="mr-2 h-4 w-4 mt-0.5 shrink-0" />
-                              <span className="text-xs font-semibold whitespace-normal leading-tight">Reset ke 0</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => {
-                                setProductToManage(item);
-                                setShowDeleteAlert(true);
-                              }} 
-                              className="flex items-start py-2.5 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4 mt-0.5 shrink-0" />
-                              <span className="text-xs font-semibold whitespace-normal leading-tight">Hapus Permanen</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : (
-                        <div className="flex items-center gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 px-3 font-bold text-xs text-slate-400" 
-                            onClick={() => setEditingId(null)}
-                          >
-                            Batal
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            className={cn(
-                              "h-8 px-4 font-black text-xs rounded-lg shadow-lg",
-                              savedId === item.id ? "bg-emerald-600 text-white shadow-emerald-100" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
-                            )}
-                            disabled={savingId === item.id}
-                            onClick={() => handleSave(item)}
-                          >
-                            {savingId === item.id ? '...' : savedId === item.id ? <Check className="h-3.5 w-3.5" /> : 'Simpan'}
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Stock Values Display/Edit */}
-                  <div className={cn(
-                    "grid gap-4 transition-all mt-4",
-                    isEditing ? "bg-white p-4 rounded-2xl border-2 border-indigo-100" : ""
-                  )}>
-                    <div className="grid grid-cols-2 gap-8">
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Stok Toko</p>
-                        {isEditing ? (
-                          <div className="flex flex-col gap-2">
-                            <Input
-                              type="number"
-                              min={0}
-                              className="h-12 text-center font-black text-xl rounded-xl border-indigo-200 focus-visible:ring-indigo-500 bg-slate-50"
-                              value={row.stock_store}
-                              onChange={(e) => updateDraft(item.id, 'stock_store', Number(e.target.value))}
-                            />
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="h-9 w-full rounded-lg font-bold text-[10px] uppercase tracking-wider border-slate-100 text-indigo-600 bg-white"
-                              onClick={() => transferStock(item, 'toWarehouse')}
-                            >
-                              <ArrowRightLeft className="h-3 w-3 mr-2" />
-                              Pindah ke Gudang
-                            </Button>
-                          </div>
-                        ) : (
-                          <p className="text-[16px] font-black text-slate-800">
-                            {item.stock_store} <span className="text-[10px] text-slate-400 font-bold uppercase ml-1">pcs</span>
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Stok Gudang</p>
-                        {isEditing ? (
-                          <div className="flex flex-col gap-2">
-                            <Input
-                              type="number"
-                              min={0}
-                              className="h-12 text-center font-black text-xl rounded-xl border-indigo-200 focus-visible:ring-indigo-500 bg-slate-50"
-                              value={row.stock_warehouse}
-                              onChange={(e) => updateDraft(item.id, 'stock_warehouse', Number(e.target.value))}
-                            />
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="h-9 w-full rounded-lg font-bold text-[10px] uppercase tracking-wider border-slate-100 text-indigo-600 bg-white"
-                              onClick={() => transferStock(item, 'toStore')}
-                            >
-                              <ArrowRightLeft className="h-3 w-3 mr-2 rotate-180" />
-                              Pindah ke Toko
-                            </Button>
-                          </div>
-                        ) : (
-                          <p className="text-[16px] font-black text-slate-800">
-                            {item.stock_warehouse} <span className="text-[10px] text-slate-400 font-bold uppercase ml-1">pcs</span>
-                          </p>
-                        )}
-                      </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-lg font-black text-slate-700">{item.stock_store}</span>
+                              <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Pcs</span>
+                            </div>
+                          )}
+                       </div>
                     </div>
 
-                    {!isEditing && (
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50">
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-300">
-                           <History className="h-3 w-3" />
-                           {getLastUpdated(item.id) ? new Date(getLastUpdated(item.id)!).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '---'}
-                        </div>
-                        <div className="text-[11px] font-black text-slate-800">
-                           Total: <span className="text-indigo-600">{totalStock}</span> <span className="text-[9px] text-slate-300 font-bold">PCS</span>
-                        </div>
-                      </div>
-                    )}
+                    {/* Column 3: Warehouse Stock */}
+                    <div className="lg:flex-1">
+                       <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1.5">Stok Gudang</span>
+                          {isEditing ? (
+                            <div className="flex flex-col gap-2 max-w-[140px]">
+                              <Input
+                                type="number"
+                                min={0}
+                                className="h-10 text-center font-black text-lg rounded-xl border-indigo-100 focus-visible:ring-indigo-500 bg-white"
+                                value={row.stock_warehouse}
+                                onChange={(e) => updateDraft(item.id, 'stock_warehouse', Number(e.target.value))}
+                              />
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-7 w-full rounded-lg font-bold text-[9px] uppercase tracking-wider border-indigo-50 text-indigo-400 hover:text-indigo-600 bg-white shadow-none"
+                                onClick={() => transferStock(item, 'toStore')}
+                              >
+                                <ArrowRightLeft className="h-2.5 w-2.5 mr-1.5 rotate-180" />
+                                Pindah ke Toko
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-lg font-black text-slate-700">{item.stock_warehouse}</span>
+                              <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Pcs</span>
+                            </div>
+                          )}
+                       </div>
+                    </div>
+
+                    {/* Column 4: Total & Actions */}
+                    <div className="lg:w-[15%] lg:text-right flex items-center justify-between lg:justify-end gap-6">
+                       <div className="flex flex-col lg:items-end">
+                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Total Stok</span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-black text-indigo-600">{totalStock}</span>
+                            <span className="text-[10px] font-black text-indigo-200 uppercase tracking-widest">PCS</span>
+                          </div>
+                          {!isEditing && (
+                            <div className="flex items-center gap-1.5 mt-1 text-[9px] font-bold text-slate-300 whitespace-nowrap">
+                               <History className="h-2.5 w-2.5" />
+                               {getLastUpdated(item.id) ? new Date(getLastUpdated(item.id)!).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                            </div>
+                          )}
+                       </div>
+
+                       <div className="shrink-0 flex items-center gap-1">
+                          {!isEditing ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                render={
+                                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-slate-200 hover:text-indigo-600 hover:bg-white outline-none transition-all">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                }
+                              />
+                              <DropdownMenuContent align="end" className="w-44 rounded-xl p-2 shadow-xl border-slate-100">
+                                <DropdownMenuItem onClick={() => setEditingId(item.id)} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
+                                  <Pencil className="mr-2 h-4 w-4 mt-0.5 shrink-0 text-indigo-500" />
+                                  <span className="text-xs font-semibold whitespace-normal leading-tight">Edit Stok</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setHistoryProductId(item.id)} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
+                                  <History className="mr-2 h-4 w-4 mt-0.5 shrink-0 text-slate-400" />
+                                  <span className="text-xs font-semibold whitespace-normal leading-tight">Riwayat Stok</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="my-1 bg-slate-50" />
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    setProductToManage(item);
+                                    setShowResetAlert(true);
+                                  }} 
+                                  className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer text-amber-600 focus:text-amber-600 focus:bg-amber-50"
+                                >
+                                  <RotateCcw className="mr-2 h-4 w-4 mt-0.5 shrink-0" />
+                                  <span className="text-xs font-semibold whitespace-normal leading-tight">Reset ke 0</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    setProductToManage(item);
+                                    setShowDeleteAlert(true);
+                                  }} 
+                                  className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4 mt-0.5 shrink-0" />
+                                  <span className="text-xs font-semibold whitespace-normal leading-tight">Hapus Permanen</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-9 px-3 font-bold text-[11px] uppercase tracking-widest text-slate-400 hover:text-red-500 hover:bg-transparent" 
+                                onClick={() => setEditingId(null)}
+                              >
+                                Batal
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                className={cn(
+                                  "h-10 px-4 font-black text-xs rounded-xl shadow-lg transition-all active:scale-95",
+                                  savedId === item.id ? "bg-emerald-600 text-white shadow-emerald-100" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
+                                )}
+                                disabled={savingId === item.id}
+                                onClick={() => handleSave(item)}
+                              >
+                                {savingId === item.id ? '...' : savedId === item.id ? <Check className="h-3.5 w-3.5" /> : 'SIMPAN'}
+                              </Button>
+                            </div>
+                          )}
+                       </div>
+                    </div>
                   </div>
                 </div>
               );

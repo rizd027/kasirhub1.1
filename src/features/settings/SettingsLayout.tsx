@@ -88,19 +88,21 @@ export function SettingsLayout({
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background pb-20">
-      <header className="flex items-center h-14 border-b bg-card sticky top-0 z-40 px-2">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-          <ChevronLeft className="h-5 w-5" />
+    <div className="flex flex-col min-h-screen bg-background">
+      <header className="flex items-center h-16 border-b bg-background/80 backdrop-blur-md sticky top-0 z-40 px-4">
+        <Button variant="ghost" size="icon" className="size-9 rounded-xl hover:bg-slate-50 transition-all active:scale-90" onClick={() => router.back()}>
+          <ChevronLeft className="h-5 w-5 text-slate-600" />
         </Button>
-        <h1 className="text-base font-semibold ml-1 min-w-0 truncate">{title}</h1>
-        <div className="ml-auto flex min-w-0 shrink items-center gap-2">
+        <h1 className="text-sm font-black ml-2 min-w-0 truncate text-slate-800 uppercase tracking-widest">{title}</h1>
+        <div className="ml-auto flex min-w-0 shrink items-center gap-3">
           <button 
             onClick={handleManualSync}
             disabled={!isOnline || isSyncing}
             className={cn(
-              "inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-1 text-[10px] text-muted-foreground shrink-0 transition-all active:scale-95",
-              isSyncing && "animate-pulse border-indigo-200"
+              "inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
+              isSyncing 
+                ? "animate-pulse border-indigo-200 bg-indigo-50 text-indigo-600" 
+                : "bg-slate-50 border-slate-100 text-slate-500 hover:bg-white hover:border-slate-200"
             )}
           >
             {isSyncing ? (

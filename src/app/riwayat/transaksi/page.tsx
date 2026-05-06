@@ -197,39 +197,38 @@ export default function RiwayatTransaksiPage() {
   }, [filteredTransactions]);
 
   return (
-    <div className="flex flex-col h-full bg-background pb-20">
-      <header className="flex items-center justify-between px-4 h-14 border-b bg-white sticky top-0 z-40">
-        <h1 className="text-lg font-semibold text-slate-800 tracking-tight">Riwayat</h1>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-5 w-5 text-slate-600", refreshing && "animate-spin")} />
+    <div className="flex flex-col h-full bg-background overflow-hidden">
+      <header className="flex items-center justify-between px-6 h-16 bg-background/80 backdrop-blur-md border-b sticky top-0 z-40 shrink-0">
+        <div className="flex-1" />
+        <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-800">Riwayat</h1>
+        <div className="flex-1 flex justify-end">
+          <Button variant="ghost" size="icon" className="size-9 rounded-xl hover:bg-slate-50" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={cn("h-4 w-4 text-slate-600", refreshing && "animate-spin")} />
           </Button>
           
           {session?.role === 'admin' && (
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none">
+              <DropdownMenuTrigger className="inline-flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-slate-50 outline-none">
                 <MoreVertical className="h-4 w-4" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44 rounded-xl p-2 shadow-xl border-slate-100">
+              <DropdownMenuContent align="end" className="w-44 rounded-2xl p-1 shadow-2xl border-slate-100">
+                <div className="px-3 py-2 border-b border-slate-50 mb-1">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Manajemen</p>
+                </div>
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 py-1.5">Aksi Massal</DropdownMenuLabel>
-                  <DropdownMenuSeparator className="my-1 bg-slate-50" />
-                  <DropdownMenuItem onClick={handleBulkSync} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
-                    <CloudCheck className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-indigo-500" />
-                    <span className="text-xs font-semibold whitespace-normal leading-tight">Sinkronkan Semua</span>
+                  <DropdownMenuItem onClick={handleBulkSync} className="h-10 rounded-xl focus:bg-indigo-50 focus:text-indigo-600">
+                    <CloudCheck className="h-4 w-4 mr-2 text-indigo-500" /> Sinkronkan
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleExport} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
-                    <Download className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-emerald-500" />
-                    <span className="text-xs font-semibold whitespace-normal leading-tight">Ekspor ke Excel</span>
+                  <DropdownMenuItem onClick={handleExport} className="h-10 rounded-xl focus:bg-emerald-50 focus:text-emerald-600">
+                    <Download className="h-4 w-4 mr-2 text-emerald-500" /> Ekspor Excel
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
-                <DropdownMenuSeparator className="my-1 bg-slate-50" />
+                <DropdownMenuSeparator className="my-1" />
                 <DropdownMenuItem 
                   onClick={handleClearOld} 
-                  className="flex items-start py-2.5 px-2 rounded-lg text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                  className="h-10 rounded-xl text-red-600 focus:text-red-600 focus:bg-red-50"
                 >
-                  <Trash2 className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
-                  <span className="text-xs font-semibold whitespace-normal leading-tight">Hapus Data Lama</span>
+                  <Trash2 className="h-4 w-4 mr-2" /> Bersihkan Data
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

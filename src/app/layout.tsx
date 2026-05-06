@@ -38,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className={cn("h-full antialiased font-sans", geist.variable)}>
-      <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-hidden">
+      <body className="min-h-full flex flex-col bg-background lg:bg-slate-50/50 text-foreground overflow-x-hidden">
         <SyncProvider />
         <AuthCheck>
           <div className="flex-1 flex w-full min-h-screen">

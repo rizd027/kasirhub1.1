@@ -13,8 +13,8 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useStaffStore } from '@/store/useStaffStore';
 import { PinDialog } from "@/components/ui/PinDialog";
 import { toast } from 'sonner';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Eye, LayoutGrid, List, Maximize2 } from "lucide-react";
+import { LayoutGrid, List, Maximize2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function RestoMode({ 
   products, 
@@ -42,9 +42,41 @@ export function RestoMode({
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Category Filter */}
-      <div className="bg-white border-b sticky top-0 z-30 px-4 py-3 shadow-sm shrink-0">
+      <div className="bg-white border-b sticky top-0 z-30 px-6 h-16 flex items-center shrink-0">
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex gap-2 pb-1 items-center">
+            {isFullscreen && setViewMode && toggleFullscreen && (
+              <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-100 shrink-0 mr-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode('minimarket')}
+                  className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600"
+                  title="Mode Minimarket"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode('resto')}
+                  className="h-8 w-8 rounded-lg bg-white text-indigo-600 shadow-sm"
+                  title="Mode Resto"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <div className="w-px h-4 bg-slate-200 mx-0.5" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleFullscreen}
+                  className="h-8 w-8 rounded-lg bg-white text-indigo-600 shadow-sm"
+                  title="Layar Penuh"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
             <button
               onClick={() => setActiveCategory(null)}
               className={cn(

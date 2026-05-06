@@ -170,7 +170,7 @@ export default function KasirPage() {
   };
 
   return (
-    <div className={cn("flex flex-col bg-background select-none overflow-hidden", isFullscreen ? "h-[100dvh]" : "h-[calc(100dvh-4rem)]")}>
+    <div className={cn("flex flex-col bg-background select-none overflow-hidden", isFullscreen ? "h-screen" : "h-[calc(100dvh-4rem)] lg:h-screen")}>
       {/* Header */}
       {!isFullscreen && (
         <header className="flex items-center justify-between px-4 h-14 border-b bg-card shrink-0 no-print">
@@ -283,18 +283,38 @@ export default function KasirPage() {
         </div>
 
         {/* Right Side: Desktop Cart Sidebar (Visible only on lg+) */}
-        <aside className="hidden lg:flex w-[380px] flex-col bg-slate-50/30 shrink-0 overflow-hidden">
+        <aside className="hidden lg:flex w-[400px] flex-col bg-slate-50/50 shrink-0 overflow-hidden border-l border-slate-200/60 shadow-[inset_0_0_40px_rgba(0,0,0,0.02)]">
           {/* Header Sidebar */}
-          <div className="p-5 border-b bg-white flex items-center justify-between">
+          <div className="h-16 px-6 border-b bg-white/80 backdrop-blur-sm flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Detail Pesanan</span>
-              <h2 className="text-sm font-black text-slate-800">{customerName || 'Pelanggan Umum'}</h2>
+              <span className="text-[10px] font-black text-indigo-600/60 uppercase tracking-[0.2em] mb-1">Daftar Belanja</span>
+              <h2 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                <div className="size-2 rounded-full bg-indigo-600 animate-pulse" />
+                {customerName || 'Pelanggan Umum'}
+              </h2>
             </div>
             <div className="flex items-center gap-2">
+              {isFullscreen && (
+                <button
+                  onClick={() => setInboxOpen(true)}
+                  className="relative inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50 transition-all"
+                  title="Inbox Pesanan"
+                >
+                  <Inbox className="size-4" />
+                  {pendingOrderCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full size-4 bg-indigo-600 text-white text-[9px] font-black items-center justify-center">
+                        {pendingOrderCount > 9 ? '9+' : pendingOrderCount}
+                      </span>
+                    </span>
+                  )}
+                </button>
+              )}
               <Button 
                 variant="outline" 
                 size="icon"
-                className="size-9 rounded-xl border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-100"
+                className="size-10 rounded-xl border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-100 hover:bg-red-50 transition-all"
                 onClick={() => {
                   const savedPin = localStorage.getItem('kasirhub_app_password');
                   if (savedPin) setShowVoidPin(true);
@@ -308,56 +328,66 @@ export default function KasirPage() {
           </div>
 
           {/* Cart Items List - Desktop */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
              {items.map((item) => (
-               <div key={item.id} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+               <div key={item.id} className="bg-white p-4 rounded-2xl border border-slate-200/50 shadow-sm flex items-center gap-4 group hover:border-indigo-100 transition-all">
                  <div className="flex-1 min-w-0">
-                   <p className="text-xs font-black text-slate-800 truncate">{item.name}</p>
-                   <p className="text-[10px] font-bold text-indigo-600">
-                     {item.quantity} x Rp {item.price.toLocaleString('id-ID')}
-                   </p>
+                   <p className="text-[13px] font-black text-slate-800 truncate leading-tight mb-1">{item.name}</p>
+                   <div className="flex items-center gap-2">
+                      <span className="px-1.5 py-0.5 rounded-lg bg-indigo-50 text-[10px] font-black text-indigo-600">
+                        {item.quantity}x
+                      </span>
+                      <span className="text-[11px] font-bold text-slate-400">
+                        @ Rp {item.price.toLocaleString('id-ID')}
+                      </span>
+                   </div>
                  </div>
                  <div className="text-right">
-                   <p className="text-xs font-black text-slate-800">
+                   <p className="text-[13px] font-black text-slate-800">
                      Rp {(item.price * item.quantity).toLocaleString('id-ID')}
                    </p>
                  </div>
                </div>
              ))}
              {items.length === 0 && (
-               <div className="h-full flex flex-col items-center justify-center opacity-20 py-20">
-                 <ShoppingCart className="size-12 mb-2" />
-                 <p className="text-xs font-black uppercase tracking-widest">Keranjang Kosong</p>
+               <div className="h-full flex flex-col items-center justify-center py-20 grayscale opacity-30">
+                 <div className="size-20 bg-slate-100 rounded-[2.5rem] flex items-center justify-center mb-4">
+                   <ShoppingCart className="size-8 text-slate-400" />
+                 </div>
+                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Keranjang Masih Kosong</p>
                </div>
              )}
           </div>
 
           {/* Sidebar Footer - Totals & Pay */}
-          <div className="p-5 bg-white border-t space-y-4">
+          <div className="p-4 bg-white border-t border-slate-200/60 space-y-4 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
             <div className="space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-bold text-slate-400">Subtotal</span>
+              <div className="flex justify-between items-center text-[10px]">
+                <span className="font-black text-slate-400 uppercase tracking-widest">Subtotal</span>
                 <span className="font-black text-slate-700">Rp {getSubtotal().toLocaleString('id-ID')}</span>
               </div>
               {getOrderDiscountAmount() > 0 && (
-                <div className="flex justify-between items-center text-xs text-amber-600">
-                  <span className="font-bold">Diskon</span>
+                <div className="flex justify-between items-center text-[10px] text-amber-600">
+                  <span className="font-black uppercase tracking-widest">Diskon Nota</span>
                   <span className="font-black">- Rp {getOrderDiscountAmount().toLocaleString('id-ID')}</span>
                 </div>
               )}
-              <div className="flex justify-between items-center pt-2 border-t border-slate-50">
-                <span className="text-sm font-black text-slate-800">Total</span>
-                <span className="text-xl font-black text-indigo-600">Rp {getTotal().toLocaleString('id-ID')}</span>
+              <div className="h-px bg-slate-100 w-full" />
+              <div className="flex justify-between items-end py-0.5">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">Total Tagihan</span>
+                  <span className="text-2xl font-black text-indigo-600 tracking-tighter">Rp {getTotal().toLocaleString('id-ID')}</span>
+                </div>
               </div>
             </div>
 
             <Button 
-              className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-lg shadow-indigo-100 flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
+              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm rounded-xl shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
               disabled={items.length === 0}
               onClick={() => setPayDialogOpen(true)}
             >
-              <Check className="size-5" />
-              KONFIRMASI BAYAR
+              <Check className="size-5 stroke-[3px]" />
+              BAYAR SEKARANG
             </Button>
           </div>
         </aside>
@@ -389,6 +419,23 @@ export default function KasirPage() {
         </div>
         
         <div className="flex gap-2">
+          {isFullscreen && (
+            <Button
+              variant="outline"
+              className="w-10 h-10 flex-shrink-0 text-indigo-600 rounded-lg border-indigo-100 bg-indigo-50 relative"
+              onClick={() => setInboxOpen(true)}
+            >
+              <Inbox className="h-4 w-4" />
+              {pendingOrderCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                   <span className="relative inline-flex rounded-full h-4 w-4 bg-indigo-600 text-[8px] font-black text-white items-center justify-center">
+                     {pendingOrderCount > 9 ? '9+' : pendingOrderCount}
+                   </span>
+                </span>
+              )}
+            </Button>
+          )}
           <Button 
             variant="outline" 
             className="w-10 h-10 flex-shrink-0 text-gray-400 rounded-lg border-gray-200" 
@@ -448,67 +495,6 @@ export default function KasirPage() {
         initialCustomerName={customerName}
         onConfirm={(method: 'cash' | 'tempo' | 'qris' | 'transfer', paidAmount: number, customerName?: string) => handleCheckout(method, customerName)}
       />
-
-      {/* Fullscreen Floating Controls */}
-      {isFullscreen && (
-        <div className="fixed top-4 left-4 z-[70] flex items-center gap-2 bg-white/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-100 shadow-2xl no-print animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="flex items-center gap-1 bg-slate-100/50 p-1 rounded-xl">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setViewMode('minimarket')}
-              className={cn(
-                "h-8 w-8 rounded-lg transition-all",
-                viewMode === 'minimarket' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400"
-              )}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setViewMode('resto')}
-              className={cn(
-                "h-8 w-8 rounded-lg transition-all",
-                viewMode === 'resto' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400"
-              )}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="w-px h-4 bg-slate-200 mx-0.5" />
-
-          {/* Inbox in Fullscreen */}
-          <button
-            onClick={() => setInboxOpen(true)}
-            className={cn(
-              "relative size-9 rounded-xl flex items-center justify-center transition-all",
-              pendingOrderCount > 0 ? "bg-indigo-50 text-indigo-600" : "text-slate-400 hover:bg-slate-50"
-            )}
-          >
-            <Inbox className="h-5 w-5" />
-            {pendingOrderCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex">
-                <span className="relative inline-flex rounded-full size-4 bg-indigo-600 text-white text-[9px] font-black items-center justify-center border-2 border-white">
-                  {pendingOrderCount > 9 ? '9+' : pendingOrderCount}
-                </span>
-              </span>
-            )}
-          </button>
-
-          <div className="w-px h-4 bg-slate-200 mx-0.5" />
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleFullscreen}
-            className="h-9 w-9 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50"
-          >
-            <Maximize2 className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
 
       {/* Success Fullscreen Overlay */}
       {lastTx && (

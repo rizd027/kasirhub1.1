@@ -67,6 +67,8 @@ export default function ProdukPage() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [showCategoryDeleteAlert, setShowCategoryDeleteAlert] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
   const fetchData = async () => {
     const [p, c, logs] = await Promise.all([
@@ -242,6 +244,19 @@ export default function ProdukPage() {
   const handleDelete = (id: string) => {
     setProductToDelete(id);
     setShowDeleteAlert(true);
+  };
+  
+  const handleDeleteCategory = async (id: string) => {
+    try {
+      await db.categories.delete(id);
+      // Clear category_id from all products using this category
+      await db.products.where('category_id').equals(id).modify({ category_id: '' });
+      toast.success('Kategori berhasil dihapus');
+      fetchData();
+      triggerSync().catch(console.error);
+    } catch (err) {
+      toast.error('Gagal menghapus kategori');
+    }
   };
 
   const handleExportExcel = () => {
@@ -610,31 +625,49 @@ export default function ProdukPage() {
 
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest">Kategori</Label>
-                    <Select
-                      value={isCreatingCategory ? '__new_category__' : (form.category_id ? form.category_id : EMPTY_CATEGORY_VALUE)}
-                      onValueChange={v => {
-                        if (v === '__new_category__') {
-                          setIsCreatingCategory(true);
-                          setForm({ ...form, category_id: '' });
-                        } else {
-                          setIsCreatingCategory(false);
-                          const nextValue = v ?? EMPTY_CATEGORY_VALUE;
-                          setForm({ ...form, category_id: nextValue === EMPTY_CATEGORY_VALUE ? '' : nextValue });
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-10 px-0 bg-transparent border-0 border-b border-muted-foreground/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-sm font-medium shadow-none">
-                        <SelectValue placeholder="Pilih Kategori" />
-                      </SelectTrigger>
-                      <SelectContent side="bottom" align="start" sideOffset={4}>
-                        <SelectItem value={EMPTY_CATEGORY_VALUE}>Tanpa Kategori</SelectItem>
-                        {categories.map(c => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                        <Separator className="my-1" />
-                        <SelectItem value="__new_category__" className="text-primary font-medium">+ Kategori Baru</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-end gap-3">
+                      <div className="flex-1">
+                        <Select
+                          value={isCreatingCategory ? '__new_category__' : (form.category_id ? form.category_id : EMPTY_CATEGORY_VALUE)}
+                          onValueChange={v => {
+                            if (v === '__new_category__') {
+                              setIsCreatingCategory(true);
+                              setForm({ ...form, category_id: '' });
+                            } else {
+                              setIsCreatingCategory(false);
+                              const nextValue = v ?? EMPTY_CATEGORY_VALUE;
+                              setForm({ ...form, category_id: nextValue === EMPTY_CATEGORY_VALUE ? '' : nextValue });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-10 px-0 bg-transparent border-0 border-b border-muted-foreground/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-sm font-medium shadow-none">
+                            <SelectValue placeholder="Pilih Kategori" />
+                          </SelectTrigger>
+                          <SelectContent side="bottom" align="start" sideOffset={4}>
+                            <SelectItem value={EMPTY_CATEGORY_VALUE}>Tanpa Kategori</SelectItem>
+                            {categories.map(c => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                            <Separator className="my-1" />
+                            <SelectItem value="__new_category__" className="text-primary font-medium">+ Kategori Baru</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {form.category_id && form.category_id !== EMPTY_CATEGORY_VALUE && !isCreatingCategory && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="size-9 rounded-xl text-slate-300 hover:text-red-600 hover:bg-red-50 transition-all shrink-0 mb-0.5"
+                          onClick={() => {
+                            setCategoryToDelete(form.category_id!);
+                            setShowCategoryDeleteAlert(true);
+                          }}
+                          title="Hapus Kategori ini"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                     {isCreatingCategory && (
                       <Input
                         className="h-10 px-0 bg-transparent border-0 border-b border-muted-foreground/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-sm font-medium mt-2"
@@ -842,6 +875,15 @@ export default function ProdukPage() {
         confirmText="Ya, Hapus"
         cancelText="Batal"
         onConfirm={() => productToDelete && confirmDelete(productToDelete)}
+      />
+      <AlertConfirm
+        open={showCategoryDeleteAlert}
+        onOpenChange={setShowCategoryDeleteAlert}
+        onConfirm={() => categoryToDelete && handleDeleteCategory(categoryToDelete)}
+        title="Hapus Kategori?"
+        description="Menghapus kategori akan membuat semua produk dalam kategori ini menjadi 'Tanpa Kategori'. Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus Kategori"
+        variant="destructive"
       />
     </SettingsLayout>
   );
