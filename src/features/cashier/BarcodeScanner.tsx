@@ -26,17 +26,20 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
       
       const startScanner = async () => {
         try {
-          const html5QrCode = new Html5Qrcode("reader", { verbose: false });
+          const html5QrCode = new Html5Qrcode("reader", { 
+            verbose: false,
+            useBarCodeDetectorIfSupported: true 
+          });
           html5QrCodeRef.current = html5QrCode;
 
           const config = {
-            fps: 10,
+            fps: 15,
             qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
               const width = Math.min(viewfinderWidth * 0.8, 250);
               const height = Math.min(viewfinderHeight * 0.6, 180);
               return { width, height };
             },
-            aspectRatio: 1.0,
+            // Removed forced aspectRatio to prevent rescaling jitter
             formatsToSupport: [
               Html5QrcodeSupportedFormats.EAN_13,
               Html5QrcodeSupportedFormats.EAN_8,

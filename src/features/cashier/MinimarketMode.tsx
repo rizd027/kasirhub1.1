@@ -194,7 +194,6 @@ export function MinimarketMode({
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleSearch}
-            autoFocus
           />
         </div>
         <Dialog open={isCustomOpen} onOpenChange={setIsCustomOpen}>
@@ -288,7 +287,7 @@ export function MinimarketMode({
               <button
                 key={p.id}
                 className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-indigo-50 transition-colors border-b last:border-b-0"
-                onClick={() => { addItem(p); setQuery(''); inputRef.current?.focus(); }}
+                onClick={() => { addItem(p); setQuery(''); }}
               >
                 <div className="flex flex-col">
                   <span className="font-bold text-gray-800">{p.name}</span>

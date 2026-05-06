@@ -128,7 +128,6 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
                     <Input 
                       type="text"
                       inputMode="numeric"
-                      autoFocus
                       placeholder={total.toLocaleString('id-ID')}
                       className="pl-10 h-14 text-3xl font-black border-slate-100 bg-slate-50/50 focus-visible:ring-indigo-500/20 focus-visible:ring-4 focus-visible:border-indigo-500 rounded-lg text-center transition-all"
                       value={paidAmount ? Number(paidAmount).toLocaleString('id-ID') : ''}
