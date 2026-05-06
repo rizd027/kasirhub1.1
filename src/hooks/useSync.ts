@@ -93,52 +93,123 @@ const syncSettings = async (userId: string) => {
 };
 
 const syncCategories = async (userId: string) => {
-  const localCategories = await db.categories.toArray();
-  if (localCategories.length === 0) return new Map<string, string>();
-
-  const { data: remoteCategories } = await supabase
+  // 1. Fetch Remote Categories
+  const { data: remoteCategories, error: remoteError } = await supabase
     .from('categories')
     .select('id, name')
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .is('deleted_at', null);
 
-  const remoteByName = new Map((remoteCategories ?? []).map((c) => [c.name, c.id]));
+  if (remoteError) {
+    console.error('Error fetching remote categories:', remoteError);
+    return new Map<string, string>();
+  }
+
+  const localCategories = await db.categories.toArray();
+  const remoteByName = new Map((remoteCategories ?? []).map((c) => [c.name.toLowerCase(), c.id]));
+  const localByName = new Map(localCategories.map(c => [c.name.toLowerCase(), c.id]));
+
+  // 2. Download missing categories from remote to local
+  for (const remoteCat of remoteCategories || []) {
+    if (!localByName.has(remoteCat.name.toLowerCase())) {
+      await db.categories.add({
+        id: crypto.randomUUID(), // Local ID
+        name: remoteCat.name,
+      });
+    }
+  }
+
+  // Refresh local list after downloads
+  const updatedLocalCategories = await db.categories.toArray();
   const categoryMap = new Map<string, string>();
 
-  for (const cat of localCategories) {
-    if (!cat?.name) continue;
-    let remoteId = remoteByName.get(cat.name);
+  // 3. Upload missing categories from local to remote
+  for (const localCat of updatedLocalCategories) {
+    if (!localCat?.name) continue;
+    let remoteId = remoteByName.get(localCat.name.toLowerCase());
 
     if (!remoteId) {
       const { data: inserted, error } = await supabase
         .from('categories')
-        .insert({ name: cat.name, user_id: userId })
+        .insert({ name: localCat.name, user_id: userId })
         .select('id, name')
         .single();
 
       if (!error && inserted) {
         remoteId = inserted.id;
-        remoteByName.set(inserted.name, inserted.id);
-      }
-      if (error) {
-        const errorMsg = error.message || JSON.stringify(error);
-        console.error(`Error inserting category ${cat.name}:`, errorMsg);
-        throw new Error(`Category Sync Error: ${errorMsg}`);
+        remoteByName.set(inserted.name.toLowerCase(), inserted.id);
+      } else if (error) {
+        console.error(`Error inserting category ${localCat.name}:`, error.message);
       }
     }
 
-    if (remoteId && cat.id) {
-      categoryMap.set(cat.id, remoteId);
+    if (remoteId) {
+      categoryMap.set(localCat.id, remoteId);
     }
   }
+
   return categoryMap;
 };
 
 const syncProducts = async (userId: string, categoryMap: Map<string, string>) => {
-  const localProducts = await db.products.toArray();
-  if (localProducts.length === 0) return;
+  // 1. Fetch Remote Products
+  const { data: remoteProducts, error: remoteError } = await supabase
+    .from('products')
+    .select('*')
+    .eq('user_id', userId)
+    .is('deleted_at', null);
 
-  const productPayloads = localProducts
-    .filter(p => p.sku && p.name)
+  if (remoteError) {
+    console.error('Error fetching remote products:', remoteError);
+    return;
+  }
+
+  const localProducts = await db.products.toArray();
+  const remoteBySku = new Map((remoteProducts ?? []).map(p => [p.sku, p]));
+  const localBySku = new Map(localProducts.map(p => [p.sku, p]));
+
+  // 2. Sync Remote to Local (Download/Update)
+  for (const remoteProd of remoteProducts || []) {
+    const localProd = localBySku.get(remoteProd.sku);
+    
+    // Reverse map remote category UUID back to local ID
+    let localCategoryId = '';
+    if (remoteProd.category_id) {
+       for (const [lId, rId] of categoryMap.entries()) {
+         if (rId === remoteProd.category_id) {
+           localCategoryId = lId;
+           break;
+         }
+       }
+    }
+
+    const productData = {
+      sku: remoteProd.sku,
+      name: remoteProd.name,
+      price_sell: Number(remoteProd.price_sell),
+      price_cost: Number(remoteProd.price_cost),
+      image_url: remoteProd.image_url,
+      category_id: localCategoryId,
+      stock_store: remoteProd.stock_store,
+      stock_warehouse: remoteProd.stock_warehouse,
+    };
+
+    if (!localProd) {
+      // New product from remote
+      await db.products.add({
+        id: crypto.randomUUID(),
+        ...productData
+      });
+    } else {
+      // Update existing local product if needed (Simple merge: remote wins)
+      await db.products.update(localProd.id, productData);
+    }
+  }
+
+  // 3. Sync Local to Remote (Upload)
+  const finalLocalProducts = await db.products.toArray();
+  const productPayloads = finalLocalProducts
+    .filter(p => p.sku && p.name && !p.deleted_at)
     .map(p => ({
       user_id: userId,
       sku: p.sku,
@@ -149,48 +220,43 @@ const syncProducts = async (userId: string, categoryMap: Map<string, string>) =>
       image_url: p.image_url || null,
       stock_store: Number(p.stock_store || 0),
       stock_warehouse: Number(p.stock_warehouse || 0),
-      deleted_at: p.deleted_at || null
+      deleted_at: null
     }));
 
-  const { data: upsertedProducts, error: prodError } = await supabase
-    .from('products')
-    .upsert(productPayloads, { onConflict: 'user_id,sku' })
-    .select('id, sku');
+  if (productPayloads.length > 0) {
+    const { data: upsertedProducts, error: prodError } = await supabase
+      .from('products')
+      .upsert(productPayloads, { onConflict: 'user_id,sku' })
+      .select('id, sku');
 
-  if (!prodError && upsertedProducts) {
-    const productIdMap: Record<string, string> = {};
-    const remoteBySku = new Map(upsertedProducts.map(p => [p.sku, p.id]));
+    if (!prodError && upsertedProducts) {
+      const productIdMap: Record<string, string> = {};
+      const updatedRemoteBySku = new Map(upsertedProducts.map(p => [p.sku, p.id]));
 
-    for (const lp of localProducts) {
-      const remoteId = remoteBySku.get(lp.sku);
-      if (remoteId) productIdMap[lp.id] = remoteId;
+      for (const lp of finalLocalProducts) {
+        const remoteId = updatedRemoteBySku.get(lp.sku);
+        if (remoteId) productIdMap[lp.id] = remoteId;
+      }
+
+      localStorage.setItem(`kasirhub_product_id_map_${userId}`, JSON.stringify(productIdMap));
     }
 
-    localStorage.setItem(`kasirhub_product_id_map_${userId}`, JSON.stringify(productIdMap));
-  }
-
-  if (prodError) {
-    const errorMsg = prodError.message || JSON.stringify(prodError);
-    console.error('Products sync error:', errorMsg, prodError.details);
-    throw new Error(`Product Sync Error: ${errorMsg}`);
+    if (prodError) {
+      console.error('Products upload error:', prodError.message);
+    }
   }
 };
 
 const backfillLocalDataForLinkedAccount = async (userId: string, force = false) => {
   const backfillKey = `kasirhub_backfill_done_${userId}`;
-  if (!force && localStorage.getItem(backfillKey) === '1') {
-    // Even if backfill is done, we still want to sync NEW data
-    const catMap = await syncCategories(userId);
-    await syncProducts(userId, catMap);
-    return;
-  }
-
+  
+  // Bidirectional sync always for consistency
   try {
     const categoryMap = await syncCategories(userId);
     await syncProducts(userId, categoryMap);
     localStorage.setItem(backfillKey, '1');
   } catch (error) {
-    console.error('Initial local backfill failed:', error);
+    console.error('Sync categories/products failed:', error);
     throw error;
   }
 };
@@ -209,89 +275,112 @@ export const triggerSync = async (force = false) => {
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
     if (!user) {
-    if (force) throw new Error('User not logged in');
-    return; // Silent return for auto-syncs
-  }
-
-  // Force backfill on explicit sync or first-time login
-  await backfillLocalDataForLinkedAccount(user.id, force);
-  await syncSettings(user.id);
-  await syncProfile(user.id);
-
-  const productIdMapRaw = localStorage.getItem(`kasirhub_product_id_map_${user.id}`);
-  const productIdMap: Record<string, string> = productIdMapRaw ? JSON.parse(productIdMapRaw) : {};
-
-  // Sync unsynced transactions
-  const unsynced = await db.transactions.where('synced').equals(0).toArray();
-
-  if (unsynced.length === 0) {
-    localStorage.setItem('kasirhub_last_sync', new Date().toISOString());
-    return true; // Success, nothing to sync
-  }
-
-  for (const tx of unsynced) {
-    try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          total_amount: tx.total_amount,
-          subtotal: tx.subtotal,
-          tax_amount: tx.tax_amount,
-          service_charge_amount: tx.service_charge_amount,
-          discount_total: tx.discount_total,
-          payment_method: tx.payment_method,
-          status: tx.status,
-          customer_name: tx.customer_name || null,
-          created_at: tx.created_at
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Insert items (map local product id to remote uuid when available)
-      const itemsToInsert = tx.items.map(item => ({
-        transaction_id: data.id,
-        product_id: isUuid(productIdMap[item.id]) ? productIdMap[item.id] : null,
-        quantity: item.quantity,
-        price_at_time: item.price,
-        discount_details: {
-          disc1: item.disc1,
-          disc2: item.disc2,
-          nominal: item.nominalDisc
-        }
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('transaction_items')
-        .insert(itemsToInsert);
-
-      if (itemsError) throw itemsError;
-
-      // Mark as synced
-      await db.transactions.update(tx.id!, { synced: 1 });
-    } catch (err: any) {
-      console.error('Failed to sync transaction:', err.message || err);
-      throw err;
+      isSyncInProgress = false;
+      if (force) throw new Error('User not logged in');
+      return; 
     }
-  }
 
-  // Finalize sync success
-  localStorage.setItem('kasirhub_last_sync', new Date().toISOString());
-  isSyncInProgress = false;
-  return true;
-} catch (err) {
-  isSyncInProgress = false;
-  throw err;
-}
+    // 1. Bi-directional Sync for Products/Categories
+    await backfillLocalDataForLinkedAccount(user.id, force);
+    
+    // 2. Settings & Profile
+    await syncSettings(user.id);
+    await syncProfile(user.id);
+
+    // 3. Transactions (Local -> Remote Only)
+    const productIdMapRaw = localStorage.getItem(`kasirhub_product_id_map_${user.id}`);
+    const productIdMap: Record<string, string> = productIdMapRaw ? JSON.parse(productIdMapRaw) : {};
+
+    const unsynced = await db.transactions.where('synced').equals(0).toArray();
+
+    if (unsynced.length > 0) {
+      for (const tx of unsynced) {
+        try {
+          const { data, error } = await supabase
+            .from('transactions')
+            .insert({
+              user_id: user.id,
+              total_amount: tx.total_amount,
+              subtotal: tx.subtotal,
+              tax_amount: tx.tax_amount,
+              service_charge_amount: tx.service_charge_amount,
+              discount_total: tx.discount_total,
+              payment_method: tx.payment_method,
+              status: tx.status,
+              customer_name: tx.customer_name || null,
+              created_at: tx.created_at
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          const itemsToInsert = tx.items.map(item => ({
+            transaction_id: data.id,
+            product_id: isUuid(productIdMap[item.id]) ? productIdMap[item.id] : null,
+            quantity: item.quantity,
+            price_at_time: item.price,
+            discount_details: {
+              disc1: item.disc1,
+              disc2: item.disc2,
+              nominal: item.nominalDisc
+            }
+          }));
+
+          const { error: itemsError } = await supabase
+            .from('transaction_items')
+            .insert(itemsToInsert);
+
+          if (itemsError) throw itemsError;
+
+          await db.transactions.update(tx.id!, { synced: 1 });
+        } catch (err: any) {
+          console.error('Failed to sync transaction:', err.message || err);
+        }
+      }
+    }
+
+    localStorage.setItem('kasirhub_last_sync', new Date().toISOString());
+    isSyncInProgress = false;
+    return true;
+  } catch (err) {
+    isSyncInProgress = false;
+    console.error('Global sync error:', err);
+    throw err;
+  }
 };
 
 export function useSync() {
   useEffect(() => {
     const doSync = () => triggerSync().catch(console.error);
 
+    // Initial sync
+    doSync();
+
+    // Listen to network status
     window.addEventListener('online', doSync);
+
+    // Realtime Subscriptions
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        () => {
+          console.log('Realtime: Product changed, syncing...');
+          doSync();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'categories' },
+        () => {
+          console.log('Realtime: Category changed, syncing...');
+          doSync();
+        }
+      )
+      .subscribe();
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
@@ -299,11 +388,10 @@ export function useSync() {
         doSync();
       }
     });
-    // Initial sync
-    doSync();
 
     return () => {
       subscription.unsubscribe();
+      supabase.removeChannel(channel);
       window.removeEventListener('online', doSync);
     };
   }, []);
