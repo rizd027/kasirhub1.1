@@ -449,6 +449,67 @@ export default function KasirPage() {
         onConfirm={(method: 'cash' | 'tempo' | 'qris' | 'transfer', paidAmount: number, customerName?: string) => handleCheckout(method, customerName)}
       />
 
+      {/* Fullscreen Floating Controls */}
+      {isFullscreen && (
+        <div className="fixed top-4 left-4 z-[70] flex items-center gap-2 bg-white/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-100 shadow-2xl no-print animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-1 bg-slate-100/50 p-1 rounded-xl">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setViewMode('minimarket')}
+              className={cn(
+                "h-8 w-8 rounded-lg transition-all",
+                viewMode === 'minimarket' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400"
+              )}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setViewMode('resto')}
+              className={cn(
+                "h-8 w-8 rounded-lg transition-all",
+                viewMode === 'resto' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400"
+              )}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="w-px h-4 bg-slate-200 mx-0.5" />
+
+          {/* Inbox in Fullscreen */}
+          <button
+            onClick={() => setInboxOpen(true)}
+            className={cn(
+              "relative size-9 rounded-xl flex items-center justify-center transition-all",
+              pendingOrderCount > 0 ? "bg-indigo-50 text-indigo-600" : "text-slate-400 hover:bg-slate-50"
+            )}
+          >
+            <Inbox className="h-5 w-5" />
+            {pendingOrderCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex">
+                <span className="relative inline-flex rounded-full size-4 bg-indigo-600 text-white text-[9px] font-black items-center justify-center border-2 border-white">
+                  {pendingOrderCount > 9 ? '9+' : pendingOrderCount}
+                </span>
+              </span>
+            )}
+          </button>
+
+          <div className="w-px h-4 bg-slate-200 mx-0.5" />
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleFullscreen}
+            className="h-9 w-9 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Success Fullscreen Overlay */}
       {lastTx && (
         <SuccessOverlay 
