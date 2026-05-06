@@ -109,7 +109,7 @@ export function RestoMode({
 
       {/* Product Grid */}
       <div className="flex-1 overflow-y-auto bg-slate-50/50">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4 pb-40 lg:pb-4">
           {filteredProducts.map((product) => {
             const isOutOfStock = product.stock_store <= 0;
             const cartItem = items.find(i => i.id === product.id);

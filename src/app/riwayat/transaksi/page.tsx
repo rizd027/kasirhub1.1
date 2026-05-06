@@ -198,7 +198,8 @@ export default function RiwayatTransaksiPage() {
 
   return (
     <div className="flex flex-col h-full bg-background overflow-hidden">
-      <header className="flex items-center justify-between px-6 h-16 bg-background/80 backdrop-blur-md border-b sticky top-0 z-40 shrink-0">
+      <div className="sticky top-0 z-50 bg-white shadow-sm">
+        <header className="flex items-center justify-between px-6 h-16 bg-background/80 backdrop-blur-md border-b shrink-0">
         <div className="flex-1" />
         <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-800">Riwayat</h1>
         <div className="flex-1 flex justify-end">
@@ -311,6 +312,7 @@ export default function RiwayatTransaksiPage() {
           )}
         </div>
       )}
+    </div>
 
       {/* Transaction List */}
       <div className="flex-1 overflow-auto bg-slate-50 flex flex-col gap-2 pb-10">

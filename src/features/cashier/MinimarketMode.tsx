@@ -306,7 +306,7 @@ export function MinimarketMode({
 
       {/* Cart Table - Edge to Edge */}
       <div className="flex-1 bg-white flex flex-col min-h-0">
-        <div className="overflow-y-auto flex-1 scrollbar-hide">
+        <div className="overflow-y-auto flex-1 scrollbar-hide pb-40 lg:pb-0">
           <Table>
             <TableHeader className="bg-slate-50/80 sticky top-0 z-20 border-b border-slate-100">
               <TableRow className="h-10 border-none">

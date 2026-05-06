@@ -173,7 +173,7 @@ export default function KasirPage() {
     <div className={cn("flex flex-col bg-background select-none overflow-hidden", isFullscreen ? "h-screen" : "h-[calc(100dvh-4rem)] lg:h-screen")}>
       {/* Header */}
       {!isFullscreen && (
-        <header className="flex items-center justify-between px-4 h-14 border-b bg-card shrink-0 no-print">
+        <header className="flex items-center justify-between px-4 h-14 border-b bg-white shrink-0 no-print sticky top-0 z-50">
         <div className="flex items-center gap-4">
           {/* Session Profile */}
           <DropdownMenu>
@@ -395,8 +395,8 @@ export default function KasirPage() {
 
       {/* Footer / Mobile Summary Bar - Hidden on lg+ Desktop Sidebar */}
       <div className={cn(
-        "lg:hidden p-4 border-t bg-white shrink-0 no-print shadow-[0_-8px_15px_rgba(0,0,0,0.05)] transition-all z-40",
-        isFullscreen && "rounded-t-3xl"
+        "lg:hidden fixed left-0 right-0 p-4 border-t bg-white no-print shadow-[0_-8px_15px_rgba(0,0,0,0.05)] transition-all z-40",
+        isFullscreen ? "bottom-0 rounded-t-3xl" : "bottom-16"
       )}>
         <div className="flex items-end justify-between mb-4">
           <div className="flex flex-col gap-1">
