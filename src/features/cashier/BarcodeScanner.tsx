@@ -26,12 +26,16 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
       
       const startScanner = async () => {
         try {
-          const html5QrCode = new Html5Qrcode("reader");
+          const html5QrCode = new Html5Qrcode("reader", { verbose: false });
           html5QrCodeRef.current = html5QrCode;
 
           const config = {
-            fps: 20,
-            qrbox: { width: 250, height: 180 },
+            fps: 10,
+            qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+              const width = Math.min(viewfinderWidth * 0.8, 250);
+              const height = Math.min(viewfinderHeight * 0.6, 180);
+              return { width, height };
+            },
             aspectRatio: 1.0,
             formatsToSupport: [
               Html5QrcodeSupportedFormats.EAN_13,
@@ -43,10 +47,14 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
             ]
           };
 
+          let isScanned = false;
           await html5QrCode.start(
             { facingMode: "environment" },
             config,
             (decodedText) => {
+              if (isScanned) return;
+              isScanned = true;
+              
               onScan(decodedText);
               stopScanner();
               onOpenChange(false);
