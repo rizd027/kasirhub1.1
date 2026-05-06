@@ -33,11 +33,13 @@ export default function QrMenuPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, slug')
+        .select('full_name, store_name, slug')
         .eq('id', uid)
         .single();
 
-      if (profile?.full_name) setShopName(profile.full_name);
+      if (profile?.store_name || profile?.full_name) {
+        setShopName(profile?.store_name || profile?.full_name || 'Toko Saya');
+      }
       if (profile?.slug) setSlug(profile.slug);
 
       setLoading(false);
