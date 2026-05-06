@@ -71,10 +71,10 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-[100dvh] bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-6 lg:py-12 font-sans overflow-y-auto">
-      <div className="w-full max-w-[360px] flex flex-col animate-in fade-in zoom-in duration-500">
+      <div className="w-full max-w-[360px] flex flex-col">
         {/* Logo Section */}
         <div className="flex items-center justify-center gap-3.5 mb-5 lg:mb-6">
-          <div className="size-11 rounded-[14px] bg-indigo-600 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-indigo-200 rotate-3 animate-bounce-subtle shrink-0">
+          <div className="size-11 rounded-[14px] bg-indigo-600 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-indigo-200 shrink-0">
             K
           </div>
           <div className="flex flex-col items-start">
@@ -163,7 +163,7 @@ export default function RegisterPage() {
               <Button 
                 type="submit"
                 disabled={loading}
-                className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 group overflow-hidden relative mt-4 transition-all active:scale-[0.98]"
+                className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 group overflow-hidden relative mt-4"
               >
                 {loading ? (
                   <Loader2 className="size-5 animate-spin" />
@@ -197,15 +197,6 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      <style jsx global>{`
-        @keyframes bounce-subtle {
-          0%, 100% { transform: translateY(0) rotate(3deg); }
-          50% { transform: translateY(-5px) rotate(3deg); }
-        }
-        .animate-bounce-subtle {
-          animation: bounce-subtle 3s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
 }

@@ -361,8 +361,11 @@ export function useSync() {
     window.addEventListener('online', doSync);
 
     // Realtime Subscriptions
-    const channel = supabase
-      .channel('schema-db-changes')
+    // Use a unique channel name to avoid conflicts with existing subscriptions
+    const channelId = `sync-changes-${Math.random().toString(36).substring(7)}`;
+    const channel = supabase.channel(channelId);
+    
+    channel
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'products' },
@@ -379,7 +382,11 @@ export function useSync() {
           doSync();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Realtime: Subscribed to changes');
+        }
+      });
 
     const {
       data: { subscription },

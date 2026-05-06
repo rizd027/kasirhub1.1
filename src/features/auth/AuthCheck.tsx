@@ -19,24 +19,44 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
     let isMounted = true;
 
     const hydrateFromSupabase = async () => {
+      // Safety timeout: 6 seconds to prevent getting stuck
+      const safetyTimeout = setTimeout(() => {
+        if (isMounted) {
+          console.warn('Auth session check timed out, proceeding with local state.');
+          setIsChecking(false);
+        }
+      }, 6000);
+
       try {
         const { data: { session: supaSession } } = await supabase.auth.getSession();
+        
         if (isMounted && supaSession?.user && !session) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name, role')
-            .eq('id', supaSession.user.id)
-            .single();
+          // If we have a supaSession but no local session, try to get profile
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('full_name, role')
+              .eq('id', supaSession.user.id)
+              .single();
 
-          setSession({
-            id: supaSession.user.id,
-            name: profile?.full_name || supaSession.user.email?.split('@')[0] || 'Admin',
-            role: 'admin',
-          });
+            setSession({
+              id: supaSession.user.id,
+              name: profile?.full_name || supaSession.user.email?.split('@')[0] || 'Admin',
+              role: 'admin',
+            });
+          } catch (profileErr) {
+            // Fallback for profile failure
+            setSession({
+              id: supaSession.user.id,
+              name: supaSession.user.email?.split('@')[0] || 'Admin',
+              role: 'admin',
+            });
+          }
         }
       } catch (err) {
         console.error('Initial session check failed:', err);
       } finally {
+        clearTimeout(safetyTimeout);
         if (isMounted) setIsChecking(false);
       }
     };
