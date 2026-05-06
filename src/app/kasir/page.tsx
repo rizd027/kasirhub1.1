@@ -225,41 +225,45 @@ export default function KasirPage() {
             )}
           </button>
           {/* ... existing header content ... */}
-          <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none">
-              <Eye className="h-5 w-5" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-fit w-auto rounded-2xl p-1.5 shadow-2xl border-slate-100 flex flex-row gap-1 items-center bg-white/80 backdrop-blur-md">
-              <DropdownMenuItem 
-                onClick={() => setViewMode('minimarket')} 
-                className={cn(
-                  "justify-center h-9 w-9 rounded-xl transition-all",
-                  viewMode === 'minimarket' ? "bg-indigo-50 text-indigo-600" : "text-slate-400"
-                )}
-              >
-                <List className="h-4 w-4" />
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => setViewMode('resto')} 
-                className={cn(
-                  "justify-center h-9 w-9 rounded-xl transition-all",
-                  viewMode === 'resto' ? "bg-indigo-50 text-indigo-600" : "text-slate-400"
-                )}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </DropdownMenuItem>
-              <div className="w-px h-6 bg-slate-100 mx-1" />
-              <DropdownMenuItem 
-                onClick={toggleFullscreen} 
-                className={cn(
-                  "justify-center h-9 w-9 rounded-xl transition-all",
-                  isFullscreen ? "bg-indigo-50 text-indigo-600" : "text-slate-400"
-                )}
-              >
-                <Maximize2 className="h-4 w-4" />
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-100">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setViewMode('minimarket')}
+              className={cn(
+                "h-8 w-8 rounded-lg transition-all",
+                viewMode === 'minimarket' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400"
+              )}
+              title="Mode Minimarket"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setViewMode('resto')}
+              className={cn(
+                "h-8 w-8 rounded-lg transition-all",
+                viewMode === 'resto' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400"
+              )}
+              title="Mode Resto"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <div className="w-px h-4 bg-slate-200 mx-0.5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleFullscreen}
+              className={cn(
+                "h-8 w-8 rounded-lg transition-all",
+                isFullscreen ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400"
+              )}
+              title="Layar Penuh"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </header>
       )}
