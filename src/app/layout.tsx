@@ -30,6 +30,7 @@ export const viewport: Viewport = {
 import { MainWrapper } from "@/components/layout/MainWrapper";
 import { AuthCheck } from "@/features/auth/AuthCheck";
 import { SidebarNav } from "@/components/layout/SidebarNav";
+import { AppEventsHandler } from "@/components/layout/AppEventsHandler";
 
 export default function RootLayout({
   children,
@@ -40,6 +41,7 @@ export default function RootLayout({
     <html lang="id" className={cn("h-full antialiased font-sans", geist.variable)}>
       <body className="min-h-full flex flex-col bg-background lg:bg-slate-50/50 text-foreground overflow-x-hidden">
         <SyncProvider />
+        <AppEventsHandler />
         <AuthCheck>
           <div className="flex-1 flex w-full min-h-screen">
             <SidebarNav />
@@ -60,17 +62,15 @@ export default function RootLayout({
             className: 'rounded-2xl border-slate-100 shadow-2xl font-sans font-bold',
           }}
         />
-        {/* Service Worker Registration */}
+        {/* Service Worker Management - Unregister for Native to prevent update bugs */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                    console.log('SW registered: ', registration);
-                  }, function(err) {
-                    console.log('SW registration failed: ', err);
-                  });
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                  for(let registration of registrations) {
+                    registration.unregister();
+                  }
                 });
               }
             `,

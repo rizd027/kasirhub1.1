@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 
 import { useStaffStore } from '@/store/useStaffStore';
 import { usePathname } from 'next/navigation';
+import { SyncIndicator } from '@/components/layout/SyncIndicator';
 
 export function SettingsLayout({
   title,
@@ -95,43 +96,7 @@ export function SettingsLayout({
         </Button>
         <h1 className="text-sm font-black ml-2 min-w-0 truncate text-slate-800 uppercase tracking-widest">{title}</h1>
         <div className="ml-auto flex min-w-0 shrink items-center gap-3">
-          <button 
-            onClick={handleManualSync}
-            disabled={!isOnline || isSyncing}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
-              isSyncing 
-                ? "animate-pulse border-indigo-200 bg-indigo-50 text-indigo-600" 
-                : "bg-slate-50 border-slate-100 text-slate-500 hover:bg-white hover:border-slate-200"
-            )}
-          >
-            {isSyncing ? (
-              <>
-                <RefreshCw className="h-3 w-3 animate-spin text-indigo-500" />
-                Proses...
-              </>
-            ) : !isAccountLinked ? (
-              <>
-                <HardDrive className="h-3 w-3 text-indigo-500" />
-                Lokal
-              </>
-            ) : !isOnline ? (
-              <>
-                <CloudOff className="h-3 w-3 text-destructive" />
-                Offline
-              </>
-            ) : pendingSync > 0 ? (
-              <>
-                <CloudUpload className="h-3 w-3 text-amber-500" />
-                {pendingSync} Data
-              </>
-            ) : (
-              <>
-                <CloudCheck className="h-3 w-3 text-emerald-500" />
-                Sinkron
-              </>
-            )}
-          </button>
+          <SyncIndicator />
           {rightAction}
         </div>
       </header>

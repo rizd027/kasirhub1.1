@@ -6,10 +6,14 @@ import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useOrientationClass } from '@/hooks/useOrientationClass';
 
 export function MainWrapper({ children }: { children: React.ReactNode }) {
   const { isFullscreen } = useLayoutStore();
   const pathname = usePathname();
+  
+  // Enable landscape = desktop mode for Capacitor APK
+  useOrientationClass();
   
   // Operational pages that should take full width
   const isOperationalPage = pathname?.startsWith('/kasir') || pathname?.startsWith('/login') || pathname?.startsWith('/register') || pathname?.startsWith('/settings') || pathname?.startsWith('/laporan') || pathname?.startsWith('/riwayat');

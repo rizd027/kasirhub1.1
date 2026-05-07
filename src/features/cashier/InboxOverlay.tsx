@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useRealtimeChannel } from '@/hooks/useRealtimeChannel';
 import { useCartStore } from '@/store/useCartStore';
-import { X, ShoppingCart, Clock, User, Hash, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { X, ShoppingCart, Clock, Hash, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -34,7 +35,6 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const { items: cartItems, addItem } = useCartStore();
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchPendingOrders = async () => {
     if (!userId) return;
@@ -47,22 +47,13 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
     setOrders(data || []);
   };
 
-  useEffect(() => {
-    if (!userId) return;
-
-    fetchPendingOrders();
-
-    // Subscribe to real-time inserts
-    const channel = supabase
-      .channel(`inbox-${userId}`)
+  // Auto-reconnecting realtime channel (handles Android app resume & network drops)
+  useRealtimeChannel(
+    () => supabase
+      .channel(`inbox-${userId}-${Date.now()}`)
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'customer_orders',
-          filter: `user_id=eq.${userId}`,
-        },
+        { event: 'INSERT', schema: 'public', table: 'customer_orders', filter: `user_id=eq.${userId}` },
         (payload) => {
           const newOrder = payload.new as CustomerOrder;
           setOrders(prev => [...prev, newOrder]);
@@ -70,12 +61,7 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
       )
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'customer_orders',
-          filter: `user_id=eq.${userId}`,
-        },
+        { event: 'UPDATE', schema: 'public', table: 'customer_orders', filter: `user_id=eq.${userId}` },
         (payload) => {
           const updated = payload.new as CustomerOrder;
           setOrders(prev =>
@@ -84,13 +70,20 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
               : prev.map(o => o.id === updated.id ? updated : o)
           );
         }
-      )
-      .subscribe();
+      ),
+    [userId]
+  );
 
-    channelRef.current = channel;
-    return () => {
-      channel.unsubscribe();
+  // Fetch initial data + re-fetch on app resume
+  useEffect(() => {
+    if (!userId) return;
+    fetchPendingOrders();
+
+    const handleResume = () => {
+      if (document.visibilityState === 'visible') fetchPendingOrders();
     };
+    document.addEventListener('visibilitychange', handleResume);
+    return () => document.removeEventListener('visibilitychange', handleResume);
   }, [userId]);
 
   const handlePullToCart = async (order: CustomerOrder) => {

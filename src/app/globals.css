@@ -134,6 +134,66 @@
   }
 }
 
+/* =====================================================
+   PRINT OPTIMIZATION — KasirHub
+   Ensures only the receipt is printed, not the UI
+   ===================================================== */
+@media print {
+  /* Hide every root element by default */
+  body > *:not(.only-print),
+  main, header, nav, aside, footer,
+  [data-sonner-toaster],
+  .no-print {
+    display: none !important;
+  }
+
+  /* Force show the receipt container */
+  .only-print {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  body {
+    background: white !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  @page {
+    margin: 0;
+  }
+}
+
+/* =====================================================
+   LANDSCAPE DESKTOP MODE — Capacitor APK
+   When device is rotated, behave like desktop (lg:)
+   ===================================================== */
+
+/* Show sidebar in landscape (mirrors lg:flex) */
+html.landscape-desktop [data-sidebar-nav],
+html.landscape-desktop [data-desktop-cart] {
+  display: flex !important;
+}
+
+/* Hide bottom nav and mobile footer in landscape (mirrors lg:hidden logic) */
+html.landscape-desktop nav[data-bottom-nav],
+html.landscape-desktop [data-mobile-cart-footer] {
+  display: none !important;
+}
+
+/* Remove bottom padding used for bottom nav in landscape */
+html.landscape-desktop main {
+  padding-bottom: 0 !important;
+}
+
+/* Apply desktop body background in landscape */
+html.landscape-desktop body {
+  background-color: oklch(0.975 0 0) !important;
+}
+
 @layer utilities {
   @media print {
     .no-print {

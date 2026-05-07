@@ -13,6 +13,8 @@ import { uploadImage } from '@/services/cloudinary';
 
 import { useStaffStore } from '@/store/useStaffStore';
 import { useRouter } from 'next/navigation';
+import { db } from '@/lib/dexie';
+import { triggerSync } from '@/hooks/useSync';
 
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
@@ -93,27 +95,49 @@ export default function AbsensiPage() {
     
     try {
       const file = new File([blob], `absen_${selectedEmp.id}_${Date.now()}.jpg`, { type: 'image/jpeg' });
-      const photoUrl = await uploadImage(file);
+      let photoUrl = '';
+      
+      try {
+        photoUrl = await uploadImage(file);
+      } catch (err) {
+        console.warn('Offline or upload failed, saving photo locally for later sync.');
+        // Convert to base64 for local storage
+        photoUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+        toast.info('Tersimpan offline. Foto akan diunggah saat internet tersedia.', { id: toastId });
+      }
 
-      const { error } = await supabase
-        .from('attendance')
-        .insert([{
-          employee_id: selectedEmp.id,
-          type: absenType,
-          photo_url: photoUrl,
-          note: note
-        }]);
+      // Save to local database (Dexie) first
+      await db.attendance.add({
+        employee_id: selectedEmp.id,
+        type: absenType,
+        photo_url: photoUrl,
+        note: note,
+        created_at: new Date().toISOString(),
+        synced: 0
+      });
 
-      if (error) throw error;
+      // Background sync
+      triggerSync().catch(console.error);
 
-      if (absenType === 'in') {
-        setCheckedIn(true);
-        toast.success('Absensi Masuk Berhasil! Selamat bekerja.', { id: toastId });
-        setTimeout(() => router.push('/kasir'), 1500);
+      if (!photoUrl.startsWith('data:image')) {
+        if (absenType === 'in') {
+          setCheckedIn(true);
+          toast.success('Absensi Masuk Berhasil! Selamat bekerja.', { id: toastId });
+          setTimeout(() => router.push('/kasir'), 1500);
+        } else {
+          setCheckedIn(false);
+          toast.success('Absensi Keluar Berhasil! Hati-hati di jalan.', { id: toastId });
+          fetchMyHistory(selectedEmp.id);
+        }
       } else {
-        setCheckedIn(false);
-        toast.success('Absensi Keluar Berhasil! Hati-hati di jalan.', { id: toastId });
-        fetchMyHistory(selectedEmp.id);
+        // Already handled info toast above, but finish the UI
+        setAbsenStep('select');
+        setNote('');
+        if (session?.role !== 'staff') setSelectedEmp(null);
       }
 
       setAbsenStep('select');

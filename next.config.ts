@@ -8,6 +8,8 @@ const withSerwist = withSerwistInit({
 
 export default withSerwist({
   // Next.js config
+  output: 'export',
+  images: { unoptimized: true },
   reactStrictMode: true,
   allowedDevOrigins: ['192.168.1.11', 'localhost'],
 });

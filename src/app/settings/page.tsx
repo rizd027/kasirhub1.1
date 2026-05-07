@@ -15,6 +15,9 @@ import { useStaffStore } from '@/store/useStaffStore';
 import { supabase } from '@/lib/supabase';
 import { Badge } from '@/components/ui/badge';
 import { Cloud, CloudOff, Loader2 } from 'lucide-react';
+import { Network } from '@capacitor/network';
+import { App } from '@capacitor/app';
+import { SyncIndicator } from '@/components/layout/SyncIndicator';
 
 const settingMenus = [
   { title: 'Toko Saya', desc: 'Atur informasi toko', icon: Store, href: '/settings/toko', protected: true },
@@ -40,15 +43,33 @@ export default function SettingsPage() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: supabaseSession } }) => {
+    const checkConnection = async () => {
+      const { data: { session: supabaseSession } } = await supabase.auth.getSession();
       setIsCloudConnected(!!supabaseSession);
-    });
+    };
 
+    checkConnection();
+
+    // 1. Auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, supabaseSession) => {
       setIsCloudConnected(!!supabaseSession);
     });
 
-    return () => subscription.unsubscribe();
+    // 2. Network state changes
+    Network.addListener('networkStatusChange', () => {
+      checkConnection();
+    });
+
+    // 3. App resume re-check
+    App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) checkConnection();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      Network.removeAllListeners();
+      App.removeAllListeners();
+    };
   }, []);
 
   const filteredMenus = settingMenus.filter(menu => {
@@ -96,24 +117,7 @@ export default function SettingsPage() {
         <div className="flex-1" />
         <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-800">Setting</h1>
         <div className="flex-1 flex justify-end">
-          {isCloudConnected === null ? (
-            <div className="size-8 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100">
-              <Loader2 className="h-4 w-4 text-slate-300 animate-spin" />
-            </div>
-          ) : isCloudConnected ? (
-            <div className="flex items-center gap-2 bg-emerald-500/5 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-500/10 shadow-sm shadow-emerald-500/5">
-              <div className="relative flex size-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full size-1.5 bg-emerald-500"></span>
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest">Cloud On</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 bg-slate-50 text-slate-400 px-3 py-1.5 rounded-xl border border-slate-100">
-              <div className="size-1.5 rounded-full bg-slate-300" />
-              <span className="text-[9px] font-black uppercase tracking-widest">Cloud Off</span>
-            </div>
-          )}
+          <SyncIndicator />
         </div>
       </header>
       <div className="flex-1 overflow-auto overflow-x-hidden">

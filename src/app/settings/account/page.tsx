@@ -173,9 +173,22 @@ export default function SettingsAccountPage() {
     try {
       const { triggerSync } = await import('@/hooks/useSync');
       await triggerSync(true);
+      
+      // Refresh stats after sync
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        setLastSync(new Date().toISOString());
+        localStorage.setItem('kasirhub_last_sync', new Date().toISOString());
+        
+        const { db } = await import('@/lib/dexie');
+        const count = await db.transactions.where('synced').equals(0).count();
+        setUnsyncedCount(count);
+      }
+      
       toast.success('Sinkronisasi berhasil!');
-    } catch {
-      toast.error('Sinkronisasi gagal.');
+    } catch (err: any) {
+      console.error('Manual sync failed:', err);
+      toast.error(err.message || 'Sinkronisasi gagal.');
     } finally {
       setSyncing(false);
     }

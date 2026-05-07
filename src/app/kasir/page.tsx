@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { db, LocalProduct, LocalTransaction } from '@/lib/dexie';
 import { useRouter } from 'next/navigation';
+import { Capacitor } from '@capacitor/core';
 import { Receipt } from '@/features/cashier/Receipt';
 import { generateReceiptPDF, shareReceipt } from '@/utils/receipt';
 import { PaymentOverlay } from '@/features/cashier/PaymentOverlay';
@@ -27,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { useStaffStore } from '@/store/useStaffStore';
 import { supabase } from '@/lib/supabase';
 import { UserCircle2, ArrowRight } from 'lucide-react';
+import { SyncIndicator } from '@/components/layout/SyncIndicator';
 
 export default function KasirPage() {
   const { isFullscreen, toggleFullscreen } = useLayoutStore();
@@ -158,14 +160,37 @@ export default function KasirPage() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        console.log('Generating PDF for Print...');
+        const pdfBlob = await generateReceiptPDF('receipt-content-success');
+        if (pdfBlob && lastTx) {
+          await shareReceipt(pdfBlob, `Nota-${lastTx.id}`);
+        } else {
+          alert('Gagal membuat file nota. Pastikan layar tidak tertutup.');
+        }
+      } else {
+        window.print();
+      }
+    } catch (err: any) {
+      console.error('Print failed:', err);
+      alert('Error Cetak: ' + (err.message || 'Gagal membuat file'));
+    }
   };
 
   const handleShare = async () => {
-    const pdfBlob = await generateReceiptPDF('receipt-content-success');
-    if (pdfBlob && lastTx) {
-      shareReceipt(pdfBlob, `Nota-${lastTx.id}`);
+    try {
+      console.log('Generating PDF for Share...');
+      const pdfBlob = await generateReceiptPDF('receipt-content-success');
+      if (pdfBlob && lastTx) {
+        await shareReceipt(pdfBlob, `Nota-${lastTx.id}`);
+      } else {
+        alert('Gagal membuat file nota.');
+      }
+    } catch (err: any) {
+      console.error('Share failed:', err);
+      alert('Error Share: ' + (err.message || 'Gagal membuat file'));
     }
   };
 
@@ -283,7 +308,10 @@ export default function KasirPage() {
         </div>
 
         {/* Right Side: Desktop Cart Sidebar (Visible only on lg+) */}
-        <aside className="hidden lg:flex w-[400px] flex-col bg-slate-50/50 shrink-0 overflow-hidden border-l border-slate-200/60 shadow-[inset_0_0_40px_rgba(0,0,0,0.02)]">
+        <aside 
+          data-desktop-cart
+          className="hidden lg:flex w-[400px] flex-col bg-slate-50/50 shrink-0 overflow-hidden border-l border-slate-200/60 shadow-[inset_0_0_40px_rgba(0,0,0,0.02)]"
+        >
           {/* Header Sidebar */}
           <div className="h-16 px-6 border-b bg-white/80 backdrop-blur-sm flex items-center justify-between">
             <div className="flex flex-col">
@@ -394,10 +422,13 @@ export default function KasirPage() {
       </main>
 
       {/* Footer / Mobile Summary Bar - Hidden on lg+ Desktop Sidebar */}
-      <div className={cn(
-        "lg:hidden fixed left-0 right-0 p-4 border-t bg-white no-print shadow-[0_-8px_15px_rgba(0,0,0,0.05)] transition-all z-40",
-        isFullscreen ? "bottom-0 rounded-t-3xl" : "bottom-16"
-      )}>
+      <div 
+        data-mobile-cart-footer
+        className={cn(
+          "lg:hidden fixed left-0 right-0 p-4 border-t bg-white no-print shadow-[0_-8px_15px_rgba(0,0,0,0.05)] transition-all z-40",
+          isFullscreen ? "bottom-0 rounded-t-3xl" : "bottom-16"
+        )}
+      >
         <div className="flex items-end justify-between mb-4">
           <div className="flex flex-col gap-1">
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{totalQty} Item Tersimpan</span>
@@ -550,17 +581,6 @@ export default function KasirPage() {
       <div className="only-print hidden">
         {lastTx && <Receipt transaction={lastTx} idElement="print-receipt" />}
       </div>
-
-
-      <style jsx global>{`
-        @media print {
-          .no-print { display: none !important; }
-          .only-print { display: block !important; }
-          body { background: white !important; }
-          @page { margin: 0; }
-        }
-      `}</style>
     </div>
   );
 }
-

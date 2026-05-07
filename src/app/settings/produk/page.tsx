@@ -210,6 +210,7 @@ export default function ProdukPage() {
         qty: Math.abs(nextStore - prevStore),
         note: `Update cepat stok toko (${prevStore} -> ${nextStore})`,
         created_at: now,
+        synced: 0
       });
     }
 
@@ -221,6 +222,7 @@ export default function ProdukPage() {
         qty: Math.abs(nextWarehouse - prevWarehouse),
         note: `Update cepat stok gudang (${prevWarehouse} -> ${nextWarehouse})`,
         created_at: now,
+        synced: 0
       });
     }
 

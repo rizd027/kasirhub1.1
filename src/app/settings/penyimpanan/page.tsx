@@ -40,11 +40,13 @@ export default function PenyimpananDataPage() {
       const transactions = await db.transactions.toArray();
       const products = await db.products.toArray();
       const categories = await db.categories.toArray();
+      const stock_mutations = await db.stock_mutations.toArray();
+      const attendance = await db.attendance.toArray();
 
       const backup = {
         exported_at: new Date().toISOString(),
-        version: '1.0.0',
-        data: { transactions, products, categories }
+        version: '1.0.1',
+        data: { transactions, products, categories, stock_mutations, attendance }
       };
 
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -74,6 +76,8 @@ export default function PenyimpananDataPage() {
         const backup = JSON.parse(text);
         if (backup.data?.products) await db.products.bulkPut(backup.data.products);
         if (backup.data?.categories) await db.categories.bulkPut(backup.data.categories);
+        if (backup.data?.stock_mutations) await db.stock_mutations.bulkPut(backup.data.stock_mutations);
+        if (backup.data?.attendance) await db.attendance.bulkPut(backup.data.attendance);
         if (backup.data?.transactions) await db.transactions.bulkAdd(backup.data.transactions).catch(() => {});
         toast.success('Data berhasil dipulihkan!');
       } catch {

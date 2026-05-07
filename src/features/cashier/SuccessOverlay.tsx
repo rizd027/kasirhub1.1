@@ -46,22 +46,31 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
               <Receipt transaction={transaction} idElement="receipt-content-success" />
             </div>
           </div>
-
-          {/* Action Grid */}
-          <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
-            <ActionButton 
-              icon={<Printer className="h-5 w-5" />} 
-              label="Cetak" 
-              onClick={onPrint}
-              variant="indigo"
-            />
-            <ActionButton 
-              icon={<Share2 className="h-5 w-5" />} 
-              label="Bagi" 
-              onClick={onShare}
-            />
-          </div>
         </div>
+      </div>
+
+      {/* Fixed Action Bottom Bar */}
+      <div className="p-6 bg-white border-t border-slate-100 shadow-[0_-8px_30px_-15px_rgba(0,0,0,0.1)] shrink-0 pb-10 sm:pb-6">
+        <div className="max-w-md mx-auto grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
+          <ActionButton 
+            icon={<Printer className="h-5 w-5" />} 
+            label="Cetak" 
+            onClick={onPrint}
+            variant="indigo"
+          />
+          <ActionButton 
+            icon={<Share2 className="h-5 w-5" />} 
+            label="Bagi" 
+            onClick={onShare}
+          />
+        </div>
+        <Button 
+          variant="ghost" 
+          className="w-full mt-4 h-11 text-slate-400 font-bold uppercase tracking-widest text-[10px]"
+          onClick={() => onOpenChange(false)}
+        >
+          Selesai & Tutup
+        </Button>
       </div>
 
       <style jsx>{`

@@ -2,6 +2,7 @@ import Dexie, { Table } from 'dexie';
 
 export interface LocalTransaction {
   id?: string;
+  remote_id?: string;
   total_amount: number;
   subtotal: number;
   tax_amount: number;
@@ -33,6 +34,7 @@ export interface LocalProduct {
 
 export interface LocalStockMutation {
   id?: string;
+  remote_id?: string;
   product_id: string;
   type: 'add' | 'reduce' | 'transfer_in' | 'transfer_out' | 'set';
   from_location?: 'store' | 'warehouse';
@@ -40,6 +42,18 @@ export interface LocalStockMutation {
   qty: number;
   note?: string;
   created_at: string;
+  synced: number; // 0 for no, 1 for yes
+}
+
+export interface LocalAttendance {
+  id?: string;
+  remote_id?: string;
+  employee_id: string;
+  type: 'in' | 'out';
+  photo_url: string;
+  note?: string;
+  created_at: string;
+  synced: number; // 0 for no, 1 for yes
 }
 
 export class KasirHubDB extends Dexie {
@@ -47,6 +61,7 @@ export class KasirHubDB extends Dexie {
   products!: Table<LocalProduct>;
   categories!: Table<any>;
   stock_mutations!: Table<LocalStockMutation>;
+  attendance!: Table<LocalAttendance>;
   settings!: Table<{ key: string, value: any }>;
 
   constructor() {
@@ -76,6 +91,41 @@ export class KasirHubDB extends Dexie {
       products: 'id, sku, category_id, deleted_at',
       categories: 'id',
       stock_mutations: '++id, product_id, created_at',
+      settings: 'key'
+    });
+
+    this.version(5).stores({
+      transactions: '++id, synced, created_at',
+      products: 'id, sku, category_id, deleted_at',
+      categories: 'id',
+      stock_mutations: '++id, product_id, created_at',
+      settings: 'key'
+    });
+
+    this.version(6).stores({
+      transactions: '++id, synced, created_at',
+      products: 'id, sku, category_id, deleted_at',
+      categories: 'id',
+      stock_mutations: '++id, synced, product_id, created_at',
+      attendance: '++id, synced, created_at',
+      settings: 'key'
+    });
+
+    this.version(7).stores({
+      transactions: '++id, synced, created_at',
+      products: 'id, sku, category_id, deleted_at',
+      categories: 'id',
+      stock_mutations: '++id, remote_id, synced, product_id, created_at',
+      attendance: '++id, remote_id, synced, created_at',
+      settings: 'key'
+    });
+
+    this.version(8).stores({
+      transactions: '++id, remote_id, synced, created_at',
+      products: 'id, sku, category_id, deleted_at',
+      categories: 'id',
+      stock_mutations: '++id, remote_id, synced, product_id, created_at',
+      attendance: '++id, remote_id, synced, created_at',
       settings: 'key'
     });
   }

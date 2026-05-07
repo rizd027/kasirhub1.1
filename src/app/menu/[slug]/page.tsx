@@ -1,11 +1,11 @@
-'use client';
+import CustomMenuPageClient from './page-client';
 
-import { MenuCatalog } from '@/features/menu/MenuCatalog';
-import { useParams } from 'next/navigation';
+export const dynamicParams = false;
+
+export async function generateStaticParams() {
+  return [{ slug: 'default' }];
+}
 
 export default function CustomMenuPage() {
-  const params = useParams();
-  const slug = params.slug as string;
-
-  return <MenuCatalog slug={slug} />;
+  return <CustomMenuPageClient />;
 }

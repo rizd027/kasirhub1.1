@@ -47,7 +47,6 @@ export function PinDialog({
     if (value === savedPin) {
       toast.success('Verifikasi Berhasil');
       onSuccess();
-      onClose();
     } else {
       setIsShaking(true);
       setIsError(true);
@@ -106,19 +105,19 @@ export function PinDialog({
         {/* PIN Dots */}
         <div
           className={cn(
-            'flex items-center gap-5 mt-10 transition-all',
-            isShaking && 'animate-[shake_0.4s_ease-in-out]'
+            'flex items-center gap-5 mt-10',
+            isShaking && 'opacity-50' // Subtle visual hint instead of shake
           )}
         >
           {Array.from({ length: PIN_LENGTH }).map((_, i) => (
             <div
               key={i}
               className={cn(
-                'w-3.5 h-3.5 rounded-full border-2 transition-all duration-300',
+                'w-3.5 h-3.5 rounded-full border-2',
                 i < pin.length
                   ? isError
-                    ? 'bg-red-400 border-red-400 scale-125 shadow-[0_0_15px_rgba(248,113,113,0.5)]'
-                    : 'bg-white border-white scale-125 shadow-[0_0_15px_rgba(255,255,255,0.4)]'
+                    ? 'bg-red-400 border-red-400 scale-110'
+                    : 'bg-white border-white scale-110'
                   : 'bg-transparent border-white/20'
               )}
             />
@@ -127,7 +126,7 @@ export function PinDialog({
 
         <div className="h-6 mt-4">
           <p className={cn(
-            'text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300',
+            'text-[10px] font-black uppercase tracking-[0.2em]',
             isError ? 'text-red-300 opacity-100' : 'opacity-0'
           )}>
             PIN SALAH, COBA LAGI
@@ -149,11 +148,11 @@ export function PinDialog({
                   key={`${ri}-${ki}`}
                   onClick={() => handleKey(key)}
                   className={cn(
-                    "relative aspect-square rounded-full flex items-center justify-center transition-all active:scale-90",
+                    "relative aspect-square rounded-full flex items-center justify-center",
                     "text-2xl font-black",
                     isDel 
-                      ? "bg-transparent text-white/50 hover:text-white" 
-                      : "bg-white/10 hover:bg-white/20 border border-white/5 backdrop-blur-md shadow-lg active:bg-white/30"
+                      ? "bg-transparent text-white/50" 
+                      : "bg-white/10 border border-white/5 backdrop-blur-md"
                   )}
                 >
                   {isDel ? <Delete className="size-7" /> : key}
@@ -164,22 +163,12 @@ export function PinDialog({
         </div>
 
         <button 
-          className="w-full mt-10 text-center text-[10px] text-white/30 font-black uppercase tracking-[0.2em] hover:text-white/50 transition-colors"
+          className="w-full mt-10 text-center text-[10px] text-white/30 font-black uppercase tracking-[0.2em]"
           onClick={() => toast.info('Fitur reset PIN tersedia di dashboard Admin')}
         >
           Lupa PIN?
         </button>
       </div>
-
-      <style>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          20% { transform: translateX(-10px); }
-          40% { transform: translateX(10px); }
-          60% { transform: translateX(-7px); }
-          80% { transform: translateX(7px); }
-        }
-      `}</style>
     </div>
   );
 }

@@ -156,30 +156,32 @@ export default function LaporanPage() {
 
   if (hasPin === null) return null; // Wait for client check
 
-  if (!isAuthorized && hasPin) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <PinDialog 
-          isOpen={showPinDialog}
-          onClose={() => router.push('/kasir')}
-          onSuccess={() => {
-            setIsAuthorized(true);
-            setShowPinDialog(false);
-            fetchStats();
-            reportMenus.forEach(menu => router.prefetch(menu.href));
-          }}
-          title="Akses Laporan"
-          description="Masukkan PIN untuk melihat laporan keuangan dan performa bisnis."
-        />
-        <div className="text-center animate-pulse">
-          <p className="text-xs font-black uppercase tracking-widest text-slate-400">Menunggu Verifikasi...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
+      {/* PIN Overlay */}
+      {!isAuthorized && hasPin && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-50">
+          <PinDialog 
+            isOpen={showPinDialog}
+            onClose={() => {
+              // Only redirect if NOT authorized (user clicked X to cancel)
+              if (!isAuthorized) router.push('/kasir');
+            }}
+            onSuccess={() => {
+              setIsAuthorized(true);
+              setShowPinDialog(false);
+              fetchStats();
+              reportMenus.forEach(menu => router.prefetch(menu.href));
+            }}
+            title="Akses Laporan"
+            description="Masukkan PIN untuk melihat laporan keuangan dan performa bisnis."
+          />
+          <div className="text-center animate-pulse">
+            <p className="text-xs font-black uppercase tracking-widest text-slate-400">Menunggu Verifikasi...</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col min-h-screen">
         <header className="flex items-center justify-between px-6 h-16 bg-background/80 backdrop-blur-md border-b sticky top-0 z-40">
           <div className="flex-1" />

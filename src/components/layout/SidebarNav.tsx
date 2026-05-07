@@ -49,6 +49,7 @@ export function SidebarNav() {
 
   return (
     <aside 
+      data-sidebar-nav
       className={cn(
         "hidden lg:flex flex-col bg-slate-50/50 border-r border-slate-200/60 transition-all duration-300 ease-in-out z-50 h-screen sticky top-0 shrink-0",
         isSidebarCollapsed ? "w-20" : "w-72"

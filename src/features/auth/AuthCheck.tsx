@@ -19,7 +19,13 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
     let isMounted = true;
 
     const hydrateFromSupabase = async () => {
-      // Safety timeout: 6 seconds to prevent getting stuck
+      // 1. If offline, don't wait for Supabase, trust the local store
+      if (!navigator.onLine) {
+        setIsChecking(false);
+        return;
+      }
+
+      // 2. Safety timeout: 6 seconds to prevent getting stuck
       const safetyTimeout = setTimeout(() => {
         if (isMounted) {
           console.warn('Auth session check timed out, proceeding with local state.');
@@ -42,7 +48,7 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
             setSession({
               id: supaSession.user.id,
               name: profile?.full_name || supaSession.user.email?.split('@')[0] || 'Admin',
-              role: 'admin',
+              role: profile?.role === 'staff' ? 'staff' : 'admin',
             });
           } catch (profileErr) {
             // Fallback for profile failure
@@ -75,7 +81,7 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
           setSession({
             id: supaSession.user.id,
             name: profile?.full_name || supaSession.user.email?.split('@')[0] || 'Admin',
-            role: 'admin',
+            role: profile?.role === 'staff' ? 'staff' : 'admin',
           });
         }
       }

@@ -154,6 +154,7 @@ export default function StockPage() {
         qty: Math.abs(row.stock_store - prevStore),
         note: `Penyesuaian stok toko (${prevStore} -> ${row.stock_store})`,
         created_at: now,
+        synced: 0
       });
     }
     if (row.stock_warehouse !== prevWarehouse) {
@@ -164,6 +165,7 @@ export default function StockPage() {
         qty: Math.abs(row.stock_warehouse - prevWarehouse),
         note: `Penyesuaian stok gudang (${prevWarehouse} -> ${row.stock_warehouse})`,
         created_at: now,
+        synced: 0
       });
     }
     // Try immediate cloud update for better confidence when account is linked.
@@ -204,6 +206,7 @@ export default function StockPage() {
       qty: Number(item.stock_store || 0) + Number(item.stock_warehouse || 0),
       note: 'Reset stok produk ke 0',
       created_at: new Date().toISOString(),
+      synced: 0
     });
     setDraft((prev) => ({
       ...prev,
@@ -214,12 +217,11 @@ export default function StockPage() {
   };
 
   const handleDeleteProduct = async (item: LocalProduct) => {
-    await db.products.delete(item.id);
-    if (navigator.onLine) {
-      await supabase.from('products').delete().eq('sku', item.sku);
-    }
-    toast.success(`Produk ${item.name} dihapus permanen`);
+    await db.products.update(item.id, { deleted_at: new Date().toISOString() });
+    toast.success(`Produk ${item.name} dipindahkan ke tempat sampah`);
     fetchProducts();
+    const { triggerSync } = await import('@/hooks/useSync');
+    triggerSync().catch(console.error);
   };
 
   const transferStock = async (item: LocalProduct, direction: 'toStore' | 'toWarehouse') => {
@@ -241,6 +243,7 @@ export default function StockPage() {
         qty: 1,
         note: 'Mutasi 1 stok dari gudang ke toko',
         created_at: new Date().toISOString(),
+        synced: 0
       });
       toast.success('1 stok dipindahkan ke toko');
       return;
@@ -260,6 +263,7 @@ export default function StockPage() {
       qty: 1,
       note: 'Mutasi 1 stok dari toko ke gudang',
       created_at: new Date().toISOString(),
+      synced: 0
     });
     toast.success('1 stok dipindahkan ke gudang');
   };
@@ -301,6 +305,7 @@ export default function StockPage() {
         qty: product.stock_store + product.stock_warehouse,
         note: 'Reset stok periodik ke 0',
         created_at: now,
+        synced: 0
       });
     }
     toast.success('Semua stok berhasil direset');
@@ -407,177 +412,170 @@ export default function StockPage() {
                     isEditing ? "bg-indigo-50/40" : "hover:bg-slate-50/50"
                   )}
                 >
-                  <div className="flex flex-col lg:flex-row lg:items-center px-6 py-5 gap-6 lg:gap-0">
-                    {/* Column 1: Identity */}
-                    <div className="flex items-center gap-4 min-w-0 lg:w-[35%] lg:pr-8">
-                      <div className="h-14 w-14 shrink-0 rounded-[1.2rem] bg-white overflow-hidden flex items-center justify-center border border-slate-100 shadow-sm group-hover:scale-105 transition-transform duration-300">
-                        {item.image_url ? (
-                          <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
-                        ) : (
-                          <Package className="h-6 w-6 text-slate-200" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-[14px] font-black text-slate-800 truncate leading-tight mb-1 group-hover:text-indigo-600 transition-colors">
-                          {item.name}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-black text-slate-400 font-mono bg-white px-1.5 py-0.5 rounded-lg border border-slate-100 uppercase tracking-tighter">
-                            {item.sku}
-                          </span>
-                          <Badge variant="outline" className={cn("text-[8px] font-black h-4 px-1.5 uppercase tracking-[0.1em] border-none", stockBadge.className)}>
-                            {stockBadge.label}
-                          </Badge>
+                  <div className="flex flex-col px-6 py-5 gap-5">
+                    {/* Top Row: Identity & Actions */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="h-14 w-14 shrink-0 rounded-2xl bg-white overflow-hidden flex items-center justify-center border border-slate-100 shadow-sm transition-transform duration-300">
+                          {item.image_url ? (
+                            <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <Package className="h-6 w-6 text-slate-200" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-[14px] font-black text-slate-800 truncate leading-tight mb-1">
+                            {item.name}
+                          </h3>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-black text-slate-400 font-mono bg-slate-50 px-1.5 py-0.5 rounded-lg border border-slate-100 uppercase tracking-tighter">
+                              {item.sku}
+                            </span>
+                            <Badge variant="outline" className={cn("text-[8px] font-black h-4 px-1.5 uppercase tracking-[0.1em] border-none shadow-none", stockBadge.className)}>
+                              {stockBadge.label}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Column 2: Store Stock */}
-                    <div className="lg:flex-1">
-                       <div className="flex flex-col">
-                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1.5">Stok Toko</span>
-                          {isEditing ? (
-                            <div className="flex flex-col gap-2 max-w-[140px]">
-                              <Input
-                                type="number"
-                                min={0}
-                                className="h-10 text-center font-black text-lg rounded-xl border-indigo-100 focus-visible:ring-indigo-500 bg-white"
-                                value={row.stock_store}
-                                onChange={(e) => updateDraft(item.id, 'stock_store', Number(e.target.value))}
-                              />
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-7 w-full rounded-lg font-bold text-[9px] uppercase tracking-wider border-indigo-50 text-indigo-400 hover:text-indigo-600 bg-white shadow-none"
-                                onClick={() => transferStock(item, 'toWarehouse')}
+                      <div className="shrink-0">
+                        {!isEditing ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger className="h-12 w-12 rounded-2xl bg-slate-100 text-slate-600 hover:text-indigo-600 hover:bg-white border border-slate-200 transition-all flex items-center justify-center shadow-sm">
+                              <MoreVertical className="h-6 w-6" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44 rounded-xl p-2 shadow-xl border-slate-100">
+                              <DropdownMenuItem onClick={() => setEditingId(item.id)} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
+                                <Pencil className="mr-2 h-4 w-4 mt-0.5 shrink-0 text-indigo-500" />
+                                <span className="text-xs font-semibold whitespace-normal leading-tight">Edit Stok</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setHistoryProductId(item.id)} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
+                                <History className="mr-2 h-4 w-4 mt-0.5 shrink-0 text-slate-400" />
+                                <span className="text-xs font-semibold whitespace-normal leading-tight">Riwayat Stok</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="my-1 bg-slate-50" />
+                              <DropdownMenuItem 
+                                onClick={() => {
+                                  setProductToManage(item);
+                                  setShowResetAlert(true);
+                                }} 
+                                className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer text-amber-600 focus:text-amber-600 focus:bg-amber-50"
                               >
-                                <ArrowRightLeft className="h-2.5 w-2.5 mr-1.5" />
-                                Pindah ke Gudang
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex items-baseline gap-1">
-                              <span className="text-lg font-black text-slate-700">{item.stock_store}</span>
-                              <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Pcs</span>
-                            </div>
-                          )}
-                       </div>
-                    </div>
-
-                    {/* Column 3: Warehouse Stock */}
-                    <div className="lg:flex-1">
-                       <div className="flex flex-col">
-                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1.5">Stok Gudang</span>
-                          {isEditing ? (
-                            <div className="flex flex-col gap-2 max-w-[140px]">
-                              <Input
-                                type="number"
-                                min={0}
-                                className="h-10 text-center font-black text-lg rounded-xl border-indigo-100 focus-visible:ring-indigo-500 bg-white"
-                                value={row.stock_warehouse}
-                                onChange={(e) => updateDraft(item.id, 'stock_warehouse', Number(e.target.value))}
-                              />
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-7 w-full rounded-lg font-bold text-[9px] uppercase tracking-wider border-indigo-50 text-indigo-400 hover:text-indigo-600 bg-white shadow-none"
-                                onClick={() => transferStock(item, 'toStore')}
+                                <RotateCcw className="mr-2 h-4 w-4 mt-0.5 shrink-0" />
+                                <span className="text-xs font-semibold whitespace-normal leading-tight">Reset ke 0</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => {
+                                  setProductToManage(item);
+                                  setShowDeleteAlert(true);
+                                }} 
+                                className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
                               >
-                                <ArrowRightLeft className="h-2.5 w-2.5 mr-1.5 rotate-180" />
-                                Pindah ke Toko
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex items-baseline gap-1">
-                              <span className="text-lg font-black text-slate-700">{item.stock_warehouse}</span>
-                              <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Pcs</span>
-                            </div>
-                          )}
-                       </div>
-                    </div>
-
-                    {/* Column 4: Total & Actions */}
-                    <div className="lg:w-[15%] lg:text-right flex items-center justify-between lg:justify-end gap-6">
-                       <div className="flex flex-col lg:items-end">
-                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Total Stok</span>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-xl font-black text-indigo-600">{totalStock}</span>
-                            <span className="text-[10px] font-black text-indigo-200 uppercase tracking-widest">PCS</span>
+                                <Trash2 className="mr-2 h-4 w-4 mt-0.5 shrink-0" />
+                                <span className="text-xs font-semibold whitespace-normal leading-tight">Hapus Permanen</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                            <Button 
+                              size="sm" 
+                              className={cn(
+                                "h-10 px-4 font-black text-xs rounded-xl shadow-lg transition-all active:scale-95",
+                                savedId === item.id ? "bg-emerald-600 text-white shadow-emerald-100" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
+                              )}
+                              disabled={savingId === item.id}
+                              onClick={() => handleSave(item)}
+                            >
+                              {savingId === item.id ? '...' : savedId === item.id ? <Check className="h-3.5 w-3.5" /> : 'SIMPAN'}
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 px-3 font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-red-500 hover:bg-transparent" 
+                              onClick={() => setEditingId(null)}
+                            >
+                              Batal
+                            </Button>
                           </div>
-                          {!isEditing && (
-                            <div className="flex items-center gap-1.5 mt-1 text-[9px] font-bold text-slate-300 whitespace-nowrap">
-                               <History className="h-2.5 w-2.5" />
-                               {getLastUpdated(item.id) ? new Date(getLastUpdated(item.id)!).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-                            </div>
-                          )}
-                       </div>
+                        )}
+                      </div>
+                    </div>
 
-                       <div className="shrink-0 flex items-center gap-1">
-                          {!isEditing ? (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger
-                                render={
-                                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-slate-200 hover:text-indigo-600 hover:bg-white outline-none transition-all">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                }
-                              />
-                              <DropdownMenuContent align="end" className="w-44 rounded-xl p-2 shadow-xl border-slate-100">
-                                <DropdownMenuItem onClick={() => setEditingId(item.id)} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
-                                  <Pencil className="mr-2 h-4 w-4 mt-0.5 shrink-0 text-indigo-500" />
-                                  <span className="text-xs font-semibold whitespace-normal leading-tight">Edit Stok</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setHistoryProductId(item.id)} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
-                                  <History className="mr-2 h-4 w-4 mt-0.5 shrink-0 text-slate-400" />
-                                  <span className="text-xs font-semibold whitespace-normal leading-tight">Riwayat Stok</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="my-1 bg-slate-50" />
-                                <DropdownMenuItem 
-                                  onClick={() => {
-                                    setProductToManage(item);
-                                    setShowResetAlert(true);
-                                  }} 
-                                  className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer text-amber-600 focus:text-amber-600 focus:bg-amber-50"
-                                >
-                                  <RotateCcw className="mr-2 h-4 w-4 mt-0.5 shrink-0" />
-                                  <span className="text-xs font-semibold whitespace-normal leading-tight">Reset ke 0</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => {
-                                    setProductToManage(item);
-                                    setShowDeleteAlert(true);
-                                  }} 
-                                  className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4 mt-0.5 shrink-0" />
-                                  <span className="text-xs font-semibold whitespace-normal leading-tight">Hapus Permanen</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          ) : (
-                            <div className="flex items-center gap-1">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-9 px-3 font-bold text-[11px] uppercase tracking-widest text-slate-400 hover:text-red-500 hover:bg-transparent" 
-                                onClick={() => setEditingId(null)}
-                              >
-                                Batal
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                className={cn(
-                                  "h-10 px-4 font-black text-xs rounded-xl shadow-lg transition-all active:scale-95",
-                                  savedId === item.id ? "bg-emerald-600 text-white shadow-emerald-100" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
-                                )}
-                                disabled={savingId === item.id}
-                                onClick={() => handleSave(item)}
-                              >
-                                {savingId === item.id ? '...' : savedId === item.id ? <Check className="h-3.5 w-3.5" /> : 'SIMPAN'}
-                              </Button>
-                            </div>
-                          )}
-                       </div>
+                    {/* Middle Row: Stock Grid (2 Columns) */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Store Stock */}
+                      <div className={cn("p-4 rounded-2xl border transition-colors", isEditing ? "bg-white border-indigo-200" : "bg-slate-50 border-slate-100")}>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">JUMLAH DI TOKO</span>
+                        {isEditing ? (
+                          <div className="flex flex-col gap-2">
+                            <Input
+                              type="number"
+                              min={0}
+                              className="h-10 text-center font-bold text-lg rounded-xl border-indigo-100 focus-visible:ring-indigo-500 bg-white"
+                              value={row.stock_store}
+                              onChange={(e) => updateDraft(item.id, 'stock_store', Number(e.target.value))}
+                            />
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-7 w-full rounded-lg font-bold text-[8px] uppercase tracking-wider border-indigo-50 text-indigo-400 hover:text-indigo-600 bg-white shadow-none"
+                              onClick={() => transferStock(item, 'toWarehouse')}
+                            >
+                              <ArrowRightLeft className="h-2.5 w-2.5 mr-1.5" />
+                              Ke Gudang
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-black text-slate-800">{item.stock_store}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pcs</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Warehouse Stock */}
+                      <div className={cn("p-4 rounded-2xl border transition-colors", isEditing ? "bg-white border-indigo-200" : "bg-slate-50 border-slate-100")}>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">JUMLAH DI GUDANG</span>
+                        {isEditing ? (
+                          <div className="flex flex-col gap-2">
+                            <Input
+                              type="number"
+                              min={0}
+                              className="h-10 text-center font-bold text-lg rounded-xl border-indigo-100 focus-visible:ring-indigo-500 bg-white"
+                              value={row.stock_warehouse}
+                              onChange={(e) => updateDraft(item.id, 'stock_warehouse', Number(e.target.value))}
+                            />
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-7 w-full rounded-lg font-bold text-[8px] uppercase tracking-wider border-indigo-50 text-indigo-400 hover:text-indigo-600 bg-white shadow-none"
+                              onClick={() => transferStock(item, 'toStore')}
+                            >
+                              <ArrowRightLeft className="h-2.5 w-2.5 mr-1.5 rotate-180" />
+                              Ke Toko
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-black text-slate-800">{item.stock_warehouse}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pcs</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Bottom Row: Total & History */}
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-50 mt-1">
+                      <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-300">
+                         <History className="h-3 w-3" />
+                         {getLastUpdated(item.id) ? new Date(getLastUpdated(item.id)!).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Belum ada riwayat'}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Total:</span>
+                        <span className="text-sm font-black text-indigo-600">{totalStock}</span>
+                        <span className="text-[9px] font-black text-indigo-300 uppercase tracking-tighter">PCS</span>
+                      </div>
                     </div>
                   </div>
                 </div>

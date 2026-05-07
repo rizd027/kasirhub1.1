@@ -15,10 +15,20 @@ export default function QrMenuPage() {
   const [copied, setCopied] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
+  const getBaseUrl = () => {
+    if (typeof window === 'undefined') return '';
+    const origin = window.location.origin;
+    // When running inside Capacitor APK, origin is 'capacitor://localhost' or 'http://localhost'
+    if (origin.includes('localhost') || origin.startsWith('capacitor://')) {
+      return process.env.NEXT_PUBLIC_APP_URL || '';
+    }
+    return origin;
+  };
+
   const menuUrl = userId
-    ? slug 
-      ? `${typeof window !== 'undefined' ? window.location.origin : ''}/menu/${slug}`
-      : `${typeof window !== 'undefined' ? window.location.origin : ''}/menu?uid=${userId}`
+    ? slug
+      ? `${getBaseUrl()}/menu/${slug}`
+      : `${getBaseUrl()}/menu?uid=${userId}`
     : null;
 
   const qrCodeUrl = menuUrl
