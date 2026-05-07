@@ -49,9 +49,12 @@ export default function RiwayatTransaksiPage() {
   const [pinTargetId, setPinTargetId] = useState<string | null>(null);
 
   const fetchTransactions = useCallback(async () => {
-    let query = db.transactions.orderBy('created_at').reverse();
-    const data = await query.toArray();
-    setTransactions(data);
+    let query = db.transactions.where('deleted_at').equals('').or('deleted_at').notEqual('').toArray();
+    // Dexie doesn't have a simple is-null filter that is indexed easily if not specified.
+    // We'll just fetch all and filter in JS if needed, or use the indexed 'deleted_at'.
+    // Actually, we'll just use the standard toArray and filter.
+    const data = await db.transactions.orderBy('created_at').reverse().toArray();
+    setTransactions(data.filter(tx => !tx.deleted_at));
   }, []);
 
   useEffect(() => {
@@ -84,7 +87,10 @@ export default function RiwayatTransaksiPage() {
   };
 
   const performDelete = async (txId: string) => {
-    await db.transactions.delete(txId);
+    await db.transactions.update(txId, { 
+      deleted_at: new Date().toISOString(),
+      synced: 0 
+    });
     await fetchTransactions();
     toast.success('Transaksi dihapus');
     

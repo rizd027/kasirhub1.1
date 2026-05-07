@@ -16,6 +16,7 @@ export interface LocalTransaction {
   customer_name?: string;
   employee_id?: string;
   cashier_name?: string;
+  deleted_at?: string; // soft delete
 }
 
 export interface LocalProduct {
@@ -122,6 +123,15 @@ export class KasirHubDB extends Dexie {
 
     this.version(8).stores({
       transactions: '++id, remote_id, synced, created_at',
+      products: 'id, sku, category_id, deleted_at',
+      categories: 'id',
+      stock_mutations: '++id, remote_id, synced, product_id, created_at',
+      attendance: '++id, remote_id, synced, created_at',
+      settings: 'key'
+    });
+
+    this.version(9).stores({
+      transactions: '++id, remote_id, synced, created_at, deleted_at',
       products: 'id, sku, category_id, deleted_at',
       categories: 'id',
       stock_mutations: '++id, remote_id, synced, product_id, created_at',

@@ -11,6 +11,15 @@ let isSyncInProgress = false;
 const isUuid = (value: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
+const safeParse = (value: string | null, fallback: any = null) => {
+  if (!value || value === 'undefined' || value === 'null') return fallback;
+  try {
+    return JSON.parse(value) || fallback;
+  } catch (e) {
+    return fallback;
+  }
+};
+
 const syncProfile = async (userId: string) => {
   try {
     const { data: profile, error } = await supabase
@@ -71,18 +80,18 @@ const syncSettings = async (userId: string) => {
       // Upload local state (even if null, to allow deletion)
       await supabase.from('settings').upsert({
         user_id: userId,
-        toko_info: localToko ? JSON.parse(localToko) : (remoteSettings?.toko_info || {}),
+        toko_info: safeParse(localToko, remoteSettings?.toko_info || {}),
         pin_code: localPin, // source of truth for active session
-        preferences: localPrefs ? JSON.parse(localPrefs) : (remoteSettings?.preferences || {}),
+        preferences: safeParse(localPrefs, remoteSettings?.preferences || {}),
         updated_at: new Date().toISOString()
       });
     }
 
     // Update Dexie as a secondary persistent backup
     await db.settings.bulkPut([
-      { key: 'toko_info', value: localToko ? JSON.parse(localToko) : (remoteSettings?.toko_info || {}) },
+      { key: 'toko_info', value: safeParse(localToko, remoteSettings?.toko_info || {}) },
       { key: 'pin_code', value: localPin || (remoteSettings?.pin_code || null) },
-      { key: 'preferences', value: localPrefs ? JSON.parse(localPrefs) : (remoteSettings?.preferences || {}) }
+      { key: 'preferences', value: safeParse(localPrefs, remoteSettings?.preferences || {}) }
     ]);
 
   } catch (err) {
@@ -211,7 +220,7 @@ const syncProducts = async (userId: string, categoryMap: Map<string, string>) =>
       price_cost: Number(remoteProd.price_cost),
       image_url: remoteProd.image_url,
       category_id: localCategoryId,
-      deleted_at: remoteProd.deleted_at || null,
+      deleted_at: remoteProd.deleted_at || undefined,
     };
 
     // Only update stock if local is NOT dirty
@@ -281,7 +290,7 @@ const syncStockMutations = async (userId: string) => {
     if (unsynced.length === 0) return;
 
     const productIdMapRaw = localStorage.getItem(`kasirhub_product_id_map_${userId}`);
-    const productIdMap: Record<string, string> = productIdMapRaw ? JSON.parse(productIdMapRaw) : {};
+    const productIdMap: Record<string, string> = safeParse(productIdMapRaw, {});
 
     console.log(`Syncing ${unsynced.length} stock mutations...`);
     const payloads = unsynced.map(m => ({
@@ -318,7 +327,7 @@ const syncDownTransactions = async (userId: string) => {
       .select('*, transaction_items(*)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (error || !remoteTxs) return;
 
@@ -327,8 +336,10 @@ const syncDownTransactions = async (userId: string) => {
     );
 
     const productIdMapRaw = localStorage.getItem(`kasirhub_product_id_map_${userId}`);
-    const remoteIdToLocalId: Record<string, string> = productIdMapRaw ? 
-      Object.fromEntries(Object.entries(JSON.parse(productIdMapRaw)).map(([l, r]) => [r, l])) : {};
+    const productIdMapParsed = safeParse(productIdMapRaw, {});
+    const remoteIdToLocalId: Record<string, string> = Object.fromEntries(
+      Object.entries(productIdMapParsed).map(([l, r]) => [r as string, l as string])
+    );
 
     const newTxs = remoteTxs.filter(rt => !localRemoteIds.has(rt.id));
     if (newTxs.length === 0) return;
@@ -342,22 +353,36 @@ const syncDownTransactions = async (userId: string) => {
         quantity: ri.quantity
       }));
 
-      await db.transactions.add({
-        remote_id: rt.id,
-        total_amount: rt.total_amount,
-        subtotal: rt.subtotal,
-        tax_amount: rt.tax_amount,
-        service_charge_amount: rt.service_charge_amount,
-        discount_total: rt.discount_total,
-        payment_method: rt.payment_method,
-        status: rt.status,
-        items: items,
-        customer_name: rt.customer_name,
-        employee_id: rt.employee_id,
-        cashier_name: rt.cashier_name,
-        created_at: rt.created_at,
-        synced: 1
-      });
+      const localTx = await db.transactions.where('remote_id').equals(rt.id).first();
+      
+      if (rt.deleted_at) {
+        if (localTx && !localTx.deleted_at) {
+          await db.transactions.update(localTx.id!, { deleted_at: rt.deleted_at });
+        }
+        continue;
+      }
+
+      if (!localTx) {
+        await db.transactions.add({
+          remote_id: rt.id,
+          total_amount: rt.total_amount,
+          subtotal: rt.subtotal,
+          tax_amount: rt.tax_amount,
+          service_charge_amount: rt.service_charge_amount,
+          discount_total: rt.discount_total,
+          payment_method: rt.payment_method,
+          status: rt.status,
+          items: items,
+          customer_name: rt.customer_name,
+          employee_id: rt.employee_id,
+          cashier_name: rt.cashier_name,
+          created_at: rt.created_at,
+          synced: 1
+        });
+      } else {
+        // Optional: Update local if remote is newer? 
+        // For now, if it exists locally and remote is NOT deleted, we keep it as is.
+      }
     }
   } catch (err) {
     console.error('syncDownTransactions failed:', err);
@@ -380,8 +405,10 @@ const syncDownStockMutations = async (userId: string) => {
     );
 
     const productIdMapRaw = localStorage.getItem(`kasirhub_product_id_map_${userId}`);
-    const remoteIdToLocalId: Record<string, string> = productIdMapRaw ? 
-      Object.fromEntries(Object.entries(JSON.parse(productIdMapRaw)).map(([l, r]) => [r, l])) : {};
+    const productIdMapParsed = safeParse(productIdMapRaw, {});
+    const remoteIdToLocalId: Record<string, string> = Object.fromEntries(
+      Object.entries(productIdMapParsed).map(([l, r]) => [r as string, l as string])
+    );
 
     const newMutations = remoteMutations.filter(rm => !localRemoteIds.has(rm.id));
     if (newMutations.length === 0) return;
@@ -479,9 +506,8 @@ const backfillLocalDataForLinkedAccount = async (userId: string, force = false) 
   
   // Try to restore categoryMap from localStorage if not forcing full sync
   const categoryIdMapRaw = localStorage.getItem(`kasirhub_category_id_map_${userId}`);
-  let categoryMap: Map<string, string> = categoryIdMapRaw 
-    ? new Map(Object.entries(JSON.parse(categoryIdMapRaw)))
-    : new Map();
+  const categoryIdMapParsed = safeParse(categoryIdMapRaw, {});
+  let categoryMap: Map<string, string> = new Map(Object.entries(categoryIdMapParsed));
 
   const lastSync = localStorage.getItem(lastFullSyncKey);
   const now = Date.now();
@@ -544,7 +570,7 @@ export const triggerSync = async (force = false) => {
 
     // 2. Transactions (Local -> Remote Only)
     const productIdMapRaw = localStorage.getItem(`kasirhub_product_id_map_${user.id}`);
-    const productIdMap: Record<string, string> = productIdMapRaw ? JSON.parse(productIdMapRaw) : {};
+    const productIdMap: Record<string, string> = safeParse(productIdMapRaw, {});
 
     const unsynced = await db.transactions.where('synced').equals(0).toArray();
 
@@ -566,7 +592,8 @@ export const triggerSync = async (force = false) => {
               payment_method: tx.payment_method,
               status: tx.status,
               customer_name: tx.customer_name || null,
-              created_at: tx.created_at
+              created_at: tx.created_at,
+              deleted_at: tx.deleted_at || null
             })
             .select('id')
             .single();

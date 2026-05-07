@@ -18,6 +18,21 @@ export function AppEventsHandler() {
   const router = useRouter();
 
   useEffect(() => {
+    // 0. Global Error Logger for WSOD debugging
+    const handleError = (event: ErrorEvent) => {
+      const errorInfo = {
+        message: event.message,
+        source: event.filename,
+        line: event.lineno,
+        col: event.colno,
+        stack: event.error?.stack,
+        time: new Date().toISOString()
+      };
+      localStorage.setItem('kasirhub_last_crash', JSON.stringify(errorInfo));
+      console.error('App Crash Logged:', errorInfo);
+    };
+    window.addEventListener('error', handleError);
+
     // 1. Version Check & Cache Purge (Fixes sync issues after APK update)
     const CURRENT_VERSION = '1.1.2'; 
     const lastVersion = localStorage.getItem('app_version');

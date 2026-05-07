@@ -51,7 +51,7 @@ export default function KasirPage() {
   const router = useRouter();
   
   // Activate background sync
-  useSync();
+  // useSync is now handled globally by SyncProvider in root layout
 
   // Effect 1: Fetch admin user_id (async, runs once)
   useEffect(() => {
