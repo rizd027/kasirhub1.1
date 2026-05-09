@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Store, Key, LayoutGrid, 
   Database, ArrowUpDown, HelpCircle, ChevronRight,
-  Package, UserCircle2, Boxes, Fingerprint, LogOut, QrCode
+  Package, UserCircle2, Boxes, Fingerprint, LogOut, QrCode, Scale
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { PinDialog } from '@/components/ui/PinDialog';
@@ -20,6 +20,7 @@ import { SyncIndicator } from '@/components/layout/SyncIndicator';
 const settingMenus = [
   { title: 'Toko Saya', desc: 'Atur informasi toko', icon: Store, href: '/toko', protected: true },
   { title: 'Data Produk', desc: 'Tambah, ubah, atau hapus produk', icon: Package, href: '/produk', protected: true },
+  { title: 'Bahan Baku', desc: 'Rincian modal dan bahan baku (BOM)', icon: Scale, href: '/ingredients', protected: true },
   { title: 'Stock', desc: 'Kelola stok gudang dan stok toko', icon: Boxes, href: '/stock', protected: true },
   { title: 'Karyawan', desc: 'Manajemen staf dan hak akses', icon: UserCircle2, href: '/karyawan', protected: true },
   { title: 'QR Menu Digital', desc: 'Buat QR untuk pemesanan mandiri pelanggan', icon: QrCode, href: '/qr-menu', protected: true },
