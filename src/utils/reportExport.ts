@@ -30,9 +30,13 @@ export const fetchAllReportData = async () => {
   const tokoInfo = JSON.parse(localStorage.getItem('toko_info') || '{}');
 
   // Arus Kas & Laba Rugi data
+  const productMap = new Map(products.map(p => [p.id, p]));
   const totalRevenue = transactions.reduce((acc, tx) => acc + tx.total_amount, 0);
   const totalCOGS = transactions.reduce((acc, tx) => {
-    return acc + tx.items.reduce((sum, item) => sum + ((item.price_cost || 0) * item.quantity), 0);
+    return acc + tx.items.reduce((sum, item) => {
+      const cost = item.cost_at_time ?? productMap.get(item.product_id)?.price_cost ?? 0;
+      return sum + (cost * item.quantity);
+    }, 0);
   }, 0);
   const totalDiscount = transactions.reduce((acc, tx) => acc + tx.discount_total, 0);
   const netProfit = totalRevenue - totalCOGS - totalDiscount;
@@ -51,9 +55,10 @@ export const fetchAllReportData = async () => {
   const productSales: Record<string, { count: number; revenue: number }> = {};
   transactions.forEach(tx => {
     tx.items.forEach(item => {
-      if (!productSales[item.name]) productSales[item.name] = { count: 0, revenue: 0 };
-      productSales[item.name].count += item.quantity;
-      productSales[item.name].revenue += item.price * item.quantity;
+      const name = item.name_at_time;
+      if (!productSales[name]) productSales[name] = { count: 0, revenue: 0 };
+      productSales[name].count += item.quantity;
+      productSales[name].revenue += item.price_at_time * item.quantity;
     });
   });
   const bestSellers = Object.entries(productSales)
@@ -81,8 +86,9 @@ export const fetchAllReportData = async () => {
   const categoryStats: Record<string, number> = {};
   transactions.forEach(tx => {
     tx.items.forEach(item => {
-      const catId = item.category_id || 'uncategorized';
-      categoryStats[catId] = (categoryStats[catId] || 0) + (item.price * item.quantity);
+      const product = productMap.get(item.product_id);
+      const catId = product?.category_id || 'uncategorized';
+      categoryStats[catId] = (categoryStats[catId] || 0) + (item.price_at_time * item.quantity);
     });
   });
   const categoryPerformance = categories.map(c => ({
