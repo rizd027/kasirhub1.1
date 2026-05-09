@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { db, LocalProduct } from '@/db/dexie';
+import { db, LocalProduct, Ingredient } from '@/db/dexie';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ChevronLeft, Plus, Minus, Package, Camera, Check, AlertTriangle, Store, Warehouse } from 'lucide-react';
+import { ChevronLeft, Plus, Minus, Package, Camera, Check, AlertTriangle, Store, Warehouse, Calculator, Trash2, Info, TrendingUp } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 import { createId } from '@/utils/uuid';
@@ -39,17 +40,29 @@ export function ProductForm({ initialData, onSuccess, onCancel }: ProductFormPro
     name: '', sku: '', price_sell: 0, price_cost: 0, image_url: '', category_id: '', stock_store: 0, stock_warehouse: 0, barcode_type: 'CODE128'
   });
 
+  const [allIngredients, setAllIngredients] = useState<Ingredient[]>([]);
+  const [selectedIngredients, setSelectedIngredients] = useState<{ ingredient_id: string, quantity: number }[]>([]);
+  const [targetMargin, setTargetMargin] = useState(30);
+  const [showHppCalc, setShowHppCalc] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
-      const [c, p] = await Promise.all([
+      const [c, p, ing] = await Promise.all([
         db.categories.toArray(),
-        db.products.toArray()
+        db.products.toArray(),
+        db.ingredients.toArray()
       ]);
       setCategories(c);
       setProducts(p);
+      setAllIngredients(ing.filter(i => !i.deleted_at));
+
+      if (initialData) {
+        const prodIng = await db.product_ingredients.where('product_id').equals(initialData.id).toArray();
+        setSelectedIngredients(prodIng.map(pi => ({ ingredient_id: pi.ingredient_id, quantity: pi.quantity })));
+      }
     };
     fetchData();
-  }, []);
+  }, [initialData]);
 
   useEffect(() => {
     if (initialData) {
@@ -148,10 +161,49 @@ export function ProductForm({ initialData, onSuccess, onCancel }: ProductFormPro
       if (initialData) {
         await db.products.put(data);
         await addToSyncQueue('products', 'update', id, data);
+        
+        // Handle product ingredients sync
+        const existingPI = await db.product_ingredients.where('product_id').equals(id).toArray();
+        
+        // Delete existing from local and add to sync queue
+        await db.product_ingredients.where('product_id').equals(id).delete();
+        for (const pi of existingPI) {
+          await addToSyncQueue('product_ingredients', 'delete', pi.id, {});
+        }
+
+        if (selectedIngredients.length > 0) {
+          const piData = selectedIngredients.map(si => ({
+            id: createId(),
+            product_id: id,
+            ingredient_id: si.ingredient_id,
+            quantity: si.quantity,
+            sync_status: 'pending' as const
+          }));
+          await db.product_ingredients.bulkAdd(piData);
+          for (const pi of piData) {
+            await addToSyncQueue('product_ingredients', 'insert', pi.id, pi);
+          }
+        }
+
         toast.success('Produk diperbarui');
       } else {
         await db.products.add(data);
         await addToSyncQueue('products', 'insert', id, data);
+
+        if (selectedIngredients.length > 0) {
+          const piData = selectedIngredients.map(si => ({
+            id: createId(),
+            product_id: id,
+            ingredient_id: si.ingredient_id,
+            quantity: si.quantity,
+            sync_status: 'pending' as const
+          }));
+          await db.product_ingredients.bulkAdd(piData);
+          for (const pi of piData) {
+            await addToSyncQueue('product_ingredients', 'insert', pi.id, pi);
+          }
+        }
+
         toast.success('Produk ditambahkan');
       }
       
@@ -257,7 +309,8 @@ export function ProductForm({ initialData, onSuccess, onCancel }: ProductFormPro
                 <div className="h-10 border-b-2 border-slate-100 focus-within:border-indigo-500 transition-all flex items-center">
                   <Select
                     value={isCreatingCategory ? '__new_category__' : (form.category_id || EMPTY_CATEGORY_VALUE)}
-                    onValueChange={v => {
+                    onValueChange={(v: string | null) => {
+                      if (!v) return;
                       if (v === '__new_category__') setIsCreatingCategory(true);
                       else {
                         setIsCreatingCategory(false);
@@ -314,7 +367,7 @@ export function ProductForm({ initialData, onSuccess, onCancel }: ProductFormPro
                   <div className="flex flex-col gap-2">
                     <Label className="text-[10px] font-black uppercase text-slate-700 tracking-widest ml-1">Jenis Barcode</Label>
                     <div className="h-10 border-b-2 border-slate-100 focus-within:border-indigo-500 transition-all flex items-center">
-                      <Select value={form.barcode_type || 'CODE128'} onValueChange={v => setForm({ ...form, barcode_type: v || undefined })}>
+                      <Select value={form.barcode_type || 'CODE128'} onValueChange={(v: string | null) => setForm({ ...form, barcode_type: (v as any) || undefined })}>
                         <SelectTrigger className="w-full h-full bg-transparent border-0 rounded-none px-1 focus:ring-0 text-sm font-bold shadow-none">
                           <SelectValue />
                         </SelectTrigger>
@@ -373,7 +426,7 @@ export function ProductForm({ initialData, onSuccess, onCancel }: ProductFormPro
                   </div>
                   <div className="flex flex-col gap-2">
                     <Label className="text-[10px] font-black uppercase text-slate-700 tracking-widest ml-1">Harga Modal (HPP)</Label>
-                    <div className="h-10 border-b-2 border-slate-100 focus-within:border-indigo-500 transition-all flex items-center">
+                    <div className="h-10 border-b-2 border-slate-100 focus-within:border-indigo-500 transition-all flex items-center gap-2 group">
                       <Input
                         inputMode="numeric"
                         placeholder="Rp 0"
@@ -382,7 +435,159 @@ export function ProductForm({ initialData, onSuccess, onCancel }: ProductFormPro
                         onFocus={(e) => e.target.select()}
                         onChange={e => setForm({ ...form, price_cost: normalizeNumber(e.target.value) })}
                       />
+                      <Dialog open={showHppCalc} onOpenChange={setShowHppCalc}>
+                        <DialogTrigger 
+                          render={
+                            <button className="p-1.5 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all active:scale-90">
+                              <Calculator className="size-4" />
+                            </button>
+                          }
+                        />
+                        <DialogContent className="sm:max-w-[500px] rounded-3xl border-2 border-slate-100 shadow-2xl p-0 overflow-hidden">
+                          <div className="bg-slate-900 p-8 text-white">
+                             <div className="flex items-center gap-3 mb-2 opacity-50">
+                               <Calculator className="size-4" />
+                               <span className="text-[10px] font-black uppercase tracking-[0.3em]">HPP Calculator</span>
+                             </div>
+                             <h3 className="text-3xl font-black tracking-tighter">Hitung Modal Otomatis</h3>
+                             <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-wide">Rincian Bahan Baku (BOM)</p>
+                          </div>
+                          
+                          <div className="p-8 space-y-6 max-h-[60vh] overflow-auto">
+                             <div className="space-y-4">
+                                {selectedIngredients.length === 0 ? (
+                                  <div className="py-12 text-center border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/50">
+                                    <Package className="size-8 text-slate-200 mx-auto mb-3" />
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Belum ada bahan ditambahkan</p>
+                                  </div>
+                                ) : (
+                                  selectedIngredients.map((si, idx) => {
+                                    const ing = allIngredients.find(i => i.id === si.ingredient_id);
+                                    return (
+                                      <div key={idx} className="flex items-center gap-4 p-4 bg-white border-2 border-slate-100 rounded-2xl">
+                                         <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-black text-slate-900 uppercase truncate">{ing?.name || 'Bahan'}</p>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Rp {ing?.cost_per_unit.toLocaleString('id-ID')} / {ing?.unit}</p>
+                                         </div>
+                                         <div className="flex items-center gap-2">
+                                            <Input 
+                                              type="number"
+                                              className="w-20 h-9 text-xs font-black bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-indigo-600 text-center"
+                                              value={si.quantity}
+                                              onChange={e => {
+                                                const newIngs = [...selectedIngredients];
+                                                newIngs[idx].quantity = Number(e.target.value);
+                                                setSelectedIngredients(newIngs);
+                                              }}
+                                            />
+                                            <button 
+                                              onClick={() => setSelectedIngredients(selectedIngredients.filter((_, i) => i !== idx))}
+                                              className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                                            >
+                                              <Trash2 className="size-3.5" />
+                                            </button>
+                                         </div>
+                                      </div>
+                                    );
+                                  })
+                                )}
+                             </div>
+
+                             <div className="pt-4 border-t-2 border-slate-50">
+                                <Label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-2 block">Tambah Bahan</Label>
+                                <Select onValueChange={(v: string | null) => {
+                                  if (!v) return;
+                                  if (selectedIngredients.some(si => si.ingredient_id === v)) return;
+                                  setSelectedIngredients([...selectedIngredients, { ingredient_id: v, quantity: 1 }]);
+                                }}>
+                                  <SelectTrigger className="h-11 font-bold bg-slate-50 border-2 border-slate-200 rounded-xl">
+                                    <SelectValue placeholder="Pilih bahan baku..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {allIngredients.map(ing => (
+                                      <SelectItem key={ing.id} value={ing.id} className="font-bold">{ing.name} ({ing.unit})</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                             </div>
+                          </div>
+
+                          <div className="p-8 bg-slate-50 border-t-2 border-slate-200 flex items-center justify-between">
+                             <div className="flex flex-col">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total HPP Terhitung</span>
+                                <span className="text-2xl font-black text-slate-900">
+                                  Rp {selectedIngredients.reduce((sum, si) => {
+                                    const ing = allIngredients.find(i => i.id === si.ingredient_id);
+                                    return sum + (ing?.cost_per_unit || 0) * si.quantity;
+                                  }, 0).toLocaleString('id-ID')}
+                                </span>
+                             </div>
+                             <Button 
+                               onClick={() => {
+                                 const total = selectedIngredients.reduce((sum, si) => {
+                                   const ing = allIngredients.find(i => i.id === si.ingredient_id);
+                                   return sum + (ing?.cost_per_unit || 0) * si.quantity;
+                                 }, 0);
+                                 setForm({...form, price_cost: total});
+                                 setShowHppCalc(false);
+                               }}
+                               className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest rounded-xl"
+                             >
+                               Gunakan HPP
+                             </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 md:gap-y-10">
+                  <div className="flex flex-col gap-4 p-6 bg-emerald-50/50 rounded-3xl border-2 border-emerald-100">
+                    <div className="flex items-center justify-between">
+                       <div className="flex items-center gap-2">
+                          <TrendingUp className="size-4 text-emerald-600" />
+                          <Label className="text-[10px] font-black uppercase text-emerald-800 tracking-widest">Smart Pricing Suggester</Label>
+                       </div>
+                       <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-emerald-200">
+                          <span className="text-[9px] font-black text-emerald-600">Target Margin:</span>
+                          <input 
+                            type="number"
+                            className="w-10 bg-transparent border-0 p-0 text-[10px] font-black text-emerald-600 text-center focus:ring-0"
+                            value={targetMargin}
+                            onChange={e => setTargetMargin(Number(e.target.value))}
+                          />
+                          <span className="text-[9px] font-black text-emerald-600">%</span>
+                       </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                       <div className="flex flex-col">
+                          <p className="text-[9px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Saran Harga Jual</p>
+                          <p className="text-xl font-black text-emerald-700">
+                            Rp {Math.ceil((Number(form.price_cost || 0) / (1 - (targetMargin / 100))) / 100) * 100 || 0}
+                          </p>
+                       </div>
+                       <Button 
+                         size="sm"
+                         onClick={() => {
+                           const suggested = Math.ceil((Number(form.price_cost || 0) / (1 - (targetMargin / 100))) / 100) * 100;
+                           setForm({...form, price_sell: suggested});
+                         }}
+                         className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-widest rounded-xl"
+                       >
+                         Gunakan Saran
+                       </Button>
+                    </div>
+                  </div>
+                  <div className="p-6 bg-slate-50/50 rounded-3xl border-2 border-slate-100 flex flex-col justify-center">
+                     <div className="flex items-center gap-2 mb-2">
+                        <Info className="size-3.5 text-slate-400" />
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Analisa Laba Kotor</span>
+                     </div>
+                     <p className="text-[10px] font-black text-slate-700 leading-relaxed uppercase tracking-tight">
+                        Dengan harga jual <span className="text-indigo-600">Rp {Number(form.price_sell || 0).toLocaleString('id-ID')}</span>, 
+                        Anda mendapatkan laba <span className="text-emerald-600">Rp {Math.max(0, Number(form.price_sell || 0) - Number(form.price_cost || 0)).toLocaleString('id-ID')}</span> per produk.
+                     </p>
                   </div>
                 </div>
                 {isLossWarning && (

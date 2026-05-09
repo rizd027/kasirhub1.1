@@ -151,6 +151,25 @@ export interface Expense {
     sync_status: 'synced' | 'pending' | 'failed';
 }
 
+export interface Ingredient {
+    id: string;
+    user_id: string;
+    name: string;
+    unit: string;
+    cost_per_unit: number;
+    updated_at: string;
+    deleted_at?: string;
+    sync_status: 'synced' | 'pending' | 'failed';
+}
+
+export interface ProductIngredient {
+    id: string;
+    product_id: string;
+    ingredient_id: string;
+    quantity: number;
+    sync_status?: 'synced' | 'pending' | 'failed';
+}
+
 export class AppDB extends Dexie {
     categories!: Table<Category>;
     products!: Table<Product>;
@@ -161,6 +180,8 @@ export class AppDB extends Dexie {
     settings!: Table<Setting>;
     profiles!: Table<Profile>;
     expenses!: Table<Expense>;
+    ingredients!: Table<Ingredient>;
+    product_ingredients!: Table<ProductIngredient>;
     
     // Legacy tables
     stock_mutations!: Table<LocalStockMutation>;
@@ -169,7 +190,7 @@ export class AppDB extends Dexie {
 
     constructor() {
         super('KasirHubDB');
-        this.version(17).stores({
+        this.version(19).stores({
             categories: 'id, user_id, updated_at, sync_status',
             products: 'id, user_id, sku, category_id, updated_at, sync_status',
             transactions: 'id, user_id, employee_id, created_at, sync_status',
@@ -179,6 +200,8 @@ export class AppDB extends Dexie {
             settings: 'user_id',
             profiles: 'id, slug',
             expenses: 'id, user_id, category, created_at, sync_status',
+            ingredients: 'id, user_id, name, sync_status',
+            product_ingredients: 'id, product_id, ingredient_id, sync_status',
             stock_mutations: '++id, remote_id, synced, product_id, created_at',
             attendance: '++id, remote_id, synced, created_at, employee_id, is_verified',
             employees: 'id'

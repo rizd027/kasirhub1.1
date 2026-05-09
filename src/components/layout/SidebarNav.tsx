@@ -11,7 +11,9 @@ import {
   ChevronLeft, 
   ChevronRight,
   LogOut,
-  UserCircle2
+  UserCircle2,
+  PackageSearch,
+  Scale
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLayoutStore } from '@/store/useLayoutStore';
@@ -21,6 +23,8 @@ import { supabase } from '@/services/supabase';
 
 const navItems = [
   { label: 'Kasir', href: '/kasir', icon: ReceiptText },
+  { label: 'Produk', href: '/produk', icon: PackageSearch },
+  { label: 'Bahan Baku', href: '/ingredients', icon: Scale },
   { label: 'Riwayat', href: '/riwayat', icon: History },
   { label: 'Laporan', href: '/laporan', icon: BarChart3 },
   { label: 'Setting', href: '/settings', icon: Settings },
