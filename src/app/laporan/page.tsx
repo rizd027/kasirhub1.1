@@ -39,6 +39,14 @@ const reportMenus = [
     bg: 'bg-blue-50'
   },
   { 
+    title: 'Pengeluaran', 
+    description: 'Catat biaya operasional & gaji',
+    href: '/laporan/pengeluaran',
+    icon: DollarSign,
+    color: 'text-rose-500',
+    bg: 'bg-rose-50'
+  },
+  { 
     title: 'Laporan Laba', 
     description: 'Analisis keuntungan bersih bisnis',
     href: '/laporan/laba-rugi',

@@ -146,6 +146,18 @@ CREATE TABLE IF NOT EXISTS customer_orders (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS expenses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) DEFAULT auth.uid(),
+  employee_id UUID REFERENCES employees(id) ON DELETE SET NULL,
+  amount DECIMAL(12,2) NOT NULL,
+  category TEXT NOT NULL,
+  note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
 -- 3. RLS Enable
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
@@ -157,6 +169,7 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customer_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 
 -- 4. RLS Policies
 
@@ -214,6 +227,11 @@ CREATE POLICY "Allow public to insert orders" ON customer_orders FOR INSERT TO a
 DROP POLICY IF EXISTS "Users can manage own customer orders" ON customer_orders;
 CREATE POLICY "Users can manage own customer orders" ON customer_orders FOR ALL TO authenticated
 USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can manage own expenses" ON expenses;
+CREATE POLICY "Users can manage own expenses" ON expenses FOR ALL TO authenticated
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
 
 -- Attendance (Bidirectional Sync Support)
 DROP POLICY IF EXISTS "Allow public to insert attendance" ON attendance;

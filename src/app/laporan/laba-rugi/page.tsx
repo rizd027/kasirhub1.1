@@ -8,7 +8,7 @@ import { id as localeId } from 'date-fns/locale';
 import { 
   TrendingUp, TrendingDown, Info, DollarSign, Calculator, 
   Receipt, Tag, Calendar, Clock, LayoutGrid, Download, 
-  FileText, FileSpreadsheet 
+  FileText, FileSpreadsheet, Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,44 +30,52 @@ export default function LabaRugiPage() {
     grossProfit: 0,
     discounts: 0,
     netProfit: 0,
-    margin: 0
+    margin: 0,
+    totalExpenses: 0
   });
 
   useEffect(() => {
     const calculate = async () => {
       setLoading(true);
-      const allTransactions = await db.transactions.toArray();
+      const [allTransactions, allExpenses] = await Promise.all([
+        db.transactions.toArray(),
+        db.expenses.toArray()
+      ]);
       const today = new Date();
       const monthStart = startOfMonth(today);
       
-      const filtered = allTransactions.filter(tx => {
-        const txDate = new Date(tx.created_at);
+      const filterFn = (dateStr: string) => {
+        const date = new Date(dateStr);
         if (filterDate === 'today') {
-          return format(txDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
+          return format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
         }
         if (filterDate === 'this_month') {
-          return isAfter(txDate, monthStart);
+          return isAfter(date, monthStart);
         }
         return true;
-      });
+      };
+
+      const filteredTxs = allTransactions.filter(tx => filterFn(tx.created_at));
+      const filteredExps = allExpenses.filter(ex => !ex.deleted_at && filterFn(ex.created_at));
 
       let revenue = 0;
       let cogs = 0;
       let discounts = 0;
 
-      filtered.forEach(tx => {
-        revenue += tx.subtotal; // Use subtotal before discounts
+      filteredTxs.forEach(tx => {
+        revenue += tx.subtotal;
         discounts += tx.discount_total;
         tx.items.forEach(item => {
           cogs += (item.cost_at_time || 0) * item.quantity;
         });
       });
 
+      const totalExpenses = filteredExps.reduce((s, e) => s + e.amount, 0);
       const grossProfit = revenue - cogs;
-      const netProfit = grossProfit - discounts;
+      const netProfit = grossProfit - discounts - totalExpenses;
       const margin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
 
-      setStats({ revenue, cogs, grossProfit, discounts, netProfit, margin });
+      setStats({ revenue, cogs, grossProfit, discounts, netProfit, margin, totalExpenses });
       setLoading(false);
     };
 
@@ -179,6 +187,20 @@ export default function LabaRugiPage() {
                   </div>
                 </div>
                 <span className="text-base font-black text-red-600">-Rp {stats.discounts.toLocaleString('id-ID')}</span>
+              </div>
+
+              {/* Operational Expenses */}
+              <div className="py-6 flex justify-between items-center group">
+                <div className="flex items-center gap-4">
+                  <div className="p-2.5 bg-slate-50 text-slate-900 group-hover:text-rose-600 transition-colors rounded-xl border-2 border-slate-200">
+                    <Wallet className="h-4 w-4" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black text-slate-900 uppercase tracking-tight">Biaya Operasional</span>
+                    <span className="text-[9px] font-bold text-slate-600 uppercase tracking-tighter mt-0.5">Sewa, Gaji, Listrik, dll.</span>
+                  </div>
+                </div>
+                <span className="text-base font-black text-rose-600">-Rp {stats.totalExpenses.toLocaleString('id-ID')}</span>
               </div>
             </div>
           </div>

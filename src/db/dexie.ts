@@ -138,6 +138,19 @@ export interface Employee {
 export type LocalProduct = Product;
 export type LocalTransaction = Transaction;
 
+export interface Expense {
+    id: string;
+    user_id: string;
+    employee_id?: string;
+    amount: number;
+    category: string;
+    note?: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at?: string | null;
+    sync_status: 'synced' | 'pending' | 'failed';
+}
+
 export class AppDB extends Dexie {
     categories!: Table<Category>;
     products!: Table<Product>;
@@ -147,6 +160,7 @@ export class AppDB extends Dexie {
     sync_queue!: Table<SyncQueue>;
     settings!: Table<Setting>;
     profiles!: Table<Profile>;
+    expenses!: Table<Expense>;
     
     // Legacy tables
     stock_mutations!: Table<LocalStockMutation>;
@@ -155,7 +169,7 @@ export class AppDB extends Dexie {
 
     constructor() {
         super('KasirHubDB');
-        this.version(16).stores({
+        this.version(17).stores({
             categories: 'id, user_id, updated_at, sync_status',
             products: 'id, user_id, sku, category_id, updated_at, sync_status',
             transactions: 'id, user_id, employee_id, created_at, sync_status',
@@ -164,6 +178,7 @@ export class AppDB extends Dexie {
             sync_queue: '++id, created_at, table_name, record_id',
             settings: 'user_id',
             profiles: 'id, slug',
+            expenses: 'id, user_id, category, created_at, sync_status',
             stock_mutations: '++id, remote_id, synced, product_id, created_at',
             attendance: '++id, remote_id, synced, created_at, employee_id, is_verified',
             employees: 'id'
