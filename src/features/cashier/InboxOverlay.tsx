@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase';
 import { useRealtimeChannel } from '@/hooks/useRealtimeChannel';
 import { useCartStore } from '@/store/useCartStore';
 import { X, ShoppingCart, Clock, Hash, CheckCircle2, XCircle, Loader2 } from 'lucide-react';

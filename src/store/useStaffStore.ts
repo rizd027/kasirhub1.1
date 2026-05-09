@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 interface UserSession {
   id: string;
   name: string;
+  email?: string;
   role: 'admin' | 'staff';
   username?: string;
   can_view_reports?: boolean;

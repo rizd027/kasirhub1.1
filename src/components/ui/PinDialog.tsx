@@ -34,6 +34,24 @@ export function PinDialog({
   const [isError, setIsError] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
 
+  // Handle Keyboard Input
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key >= '0' && e.key <= '9') {
+        handleKey(e.key);
+      } else if (e.key === 'Backspace') {
+        handleKey('del');
+      } else if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, pin, isError]); // Added dependencies to ensure fresh state access
+
   useEffect(() => {
     if (isOpen) {
       setPin('');
@@ -67,7 +85,9 @@ export function PinDialog({
     }
     if (key === '') return;
 
-    const next = (pin + key).slice(0, PIN_LENGTH);
+    if (pin.length >= PIN_LENGTH) return;
+
+    const next = (pin + key);
     setPin(next);
     if (isError) setIsError(false);
 
@@ -79,95 +99,98 @@ export function PinDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-gradient-to-br from-[#4F46E5] via-[#4338CA] to-[#312E81] text-white select-none overflow-hidden">
-      {/* Background Decor */}
-      <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-white/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-[-5%] right-[-5%] w-80 h-80 bg-indigo-400/10 rounded-full blur-3xl" />
-
+    <div className="fixed inset-0 z-[200] flex bg-slate-950 text-white select-none overflow-hidden">
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-6 right-6 p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-lg transition-all active:scale-90"
+        className="absolute top-6 right-6 p-3 rounded-full bg-white/5 hover:bg-white/10 transition-colors z-50"
       >
-        <X className="size-5" />
+        <X className="size-6" />
       </button>
 
-      {/* Header Section */}
-      <div className="flex flex-col items-center justify-center flex-1 gap-4 px-10">
-        <div className="bg-white/10 w-16 h-16 rounded-[2rem] flex items-center justify-center backdrop-blur-xl mb-4 border border-white/10 shadow-2xl">
-          <ShieldCheck className="size-8 text-white" strokeWidth={2.5} />
-        </div>
-        <h2 className="text-2xl font-black tracking-tight text-center">{title}</h2>
-        <p className="text-indigo-100/60 text-[13px] font-bold text-center leading-tight max-w-[240px] uppercase tracking-wide">
-          {description}
-        </p>
-
-        {/* PIN Dots */}
-        <div
-          className={cn(
-            'flex items-center gap-5 mt-10',
-            isShaking && 'opacity-50' // Subtle visual hint instead of shake
-          )}
-        >
-          {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-            <div
-              key={i}
-              className={cn(
-                'w-3.5 h-3.5 rounded-full border-2',
-                i < pin.length
-                  ? isError
-                    ? 'bg-red-400 border-red-400 scale-110'
-                    : 'bg-white border-white scale-110'
-                  : 'bg-transparent border-white/20'
-              )}
-            />
-          ))}
-        </div>
-
-        <div className="h-6 mt-4">
-          <p className={cn(
-            'text-[10px] font-black uppercase tracking-[0.2em]',
-            isError ? 'text-red-300 opacity-100' : 'opacity-0'
-          )}>
-            PIN SALAH, COBA LAGI
+      {/* Main Container - Two Columns on Desktop */}
+      <div className="flex flex-col md:flex-row w-full h-full">
+        
+        {/* Left Section: Status & Instructions */}
+        <div className="flex-1 flex flex-col items-center justify-center p-12 border-b md:border-b-0 md:border-r border-white/5 bg-slate-950">
+          <div className="mb-8 p-6 rounded-[2.5rem] bg-indigo-600/10 border border-indigo-600/20">
+            <ShieldCheck className="size-12 text-indigo-600" strokeWidth={1.5} />
+          </div>
+          
+          <h2 className="text-3xl font-bold tracking-tight mb-2 text-center">{title}</h2>
+          <p className="text-slate-400 text-sm font-medium text-center max-w-xs mb-12">
+            {description}
           </p>
-        </div>
-      </div>
 
-      {/* Keypad Section */}
-      <div className="w-full max-w-[320px] mx-auto px-8 pb-16">
-        <div className="grid grid-cols-3 gap-y-6 gap-x-8">
-          {KEYPAD.map((row, ri) => 
-            row.map((key, ki) => {
-              if (key === '') return <div key={ki} />;
-              
-              const isDel = key === 'del';
-              
-              return (
-                <button
-                  key={`${ri}-${ki}`}
-                  onClick={() => handleKey(key)}
-                  className={cn(
-                    "relative aspect-square rounded-full flex items-center justify-center",
-                    "text-2xl font-black",
-                    isDel 
-                      ? "bg-transparent text-white/50" 
-                      : "bg-white/10 border border-white/5 backdrop-blur-md"
-                  )}
-                >
-                  {isDel ? <Delete className="size-7" /> : key}
-                </button>
-              );
-            })
-          )}
+          {/* PIN Indicator Dots */}
+          <div className={cn(
+            "flex gap-4 p-6 rounded-3xl bg-white/5 border border-white/5",
+            isShaking && "border-red-500/50 bg-red-500/5"
+          )}>
+            {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "w-4 h-4 rounded-full border-2",
+                  i < pin.length
+                    ? isError 
+                      ? "bg-red-500 border-red-500" 
+                      : "bg-indigo-600 border-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.5)]"
+                    : "bg-transparent border-slate-700"
+                )}
+              />
+            ))}
+          </div>
+
+          <div className="h-8 mt-6 text-center">
+            {isError && (
+              <p className="text-red-400 text-xs font-bold uppercase tracking-widest">
+                PIN SALAH, SILAKAN COBA LAGI
+              </p>
+            )}
+          </div>
         </div>
 
-        <button 
-          className="w-full mt-10 text-center text-[10px] text-white/30 font-black uppercase tracking-[0.2em]"
-          onClick={() => toast.info('Fitur reset PIN tersedia di dashboard Admin')}
-        >
-          Lupa PIN?
-        </button>
+        {/* Right Section: Numpad (Always on right on desktop) */}
+        <div className="flex-1 flex flex-col items-center justify-center bg-slate-900/50 p-12 lg:p-24">
+          <div className="w-full max-w-[280px]">
+            <div className="grid grid-cols-3 gap-3">
+              {KEYPAD.map((row, ri) => 
+                row.map((key, ki) => {
+                  if (key === '') return <div key={ki} />;
+                  
+                  const isDel = key === 'del';
+                  
+                  return (
+                    <button
+                      key={`${ri}-${ki}`}
+                      onClick={() => handleKey(key)}
+                      className={cn(
+                        "aspect-square rounded-2xl flex items-center justify-center text-2xl font-medium transition-colors",
+                        isDel 
+                          ? "bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white" 
+                          : "bg-white/5 border border-white/5 hover:bg-white/10 active:bg-indigo-600 active:text-white"
+                      )}
+                    >
+                      {isDel ? <Delete className="size-7" /> : key}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            
+            <p className="mt-10 text-center text-[11px] text-slate-500 font-medium tracking-wide">
+              Gunakan layar sentuh atau keyboard laptop Anda
+            </p>
+
+            <button 
+              className="w-full mt-4 text-center text-[11px] text-indigo-500/50 hover:text-indigo-500 font-bold uppercase tracking-widest"
+              onClick={() => toast.info('Reset PIN melalui Dashboard Admin')}
+            >
+              Lupa PIN?
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

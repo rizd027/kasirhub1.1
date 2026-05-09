@@ -8,8 +8,12 @@ const withSerwist = withSerwistInit({
 
 export default withSerwist({
   // Next.js config
-  output: 'export',
+  // output: 'export',
   images: { unoptimized: true },
-  reactStrictMode: true,
-  allowedDevOrigins: ['192.168.1.11', 'localhost'],
+  reactStrictMode: false, // Disabling strict mode in dev can speed up rendering
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'recharts', 'date-fns', 'exceljs'],
+  },
+  turbopack: {},
+  allowedDevOrigins: ['192.168.1.11', 'localhost', '192.168.1.7'],
 });

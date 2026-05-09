@@ -10,7 +10,7 @@ import {
   MoreVertical, FileText, FileSpreadsheet, FileBox
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { db } from '@/lib/dexie';
+import { db } from '@/db/dexie';
 import { format, subDays, startOfDay, isAfter, isToday, startOfMonth } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { ReportStatCard } from '@/features/reports/ReportStatCard';
@@ -39,7 +39,7 @@ const reportMenus = [
     bg: 'bg-blue-50'
   },
   { 
-    title: 'Laporan Laba Rugi', 
+    title: 'Laporan Laba', 
     description: 'Analisis keuntungan bersih bisnis',
     href: '/laporan/laba-rugi',
     icon: TrendingUp,
@@ -128,7 +128,7 @@ export default function LaporanPage() {
     
     // Simple profit estimation: sum of items (price - cost)
     const monthProfit = monthTxs.reduce((sum, tx) => {
-      const txProfit = tx.items.reduce((p, item) => p + ((item.price - (item.cost || 0)) * item.quantity), 0);
+      const txProfit = tx.items.reduce((p, item) => p + ((item.price_at_time - (item.cost_at_time || 0)) * item.quantity), 0);
       return sum + (txProfit - tx.discount_total);
     }, 0);
 
@@ -176,54 +176,45 @@ export default function LaporanPage() {
             title="Akses Laporan"
             description="Masukkan PIN untuk melihat laporan keuangan dan performa bisnis."
           />
-          <div className="text-center animate-pulse">
+          <div className="text-center">
             <p className="text-xs font-black uppercase tracking-widest text-slate-400">Menunggu Verifikasi...</p>
           </div>
         </div>
       )}
 
       <div className="flex flex-col min-h-screen">
-        <header className="flex items-center justify-between px-6 h-16 bg-background/80 backdrop-blur-md border-b sticky top-0 z-40">
+        <header className="flex items-center justify-between px-6 h-14 bg-white border-b sticky top-0 z-40">
           <div className="flex-1" />
-          <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-800">Laporan</h1>
+          <h1 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-900">Laporan Keuangan</h1>
           <div className="flex-1 flex justify-end">
         <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 transition-colors outline-none">
-            <MoreVertical className="h-5 w-5" />
+          <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-900 hover:bg-slate-50 outline-none border border-slate-200">
+            <MoreVertical className="h-4 w-4" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44 rounded-xl p-2 shadow-xl border-slate-100">
+          <DropdownMenuContent align="end" className="w-52 rounded-xl p-1 shadow-2xl border-2 border-slate-300 animate-none bg-white z-[100]">
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 py-1.5">Ekspor Laporan</DropdownMenuLabel>
-              <DropdownMenuSeparator className="my-1 bg-slate-50" />
+              <DropdownMenuLabel className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-3 py-2">Ekspor Laporan</DropdownMenuLabel>
+              <DropdownMenuSeparator className="mx-1 bg-slate-100" />
               <DropdownMenuItem 
                 onClick={exportReportPDF}
-                className="flex items-start gap-3 py-3 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors"
+                className="flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer focus:bg-red-50 focus:text-red-700 outline-none"
               >
-                <FileText className="h-4 w-4 mt-0.5 shrink-0 text-red-500" />
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold leading-tight">Simpan sebagai PDF</span>
-                  <span className="text-[9px] opacity-60 mt-0.5">Format dokumen standar</span>
-                </div>
+                <FileText className="h-4 w-4 shrink-0 text-red-500" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Simpan PDF</span>
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={exportReportExcel}
-                className="flex items-start gap-3 py-3 px-2 rounded-lg cursor-pointer focus:bg-emerald-50 focus:text-emerald-600 transition-colors"
+                className="flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 outline-none"
               >
-                <FileSpreadsheet className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600" />
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold leading-tight">Simpan sebagai Excel</span>
-                  <span className="text-[9px] opacity-60 mt-0.5">Format data & tabel (XLSX)</span>
-                </div>
+                <FileSpreadsheet className="h-4 w-4 shrink-0 text-emerald-600" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Simpan Excel</span>
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={exportReportWord}
-                className="flex items-start gap-3 py-3 px-2 rounded-lg cursor-pointer focus:bg-blue-50 focus:text-blue-600 transition-colors"
+                className="flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer focus:bg-blue-50 focus:text-blue-700 outline-none"
               >
-                <FileBox className="h-4 w-4 mt-0.5 shrink-0 text-blue-600" />
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold leading-tight">Simpan sebagai Word</span>
-                  <span className="text-[9px] opacity-60 mt-0.5 whitespace-normal">Format dokumen teks (DOCX)</span>
-                </div>
+                <FileBox className="h-4 w-4 shrink-0 text-blue-600" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Simpan Word</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
@@ -231,95 +222,86 @@ export default function LaporanPage() {
         </div>
       </header>
 
-      <div>
-        {/* Dashboard Section */}
-        {/* Dashboard Section - Flat Line Design */}
-        <section className="px-6 py-2">
-          {/* Today Sales - Main Stat */}
-          <div className="py-6 border-b border-slate-200/60 flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Penjualan Hari Ini</span>
-              <h2 className="text-3xl font-black text-slate-800 tracking-tighter">
-                Rp {stats.todaySales.toLocaleString('id-ID')}
-              </h2>
-            </div>
+      <div className="flex-1 overflow-auto bg-white">
+        {/* Dashboard Section - High Contrast */}
+        <section className="px-6 py-4 bg-slate-50/50 border-b-2 border-slate-300">
+          <div className="flex flex-col gap-1 mb-6">
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">Penjualan Hari Ini</span>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tighter">
+              Rp {stats.todaySales.toLocaleString('id-ID')}
+            </h2>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 py-6 border-b border-slate-200/60">
+          <div className="grid grid-cols-2 gap-0 border-t-2 border-slate-300 divide-x-2 divide-slate-300">
             {/* Laba Bulan Ini */}
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-3 w-3 text-emerald-500" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">Laba Bulan Ini</span>
+            <div className="py-5 pr-4 flex flex-col gap-1">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="h-3 w-3 text-emerald-600" />
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Laba Bulan Ini</span>
               </div>
-              <div className="text-lg font-black text-slate-800">
+              <div className="text-xl font-black text-slate-900 tracking-tight">
                 Rp {stats.monthProfit.toLocaleString('id-ID')}
               </div>
-              <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 mt-1">
-                <ArrowUpRight className="h-3 w-3" />
-                <span>+12%</span>
-                <span className="opacity-40 ml-1">vs bln lalu</span>
+              <div className="text-[9px] font-black text-emerald-600 mt-1 uppercase tracking-tighter">
+                Naik +12% dari bln lalu
               </div>
             </div>
 
             {/* Total Transaksi */}
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <ShoppingBag className="h-3 w-3 text-amber-500" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">Transaksi</span>
+            <div className="py-5 pl-6 flex flex-col gap-1">
+              <div className="flex items-center gap-2 mb-1">
+                <ShoppingBag className="h-3 w-3 text-indigo-600" />
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Transaksi</span>
               </div>
-              <div className="text-lg font-black text-slate-800">
-                {stats.monthTransactions.toString()}
+              <div className="text-xl font-black text-slate-900 tracking-tight">
+                {stats.monthTransactions.toLocaleString('id-ID')}
               </div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-1">Bulan ini</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Lunas & Tempo</p>
             </div>
           </div>
 
-          {/* Chart Section - No Box */}
-          <div className="py-8">
+          {/* Chart Section - Sharp Lines */}
+          <div className="py-8 border-t-2 border-slate-300">
             <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Tren Penjualan</h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-1">Analisis 7 Hari Terakhir</p>
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
+                <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Tren 7 Hari Terakhir</h3>
               </div>
-              <BarChart3 className="h-4 w-4 text-slate-200" />
+              <BarChart3 className="h-4 w-4 text-slate-300" />
             </div>
-            <div className="h-[200px] w-full">
+            <div className="h-[180px] w-full">
               <SalesChart data={stats.chartData} />
             </div>
           </div>
         </section>
 
-        <section className="bg-white rounded-t-[32px] mt-2 shadow-[0_-8px_30px_-15px_rgba(0,0,0,0.1)] border-t border-slate-100 overflow-hidden">
-          <div className="px-6 pt-6 pb-10">
-            <div className="flex flex-col items-center mb-8">
-              <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.3em]">Daftar Laporan</h3>
-              <div className="w-8 h-1 bg-indigo-400/50 rounded-full mt-2" />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-              {reportMenus.map((menu) => (
-                <Link 
-                  key={menu.href}
-                  href={menu.href}
-                  className="group flex items-center gap-4 p-4 hover:bg-slate-50 active:bg-slate-100 transition-all rounded-2xl border border-transparent hover:border-slate-100"
-                >
-                  <div className={cn("size-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-slate-100/50 group-hover:scale-110 transition-transform", menu.bg, menu.color)}>
-                    <menu.icon className="h-5 w-5" />
+        {/* List Reports - Line Separated & Box-less */}
+        <section className="bg-white">
+          <div className="px-6 py-4 border-b-2 border-slate-100 bg-slate-50/30 flex items-center gap-2">
+             <div className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
+             <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-[0.3em]">Menu Laporan</h3>
+          </div>
+          <div className="divide-y-2 divide-slate-50 px-2">
+            {reportMenus.map((menu) => (
+              <Link 
+                key={menu.href}
+                href={menu.href}
+                className="group flex items-center gap-5 p-4 hover:bg-slate-50"
+              >
+                <div className={cn("size-10 rounded-2xl flex items-center justify-center shrink-0 border-2 border-slate-100 shadow-sm", menu.bg, menu.color)}>
+                  <menu.icon className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[14px] font-black text-slate-900 tracking-tight uppercase leading-none mb-1.5">
+                    {menu.title}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-black text-slate-800 tracking-tight leading-tight">
-                      {menu.title}
-                    </div>
-                    <div className="text-[11px] font-bold text-slate-400 mt-0.5 truncate">
-                      {menu.description}
-                    </div>
+                  <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">
+                    {menu.description}
                   </div>
-                  <div className="size-8 flex items-center justify-center rounded-full bg-white opacity-0 group-hover:opacity-100 transition-all shadow-sm">
-                    <ChevronRight className="h-4 w-4 text-slate-400" />
-                  </div>
-                </Link>
-              ))}
-            </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-600" />
+              </Link>
+            ))}
           </div>
         </section>
       </div>

@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { LocalTransaction } from '@/lib/dexie';
+import { LocalTransaction } from '@/db/dexie';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -68,8 +68,9 @@ export function Receipt({ transaction, idElement = 'receipt-content' }: ReceiptP
   }, []);
 
   const formatCurrency = (amount: number) => {
+    const val = amount || 0;
     const symbol = prefs.currency === 'IDR' ? 'Rp' : prefs.currency;
-    return `${symbol} ${amount.toLocaleString(prefs.currency === 'IDR' ? 'id-ID' : 'en-US')}`;
+    return `${symbol} ${val.toLocaleString(prefs.currency === 'IDR' ? 'id-ID' : 'en-US')}`;
   };
 
   return (
@@ -130,18 +131,18 @@ export function Receipt({ transaction, idElement = 'receipt-content' }: ReceiptP
 
       {/* Items */}
       <div className="flex flex-col gap-1 mb-2">
-        {transaction.items.map((item, idx) => (
+        {transaction.items.map((item: any, idx) => (
           <div key={idx} className="flex flex-col">
             <div className="flex justify-between font-bold">
-              <span className="truncate max-w-[140px]">{item.name}</span>
+              <span className="truncate max-w-[140px]">{item.name_at_time || item.name}</span>
             </div>
             <div className="flex justify-between">
-              <span>{item.quantity} x {formatCurrency(item.price)}</span>
-              <span>{formatCurrency(item.price * item.quantity)}</span>
+              <span>{item.quantity} x {formatCurrency(item.price_at_time || item.price)}</span>
+              <span>{formatCurrency((item.price_at_time || item.price) * item.quantity)}</span>
             </div>
             {(item.disc1 > 0 || item.disc2 > 0 || item.nominalDisc > 0) && (
               <div className="text-right text-[8px] italic">
-                Diskon: -{formatCurrency((item.price * item.quantity) - (item.price * (1 - item.disc1/100) * (1 - item.disc2/100) * item.quantity - item.nominalDisc))}
+                Diskon: -{formatCurrency(((item.price_at_time || item.price) * item.quantity) - ((item.price_at_time || item.price) * (1 - (item.disc1||0)/100) * (1 - (item.disc2||0)/100) * item.quantity - (item.nominalDisc||0)))}
               </div>
             )}
           </div>

@@ -1,17 +1,16 @@
 /**
  * useRealtimeChannel — wrapper untuk Supabase realtime yang:
  * 1. Auto-reconnect saat channel CLOSED/TIMED_OUT
- * 2. Re-subscribe saat app kembali ke foreground (Android resume event)
+ * 2. Re-subscribe saat app kembali aktif (visibilitychange event)
  * 3. Cleanup channel saat komponen unmount
  *
  * Gunakan hook ini sebagai pengganti supabase.channel().on().subscribe()
- * untuk semua fitur realtime di dalam Capacitor APK.
+ * untuk semua fitur realtime.
  */
 
 import { useEffect, useRef, useCallback } from 'react';
 import { RealtimeChannel } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
-import { App } from '@capacitor/app';
+import { supabase } from '@/services/supabase';
 
 type ChannelFactory = () => RealtimeChannel;
 
@@ -48,16 +47,17 @@ export function useRealtimeChannel(
   useEffect(() => {
     subscribe();
 
-    // Re-subscribe when app comes back to foreground (Capacitor Native Event)
-    const resumeHandler = App.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) {
+    // Re-subscribe when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
         console.log('App resumed, re-syncing channel...');
         subscribe();
       }
-    });
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      resumeHandler.then(h => h.remove());
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;

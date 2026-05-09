@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { db, LocalTransaction } from '@/lib/dexie';
+import { db, LocalTransaction } from '@/db/dexie';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 import { ReprintModal } from '@/features/cashier/ReprintModal';
 import { exportTransactionsToExcel } from '@/utils/excelExport';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase';
 import { PinDialog } from '@/components/ui/PinDialog';
 
 import { useStaffStore } from '@/store/useStaffStore';
@@ -89,7 +89,7 @@ export default function RiwayatTransaksiPage() {
   const performDelete = async (txId: string) => {
     await db.transactions.update(txId, { 
       deleted_at: new Date().toISOString(),
-      synced: 0 
+      sync_status: 'pending' 
     });
     await fetchTransactions();
     toast.success('Transaksi dihapus');
@@ -107,7 +107,7 @@ export default function RiwayatTransaksiPage() {
       return;
     }
     
-    const unsynced = transactions?.filter(t => !t.synced) || [];
+    const unsynced = transactions?.filter(t => t.sync_status !== 'synced') || [];
     if (unsynced.length === 0) {
       toast.info('Semua data sudah tersinkron');
       return;
@@ -166,8 +166,8 @@ export default function RiwayatTransaksiPage() {
       if (session?.role === 'staff' && tx.employee_id !== session.id) return false;
 
       // Filter Status
-      if (filterStatus === 'synced' && !tx.synced) return false;
-      if (filterStatus === 'unsynced' && tx.synced) return false;
+      if (filterStatus === 'synced' && tx.sync_status !== 'synced') return false;
+      if (filterStatus === 'unsynced' && tx.sync_status === 'synced') return false;
 
       // Filter Date (Staff is locked to today if they select today, but we can allow them to see other days IF they are allowed, 
       // but user said "Filter Riwayat Hari Ini: Melihat daftar nota yang mereka keluarkan pada hari yang sedang berjalan.")
@@ -184,7 +184,7 @@ export default function RiwayatTransaksiPage() {
         const q = searchQuery.toLowerCase();
         const matchesId = tx.id?.toString().toLowerCase().includes(q);
         const matchesCustomer = tx.customer_name?.toLowerCase().includes(q);
-        const matchesItems = tx.items.some(i => i.name.toLowerCase().includes(q));
+        const matchesItems = tx.items.some(i => i.name_at_time.toLowerCase().includes(q));
         if (!matchesId && !matchesCustomer && !matchesItems) return false;
       }
 
@@ -198,7 +198,7 @@ export default function RiwayatTransaksiPage() {
       total: acc.total + tx.total_amount,
       cash: acc.cash + (tx.payment_method === 'cash' ? tx.total_amount : 0),
       tempo: acc.tempo + (tx.payment_method === 'tempo' ? tx.total_amount : 0),
-      unsynced: acc.unsynced + (tx.synced ? 0 : 1)
+      unsynced: acc.unsynced + (tx.sync_status === 'synced' ? 0 : 1)
     }), { total: 0, cash: 0, tempo: 0, unsynced: 0 });
   }, [filteredTransactions]);
 
@@ -208,37 +208,29 @@ export default function RiwayatTransaksiPage() {
         <header className="flex items-center justify-between px-6 h-16 bg-background/80 backdrop-blur-md border-b shrink-0">
         <div className="flex-1" />
         <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-800">Riwayat</h1>
-        <div className="flex-1 flex justify-end">
-          <Button variant="ghost" size="icon" className="size-9 rounded-xl hover:bg-slate-50" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4 text-slate-600", refreshing && "animate-spin")} />
-          </Button>
-          
+        <div className="flex-1 flex justify-end gap-1">
           {session?.role === 'admin' && (
-            <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-slate-50 outline-none">
-                <MoreVertical className="h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44 rounded-2xl p-1 shadow-2xl border-slate-100">
-                <div className="px-3 py-2 border-b border-slate-50 mb-1">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Manajemen</p>
-                </div>
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={handleBulkSync} className="h-10 rounded-xl focus:bg-indigo-50 focus:text-indigo-600">
-                    <CloudCheck className="h-4 w-4 mr-2 text-indigo-500" /> Sinkronkan
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleExport} className="h-10 rounded-xl focus:bg-emerald-50 focus:text-emerald-600">
-                    <Download className="h-4 w-4 mr-2 text-emerald-500" /> Ekspor Excel
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator className="my-1" />
-                <DropdownMenuItem 
-                  onClick={handleClearOld} 
-                  className="h-10 rounded-xl text-red-600 focus:text-red-600 focus:bg-red-50"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" /> Bersihkan Data
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="size-9 rounded-xl hover:bg-emerald-50 text-emerald-600" 
+                onClick={handleExport}
+                title="Ekspor Excel"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="size-9 rounded-xl hover:bg-red-50 text-red-500" 
+                onClick={handleClearOld}
+                title="Bersihkan Data Lama"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </>
           )}
         </div>
       </header>
@@ -400,7 +392,7 @@ export default function RiwayatTransaksiPage() {
                       {isExpanded ? <ChevronUp className="h-4 w-4 text-slate-300" /> : <ChevronDown className="h-4 w-4 text-slate-300" />}
                     </div>
                     
-                    {tx.synced ? (
+                    {tx.sync_status === 'synced' ? (
                       <div className="flex items-center gap-1 text-[9px] text-emerald-600 font-semibold uppercase tracking-tighter">
                         <CloudCheck className="h-3 w-3" />
                         Tersinkron
@@ -423,10 +415,10 @@ export default function RiwayatTransaksiPage() {
                         {tx.items.map((item: any, idx: number) => (
                           <div key={idx} className="flex justify-between text-xs items-center">
                             <div className="flex flex-col">
-                              <span className="font-semibold text-slate-700">{item.name}</span>
-                              <span className="text-[10px] text-slate-400">{item.quantity} x Rp {item.price.toLocaleString('id-ID')}</span>
+                              <span className="font-semibold text-slate-700">{item.name_at_time}</span>
+                              <span className="text-[10px] text-slate-400">{item.quantity || 0} x Rp {(item.price_at_time || 0).toLocaleString('id-ID')}</span>
                             </div>
-                            <span className="font-semibold text-slate-600">Rp {(item.price * item.quantity).toLocaleString('id-ID')}</span>
+                            <span className="font-semibold text-slate-600">Rp {((item.price_at_time || 0) * (item.quantity || 0)).toLocaleString('id-ID')}</span>
                           </div>
                         ))}
                       </div>

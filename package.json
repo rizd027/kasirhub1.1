@@ -3,18 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
-    "@capacitor/android": "^8.3.1",
-    "@capacitor/app": "^8.1.0",
-    "@capacitor/core": "^8.3.1",
-    "@capacitor/network": "^8.0.1",
-    "@capacitor/share": "^8.0.1",
     "@serwist/next": "^9.5.10",
     "@serwist/precaching": "^9.5.10",
     "@serwist/sw": "^9.5.10",
@@ -27,6 +22,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dexie": "^4.4.2",
+    "dexie-react-hooks": "^4.4.0",
     "docx": "^9.6.1",
     "exceljs": "^4.4.0",
     "html2canvas-pro": "^2.0.2",
@@ -48,7 +44,6 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.3.1",
     "@tailwindcss/postcss": "^4",
     "@types/jsbarcode": "^3.11.4",
     "@types/node": "^20",

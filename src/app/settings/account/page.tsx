@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase';
 import { SettingsLayout } from '@/features/settings/SettingsLayout';
 import { useStaffStore } from '@/store/useStaffStore';
 import { Badge } from '@/components/ui/badge';
@@ -43,19 +43,10 @@ export default function SettingsAccountPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Initial user fetch
-    supabase.auth.getUser().then(({ data }) => {
-      setUserEmail(data.user?.email ?? null);
-      if (data.user) {
-        fetchProfile(data.user.id);
-        fetchStats(data.user.id);
-      }
-    });
-
-    // Fetch sync stats
+    // 1. Define functions first
     const fetchStats = async (userId: string) => {
-      const { db } = await import('@/lib/dexie');
-      const count = await db.transactions.where('synced').equals(0).count();
+      const { db } = await import('@/db/dexie');
+      const count = await db.transactions.where('sync_status').equals('pending').count();
       setUnsyncedCount(count);
       setLastSync(localStorage.getItem('kasirhub_last_sync'));
       setHasPin(!!localStorage.getItem('kasirhub_app_password'));
@@ -78,7 +69,6 @@ export default function SettingsAccountPage() {
           .single();
         
         if (error) {
-          // If columns are missing, fallback to just full_name or empty
           const { data: fallbackData } = await supabase
             .from('profiles')
             .select('full_name')
@@ -100,8 +90,14 @@ export default function SettingsAccountPage() {
       }
     };
 
+    // 2. Call them
+    if (session?.id) {
+      fetchProfile(session.id);
+      fetchStats(session.id);
+    }
+
     return () => {};
-  }, []);
+  }, [session?.id]);
 
   const handleUpdateName = async () => {
     if (!profile || !newName.trim()) return;
@@ -180,8 +176,8 @@ export default function SettingsAccountPage() {
         setLastSync(new Date().toISOString());
         localStorage.setItem('kasirhub_last_sync', new Date().toISOString());
         
-        const { db } = await import('@/lib/dexie');
-        const count = await db.transactions.where('synced').equals(0).count();
+        const { db } = await import('@/db/dexie');
+        const count = await db.transactions.where('sync_status').equals('pending').count();
         setUnsyncedCount(count);
       }
       
@@ -277,7 +273,7 @@ export default function SettingsAccountPage() {
         {/* Shortcuts Section */}
         <div className="bg-white border-b border-slate-100 divide-y divide-slate-100">
           <Link 
-            href="/settings/karyawan"
+            href="/karyawan"
             className="flex items-center gap-4 px-6 py-5 hover:bg-slate-50 transition-colors active:bg-slate-100"
           >
             <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center border border-indigo-100">
@@ -308,46 +304,7 @@ export default function SettingsAccountPage() {
           </Link>
         </div>
 
-        {/* Sync Status */}
-        <div className="flex flex-col mt-4 bg-white border-y border-slate-100">
-          <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-800">Status Sinkronisasi</h2>
-            {userEmail && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-          </div>
-          <div className="divide-y divide-slate-100">
-            <div className="px-6 py-4 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100">
-                <Cloud className="h-5 w-5 text-slate-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <div className={cn('w-2 h-2 rounded-full shrink-0', userEmail ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300')} />
-                  <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Akun Cloud</p>
-                </div>
-                <p className="text-sm font-black text-slate-800 truncate">{userEmail || 'Belum terhubung'}</p>
-              </div>
-            </div>
 
-            {userEmail && (
-              <div className="px-6 py-4 flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Terakhir Sinkron</p>
-                  <p className="text-sm font-black text-slate-800">{lastSync ? new Date(lastSync).toLocaleTimeString('id-ID') : '--:--'}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Pending</p>
-                  <p className="text-sm font-black text-slate-800">{unsyncedCount} Data</p>
-                </div>
-              </div>
-            )}
-            
-            <div className="px-6 py-4">
-              <Button onClick={handleSync} disabled={syncing} className="w-full h-11 bg-slate-50 text-slate-700 hover:bg-slate-100 border-none font-black text-xs uppercase tracking-widest shadow-none">
-                {syncing ? <><Loader2 className="size-4 mr-2 animate-spin" /> Proses...</> : 'Sinkronkan Sekarang'}
-              </Button>
-            </div>
-          </div>
-        </div>
 
         {/* Keamanan */}
         <div className="flex flex-col mt-4 bg-white border-y border-slate-100">

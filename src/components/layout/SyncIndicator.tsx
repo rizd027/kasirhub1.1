@@ -5,16 +5,14 @@ import { Cloud, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
 import { triggerSync } from '@/hooks/useSync';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Network } from '@capacitor/network';
 
 export function SyncIndicator() {
   const [status, setStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('synced');
   const [lastSync, setLastSync] = useState<Date | null>(null);
 
   useEffect(() => {
-    const updateStatus = async () => {
-      const netStatus = await Network.getStatus();
-      if (!netStatus.connected) {
+    const updateStatus = () => {
+      if (!navigator.onLine) {
         setStatus('offline');
       } else {
         setStatus('synced');
@@ -23,26 +21,25 @@ export function SyncIndicator() {
 
     updateStatus();
 
-    let listener: any;
-    Network.addListener('networkStatusChange', (status) => {
-      if (!status.connected) {
-        setStatus('offline');
-        toast.error('Koneksi terputus. Mode Offline aktif.');
-      } else {
-        setStatus('synced');
-        toast.success('Koneksi tersambung. Menyinkronkan...');
-        handleSync();
-      }
-    }).then(h => { listener = h; });
+    window.addEventListener('online', () => {
+      setStatus('synced');
+      toast.success('Koneksi tersambung. Menyinkronkan...');
+      handleSync();
+    });
+
+    window.addEventListener('offline', () => {
+      setStatus('offline');
+      toast.error('Koneksi terputus. Mode Offline aktif.');
+    });
 
     return () => {
-      if (listener) listener.remove();
+      window.removeEventListener('online', updateStatus);
+      window.removeEventListener('offline', updateStatus);
     };
   }, []);
 
   const handleSync = async () => {
-    const netStatus = await Network.getStatus();
-    if (!netStatus.connected) {
+    if (!navigator.onLine) {
       toast.error('Tidak ada koneksi internet');
       return;
     }
@@ -55,10 +52,10 @@ export function SyncIndicator() {
       setLastSync(now);
       localStorage.setItem('kasirhub_last_sync', now.toISOString());
       toast.success('Data tersinkronisasi');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Sync error:', err);
       setStatus('error');
-      toast.error('Sinkronisasi gagal. Periksa koneksi internet.');
+      toast.error(err.message || 'Sinkronisasi gagal. Periksa koneksi internet.');
     }
   };
 
@@ -67,38 +64,31 @@ export function SyncIndicator() {
   return (
     <button
       onClick={handleSync}
-      title={lastSync ? `Terakhir sinkron: ${lastSync.toLocaleString('id-ID')}` : 'Belum sinkron'}
+      disabled={status === 'syncing'}
       className={cn(
-        "flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all active:scale-95 group",
-        status === 'synced' ? "bg-emerald-50 border-emerald-100 text-emerald-600" :
+        "relative size-9 flex items-center justify-center rounded-xl border transition-all active:scale-95",
+        status === 'synced' ? "bg-white border-slate-100 text-slate-400 hover:border-emerald-100 hover:text-emerald-500" :
         status === 'syncing' ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
-        status === 'offline' ? "bg-slate-100 border-slate-200 text-slate-400" :
+        status === 'offline' ? "bg-slate-50 border-slate-200 text-slate-300" :
         "bg-red-50 border-red-100 text-red-600"
       )}
+      title={status === 'synced' ? `Terakhir sinkron: ${timeLabel}` : status}
     >
       <div className="relative">
-        {status === 'synced' && <Cloud className="size-3.5" />}
-        {status === 'syncing' && <RefreshCw className="size-3.5 animate-spin" />}
-        {status === 'offline' && <CloudOff className="size-3.5" />}
-        {status === 'error' && <AlertCircle className="size-3.5" />}
+        {status === 'syncing' ? (
+          <RefreshCw className="size-4 animate-spin" />
+        ) : (
+          <Cloud className="size-5" />
+        )}
         
-        {status === 'synced' && (
-          <span className="absolute -top-1 -right-1 flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-        )}
-      </div>
-      
-      <div className="flex flex-col items-start leading-none gap-0.5">
-        <span className="text-[9px] font-black uppercase tracking-widest">
-          {status === 'synced' ? 'Online' :
-           status === 'syncing' ? 'Syncing' :
-           status === 'offline' ? 'Offline' : 'Error'}
+        <span className={cn(
+          "absolute -top-1 -right-1 flex h-2.5 w-2.5 rounded-full border-2 border-white",
+          (status === 'synced' || status === 'syncing') ? "bg-emerald-500" : "bg-red-500"
+        )}>
+          {(status === 'synced' || status === 'syncing') && (
+             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          )}
         </span>
-        {timeLabel && (
-          <span className="text-[7px] font-bold text-slate-400 group-hover:text-slate-500">{timeLabel}</span>
-        )}
       </div>
     </button>
   );

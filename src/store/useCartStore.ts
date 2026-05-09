@@ -6,6 +6,7 @@ export interface CartItem {
   id: string;
   name: string;
   price: number;
+  cost: number; // Harga modal
   quantity: number;
   disc1: number;
   disc2: number;
@@ -81,6 +82,7 @@ export const useCartStore = create<CartState>()(
               id: product.id,
               name: product.name,
               price: product.price_sell,
+              cost: product.price_cost || 0,
               quantity: 1,
               disc1: 0,
               disc2: 0,
@@ -98,6 +100,7 @@ export const useCartStore = create<CartState>()(
             id,
             name,
             price,
+            cost: 0, // Item custom diasumsikan modal 0 atau bisa dikembangkan nanti
             quantity: 1,
             disc1: 0,
             disc2: 0,

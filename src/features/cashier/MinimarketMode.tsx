@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Barcode, Plus, Minus, Trash2, Search, Tag, AlertCircle, Sparkles, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/useCartStore";
-import { LocalProduct } from "@/lib/dexie";
+import { LocalProduct } from "@/db/dexie";
 import { calculateTieredDiscount } from "@/utils/calculations";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";

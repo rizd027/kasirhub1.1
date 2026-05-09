@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useCartStore } from "@/store/useCartStore";
 import { Button } from "@/components/ui/button";
-import { LocalProduct } from "@/lib/dexie";
+import { LocalProduct } from "@/db/dexie";
 import { ChevronRight, Trash2, Plus, Minus, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { calculateTieredDiscount } from "@/utils/calculations";

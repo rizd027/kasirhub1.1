@@ -138,32 +138,48 @@
    PRINT OPTIMIZATION — KasirHub
    Ensures only the receipt is printed, not the UI
    ===================================================== */
+/* =====================================================
+   PORTAL PRINTING — KasirHub
+   ===================================================== */
+#print-section {
+  display: none;
+}
+
 @media print {
-  /* Hide every root element by default */
-  body > *:not(.only-print),
-  main, header, nav, aside, footer,
-  [data-sonner-toaster],
-  .no-print {
+  /* Hide everything by default */
+  body > *:not(#print-section) {
     display: none !important;
   }
 
-  /* Force show the receipt container */
-  .only-print {
+  /* Show only the print section */
+  #print-section {
     display: block !important;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
   }
 
-  body {
-    background: white !important;
-    margin: 0;
-    padding: 0;
+  /* Force the receipt content to fill 100% width, overriding fixed mm widths */
+  #print-section div {
+    width: 100% !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Optimize for color printing */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   @page {
     margin: 0;
+    size: auto;
   }
 }
 

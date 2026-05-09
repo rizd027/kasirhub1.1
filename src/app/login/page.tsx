@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Shield, User, Lock, ArrowRight, Loader2, Store, Sparkles } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { Shield, User, Lock, ArrowRight, Loader2, Store, Sparkles, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { supabase } from '@/services/supabase';
 import { useStaffStore } from '@/store/useStaffStore';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { session, setSession } = useStaffStore();
 
@@ -32,38 +33,36 @@ export default function LoginPage() {
         });
         if (error) throw error;
         
-        // Fetch profile with role from database
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name, role')
           .eq('id', data.user.id)
-          .single();
+          .maybeSingle();
 
         setSession({
           id: data.user.id,
+          email: data.user.email,
           name: profile?.full_name || 'Admin',
-          role: 'admin' // Supabase auth users are always owners
+          role: 'admin'
         });
         
         toast.success('Selamat datang, Bos!');
         router.push('/kasir');
       } else {
-        // Staff Login — fetch by username only, then verify password securely
         const { data, error } = await supabase
           .from('employees')
-          .select('*')
-          .eq('username', username)
-          .eq('is_active', true)
-          .single();
+          .select('id, name, username, password, role, can_view_reports')
+          .ilike('username', username.trim())
+          .maybeSingle();
 
-        if (error || !data) throw new Error('Username tidak ditemukan atau akun nonaktif');
+        if (error) throw new Error('Gangguan koneksi ke database.');
+        if (!data) throw new Error('Username tidak ditemukan.');
 
         const { verifyPassword, hashPassword } = await import('@/utils/crypto');
         const { matches, isLegacy } = await verifyPassword(password, data.password);
 
         if (!matches) throw new Error('Password salah');
 
-        // Auto-migrate: upgrade plain-text password to hashed version
         if (isLegacy) {
           const hashed = await hashPassword(password);
           await supabase.from('employees').update({ password: hashed }).eq('id', data.id);
@@ -78,7 +77,7 @@ export default function LoginPage() {
         });
 
         toast.success(`Selamat bertugas, ${data.name}!`);
-        router.push('/settings/absensi');
+        router.push('/absensi');
       }
     } catch (err: any) {
       toast.error(err.message || 'Login gagal');
@@ -88,125 +87,182 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-6 lg:py-12 font-sans overflow-y-auto">
-      <div className="w-full max-w-[360px] flex flex-col">
-        {/* Logo Section */}
-        <div className="flex items-center justify-center gap-3.5 mb-5 lg:mb-6">
-          <div className="size-11 rounded-[14px] bg-indigo-600 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-indigo-200 shrink-0">
+    <div className="h-screen bg-white flex flex-col lg:flex-row landscape:flex-row font-sans overflow-hidden">
+      
+      {/* LEFT PANEL: BRANDING (Visible on Desktop & Landscape) */}
+      <div className="hidden lg:flex landscape:flex lg:w-[55%] landscape:w-[45%] bg-[#0F172A] relative overflow-hidden flex-col p-12 landscape:p-10 justify-between">
+        {/* Background Patterns */}
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-600/10 rounded-full blur-[120px] -mr-96 -mt-96" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[100px] -ml-48 -mb-48" />
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-4 mb-10 landscape:mb-6">
+            <div className="size-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-2xl font-black shadow-2xl shadow-indigo-500/20">
+              K
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-white tracking-tighter leading-none">KasirHub</h1>
+              <p className="text-indigo-400/60 text-[10px] font-black uppercase tracking-[0.4em] mt-1.5">Premium POS Solution</p>
+            </div>
+          </div>
+
+          <div className="max-w-md">
+            <h2 className="text-5xl landscape:text-4xl font-black text-white leading-[1.1] tracking-tight mb-8 landscape:mb-4">
+              Kelola Bisnis Lebih <span className="text-indigo-500">Cerdas</span> & Cepat.
+            </h2>
+            <div className="space-y-6 landscape:space-y-4">
+              {[
+                { title: 'Offline-First Architecture', desc: 'Tetap bisa jualan meski internet terputus.' },
+                { title: 'Real-time Sync', desc: 'Data otomatis tersinkron ke semua perangkat.' },
+                { title: 'Attendance with Selfie', desc: 'Monitor kehadiran tim dengan verifikasi foto.' }
+              ].map((item, i) => (
+                <div key={i} className="flex gap-4 items-start">
+                  <div className="size-6 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0 mt-1">
+                    <CheckCircle2 className="size-3.5 text-indigo-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-wide">{item.title}</h3>
+                    <p className="text-slate-400 text-xs mt-1 leading-relaxed opacity-80">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="relative z-10 flex items-center gap-6 opacity-40">
+          <div className="flex items-center gap-2">
+            <Store className="size-4 text-white" />
+            <span className="text-[10px] font-black text-white uppercase tracking-widest">Trusted by 500+ Merchants</span>
+          </div>
+          <div className="h-px flex-1 bg-white/10" />
+          <span className="text-[10px] font-black text-white uppercase tracking-widest">v1.2.0</span>
+        </div>
+      </div>
+
+      {/* RIGHT PANEL: LOGIN FORM */}
+      <div className="flex-1 flex flex-col p-6 lg:p-8 landscape:p-6 xl:p-10 relative bg-white overflow-y-auto lg:overflow-hidden landscape:overflow-hidden">
+        {/* Subtle Mobile Background Glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-indigo-50/30 blur-3xl lg:hidden -z-10" />
+
+        {/* Mobile Logo */}
+        <div className="lg:hidden flex flex-col items-center gap-3 mb-10 pt-4">
+          <div className="size-16 rounded-[2rem] bg-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-2xl shadow-indigo-200 active:scale-95 transition-transform">
             K
           </div>
-          <div className="flex flex-col items-start">
-            <h1 className="text-2xl font-black text-slate-800 tracking-tighter leading-none">KasirHub</h1>
-            <p className="text-slate-400 text-[9px] font-bold uppercase tracking-[0.3em] mt-1">Smart POS Solution</p>
+          <div className="text-center">
+            <h1 className="text-2xl font-black text-slate-900 tracking-tighter leading-none">KasirHub</h1>
+            <p className="text-indigo-600/40 text-[9px] font-black uppercase tracking-[0.4em] mt-2">Premium POS</p>
           </div>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-white rounded-[2rem] shadow-[0_20px_70px_rgba(79,70,229,0.1)] border border-slate-100/50 overflow-hidden relative">
-          <div className="p-7 lg:p-8">
-            <h2 className="text-lg font-black text-slate-800 mb-6 tracking-tight">Masuk ke Sistem</h2>
-            
-            {/* Role Switcher */}
-            <div className="flex p-1.5 bg-slate-50 rounded-2xl mb-7">
-              <button 
-                onClick={() => setRole('admin')}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                  role === 'admin' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-                )}
-              >
-                <Shield className="size-3.5" />
-                Admin
-              </button>
-              <button 
-                onClick={() => setRole('staff')}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                  role === 'staff' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-                )}
-              >
-                <User className="size-3.5" />
-                Kasir
-              </button>
+        <div className="w-full max-w-[400px] mx-auto flex flex-col py-2">
+          <div className="mb-6 text-center lg:text-left">
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-1">Selamat Datang</h2>
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Silakan masuk ke akun Anda</p>
+          </div>
+
+          {/* Role Switcher */}
+          <div className="flex p-1.5 bg-slate-50/80 rounded-2xl mb-8 border border-slate-100 shadow-sm">
+            <button 
+              onClick={() => setRole('admin')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                role === 'admin' ? "bg-white text-indigo-600 shadow-md border border-slate-100" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <Shield className="size-4" />
+              Owner
+            </button>
+            <button 
+              onClick={() => setRole('staff')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                role === 'staff' ? "bg-white text-indigo-600 shadow-md border border-slate-100" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <User className="size-4" />
+              Karyawan
+            </button>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-10">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-0.5">
+                {role === 'admin' ? 'Email Address' : 'Username Karyawan'}
+              </Label>
+              <div className="relative group">
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                  <User className="size-5" />
+                </div>
+                <Input 
+                  required
+                  type={role === 'admin' ? 'email' : 'text'}
+                  placeholder={role === 'admin' ? 'nama@bisnis.com' : 'username'}
+                  className="h-14 pl-8 bg-transparent border-0 border-b-2 border-slate-100 rounded-none text-base font-bold focus-visible:ring-0 focus-visible:border-indigo-600 transition-all placeholder:text-slate-300"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                />
+              </div>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-6">
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">
-                  {role === 'admin' ? 'Email Address' : 'Username Kasir'}
-                </Label>
-                <div className="relative group">
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
-                    <User className="size-4" />
-                  </div>
-                  <Input 
-                    required
-                    type={role === 'admin' ? 'email' : 'text'}
-                    placeholder={role === 'admin' ? 'nama@toko.com' : 'username_anda'}
-                    className="h-10 pl-8 bg-transparent border-0 border-b border-slate-100 rounded-none text-sm font-bold focus-visible:ring-0 focus-visible:border-indigo-600 transition-all placeholder:text-slate-200"
-                    value={username}
-                    onChange={e => setUsername(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Kata Sandi</Label>
-                <div className="relative group">
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
-                    <Lock className="size-4" />
-                  </div>
-                  <Input 
-                    required
-                    type="password"
-                    placeholder="••••••••"
-                    className="h-10 pl-8 bg-transparent border-0 border-b border-slate-100 rounded-none text-sm font-bold focus-visible:ring-0 focus-visible:border-indigo-600 transition-all placeholder:text-slate-200"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <Button 
-                type="submit"
-                disabled={loading}
-                className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 group overflow-hidden relative mt-4"
-              >
-                {loading ? (
-                  <Loader2 className="size-5 animate-spin" />
-                ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    Masuk Sekarang
-                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-                  </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-0">
+                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kata Sandi</Label>
+                {role === 'admin' && (
+                  <Link href="#" className="text-[10px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest">Lupa?</Link>
                 )}
-              </Button>
-            </form>
-          </div>
+              </div>
+              <div className="relative group">
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                  <Lock className="size-5" />
+                </div>
+                <Input 
+                  required
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  className="h-14 pl-8 pr-10 bg-transparent border-0 border-b-2 border-slate-100 rounded-none text-base font-bold focus-visible:ring-0 focus-visible:border-indigo-600 transition-all placeholder:text-slate-300"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+                </button>
+              </div>
+            </div>
 
-          {/* Footer Info */}
-          <div className="px-8 py-5 bg-slate-50/50 border-t border-slate-100/50 flex flex-col items-center justify-center gap-2 text-center">
-            <p className="text-[10px] font-bold text-slate-400">
-              Belum punya akun?{' '}
-              <Link href="/register" className="text-indigo-600 hover:text-indigo-700 font-black uppercase tracking-wider ml-1">
-                DAFTAR
+            <Button 
+              type="submit"
+              disabled={loading}
+              className="w-full h-16 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl shadow-indigo-200 group mt-4 overflow-hidden active:scale-[0.98] transition-all"
+            >
+              {loading ? (
+                <Loader2 className="size-6 animate-spin" />
+              ) : (
+                <div className="flex items-center justify-center gap-3">
+                  Masuk Sekarang
+                  <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" />
+                </div>
+              )}
+            </Button>
+          </form>
+
+          <div className="mt-10 pt-6 border-t border-slate-100 flex flex-col items-center gap-4">
+            <p className="text-[11px] font-bold text-slate-500">
+              Belum punya akun usaha?{' '}
+              <Link href="/register" className="text-indigo-600 hover:text-indigo-700 font-black uppercase tracking-[0.2em] ml-2">
+                Daftar Gratis
               </Link>
             </p>
-          </div>
-        </div>
 
-        {/* Quick Tips - Compact */}
-        <div className="mt-6 flex items-center gap-3 px-4 py-3 bg-indigo-50/50 rounded-2xl border border-indigo-100/30">
-          <Sparkles className="size-3.5 text-indigo-400 shrink-0" />
-          <p className="text-[10px] text-indigo-600/80 font-bold uppercase tracking-tight">
-            Kasir wajib <b className="text-indigo-700">Absensi Selfie</b> setelah login.
-          </p>
-        </div>
-        
-        {/* Attribution */}
-        <div className="mt-8 flex items-center justify-center gap-1.5 opacity-30 hover:opacity-100 transition-opacity">
-          <Store className="size-3 text-slate-400" />
-          <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em]">KasirHub by Jombang Dev</p>
+            <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.4em] mt-2">
+              KasirHub by Jombang Dev &copy; 2024
+            </p>
+          </div>
         </div>
       </div>
 

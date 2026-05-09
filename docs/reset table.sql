@@ -10,14 +10,16 @@ DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
 
 -- 2. Hapus Tabel dengan CASCADE
 -- Menambahkan CASCADE akan memutus hubungan Foreign Key secara paksa saat penghapusan
-DROP TABLE IF EXISTS public.attendance CASCADE;
-DROP TABLE IF EXISTS public.employees CASCADE; -- Tabel ini yang menyebabkan error tadi
+DROP TABLE IF EXISTS public.stock_mutations CASCADE;
 DROP TABLE IF EXISTS public.stock_logs CASCADE;
 DROP TABLE IF EXISTS public.receivables CASCADE;
+DROP TABLE IF EXISTS public.attendance CASCADE;
+DROP TABLE IF EXISTS public.customer_orders CASCADE;
 DROP TABLE IF EXISTS public.transaction_items CASCADE;
 DROP TABLE IF EXISTS public.transactions CASCADE;
 DROP TABLE IF EXISTS public.products CASCADE;
 DROP TABLE IF EXISTS public.categories CASCADE;
+DROP TABLE IF EXISTS public.employees CASCADE;
 DROP TABLE IF EXISTS public.settings CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
 

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { SettingsLayout } from '@/features/settings/SettingsLayout';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { db } from '@/lib/dexie';
+import { db } from '@/db/dexie';
 import { Download, Upload, ChevronRight } from 'lucide-react';
 
 export default function ExportImportPage() {
@@ -23,7 +23,7 @@ export default function ExportImportPage() {
         t.discount_total,
         t.payment_method,
         t.status,
-        t.synced ? 'Ya' : 'Tidak',
+        t.sync_status === 'synced' ? 'Ya' : 'Tidak',
       ]);
       const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

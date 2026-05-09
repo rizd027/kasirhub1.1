@@ -1,5 +1,5 @@
 /**
- * useOrientationClass — detects device orientation on Capacitor APK
+ * useOrientationClass — detects device orientation
  * and adds 'landscape-desktop' class to <html> element when in landscape mode.
  *
  * This enables CSS to apply desktop-style layout when the app is rotated horizontal.

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ReportLayout } from '@/features/reports/ReportLayout';
-import { db, LocalTransaction } from '@/lib/dexie';
+import { db, LocalTransaction } from '@/db/dexie';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';

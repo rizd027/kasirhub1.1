@@ -4,35 +4,27 @@ import { useState, useEffect } from 'react';
 import { SettingsLayout } from '@/features/settings/SettingsLayout';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { db } from '@/lib/dexie';
+import { db } from '@/db/dexie';
 import { Download, Upload, Trash2, Cloud, CloudOff, Loader2, Info, CheckCircle2 } from 'lucide-react';
 import { AlertConfirm } from '@/components/ui/alert-confirm';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase';
 import { cn } from '@/lib/utils';
+import { useStaffStore } from '@/store/useStaffStore';
 
 export default function PenyimpananDataPage() {
+  const { session } = useStaffStore();
   const [isExporting, setIsExporting] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
-  const [isCloudConnected, setIsCloudConnected] = useState<boolean | null>(null);
+  const [isCloudConnected, setIsCloudConnected] = useState<boolean | null>(!!session);
   const [unsyncedCount, setUnsyncedCount] = useState(0);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
-    const fetchSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsCloudConnected(!!session);
-    };
-    fetchSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsCloudConnected(!!session);
-    });
-
-    db.transactions.where('synced').equals(0).count().then(setUnsyncedCount);
-
-    return () => subscription.unsubscribe();
-  }, []);
+    setIsCloudConnected(!!session);
+    
+    db.transactions.where('sync_status').equals('pending').count().then(setUnsyncedCount);
+  }, [session]);
 
   const handleExportJSON = async () => {
     setIsExporting(true);
@@ -111,7 +103,7 @@ export default function PenyimpananDataPage() {
     try {
       const { triggerSync } = await import('@/hooks/useSync');
       await triggerSync(true);
-      const count = await db.transactions.where('synced').equals(0).count();
+      const count = await db.transactions.where('sync_status').equals('pending').count();
       setUnsyncedCount(count);
       toast.success('Data berhasil disinkronisasi ke cloud');
     } catch (err: any) {
@@ -122,13 +114,7 @@ export default function PenyimpananDataPage() {
   };
 
   const actions = [
-    {
-      title: 'Sinkronisasi ke Cloud',
-      desc: 'Unggah data offline ke server',
-      icon: CheckCircle2,
-      action: handleSyncData,
-      loading: isSyncing,
-    },
+
     {
       title: 'Export Backup (JSON)',
       desc: 'Unduh semua data sebagai file .json',

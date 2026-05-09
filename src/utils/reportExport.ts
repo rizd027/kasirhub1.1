@@ -1,10 +1,7 @@
-import ExcelJS from 'exceljs';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, HeadingLevel, ImageRun } from 'docx';
-import { db } from '@/lib/dexie';
+import { db } from '@/db/dexie';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import type { AlignmentType, HeadingLevel, ImageRun } from 'docx';
 
 // No need for prototype extension if using autoTable(doc, ...)
 
@@ -107,6 +104,8 @@ export const fetchAllReportData = async () => {
 
 export const exportReportPDF = async () => {
   const data = await fetchAllReportData();
+  const { jsPDF } = await import('jspdf');
+  const autoTable = (await import('jspdf-autotable')).default;
   const doc = new jsPDF();
   const { tokoInfo, summary, dailyRecap, bestSellers, criticalStock, categoryPerformance, exportDate } = data;
 
@@ -193,6 +192,7 @@ export const exportReportPDF = async () => {
 
 export const exportReportExcel = async () => {
   const data = await fetchAllReportData();
+  const ExcelJS = (await import('exceljs')).default;
   const workbook = new ExcelJS.Workbook();
   const { summary, dailyRecap, bestSellers, criticalStock, stockValue, categoryPerformance } = data;
 
@@ -247,6 +247,7 @@ export const exportReportExcel = async () => {
 
 export const exportReportWord = async () => {
   const data = await fetchAllReportData();
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, HeadingLevel, ImageRun } = await import('docx');
   const { tokoInfo, summary, dailyRecap, bestSellers, criticalStock, categoryPerformance, exportDate } = data;
 
   let logoImage;

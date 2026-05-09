@@ -1,17 +1,13 @@
 'use client';
 
 import { useEffect } from 'react';
-import { App } from '@capacitor/app';
 import { usePathname, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 /**
- * AppEventsHandler handles Native Android events:
- * 1. Hardware Back Button: 
- *    - If on home/dashboard, ask before exit or just exit.
- *    - If in a sub-page, go back one step.
- *    - If a modal/overlay is open (managed by state elsewhere), this could be tricky, 
- *      but for standard routing it works well.
+ * AppEventsHandler handles app-wide events:
+ * 1. Window Error Logging: for debugging production issues.
+ * 2. Version Check & Cache Purge: ensures users get the latest assets.
  */
 export function AppEventsHandler() {
   const pathname = usePathname();
@@ -33,7 +29,20 @@ export function AppEventsHandler() {
     };
     window.addEventListener('error', handleError);
 
-    // 1. Version Check & Cache Purge (Fixes sync issues after APK update)
+    // 0.1 Handle ChunkLoadError (Next.js 404 fix on redeploy)
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      if (event.reason && (
+        event.reason.name === 'ChunkLoadError' || 
+        event.reason.message?.includes('Loading chunk') ||
+        event.reason.message?.includes('Failed to fetch dynamically imported module')
+      )) {
+        console.warn('ChunkLoadError detected, reloading page...');
+        window.location.reload();
+      }
+    };
+    window.addEventListener('unhandledrejection', handleRejection);
+
+    // 1. Version Check & Cache Purge (Fixes sync issues after update)
     const CURRENT_VERSION = '1.1.2'; 
     const lastVersion = localStorage.getItem('app_version');
     
@@ -53,17 +62,8 @@ export function AppEventsHandler() {
       }
     }
 
-    // 2. Back Button Listener
-    const listener = App.addListener('backButton', ({ canGoBack }) => {
-      if (pathname === '/kasir' || pathname === '/login' || pathname === '/') {
-        App.exitApp();
-      } else {
-        window.history.back();
-      }
-    });
-
     return () => {
-      listener.then(h => h.remove());
+      window.removeEventListener('error', handleError);
     };
   }, [pathname]);
 

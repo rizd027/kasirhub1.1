@@ -11,11 +11,10 @@ import { useLayoutStore } from '@/store/useLayoutStore';
 import { ShoppingCart, LayoutGrid, List, Check, Eye, Trash2, Settings, Printer, Share2, CheckCircle2, Tag, Maximize2, Lock, Inbox } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { db, LocalProduct, LocalTransaction } from '@/lib/dexie';
+import { db, LocalProduct, LocalTransaction } from '@/db/dexie';
 import { useRouter } from 'next/navigation';
-import { Capacitor } from '@capacitor/core';
 import { Receipt } from '@/features/cashier/Receipt';
-import { generateReceiptPDF, shareReceipt } from '@/utils/receipt';
+import { generateReceiptPDF, shareReceipt, printReceipt } from '@/utils/receipt';
 import { PaymentOverlay } from '@/features/cashier/PaymentOverlay';
 import { CartOverlay } from '@/features/cashier/CartOverlay';
 import { SuccessOverlay } from '@/features/cashier/SuccessOverlay';
@@ -26,7 +25,7 @@ import { AlertConfirm } from '@/components/ui/alert-confirm';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useStaffStore } from '@/store/useStaffStore';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase';
 import { UserCircle2, ArrowRight } from 'lucide-react';
 import { SyncIndicator } from '@/components/layout/SyncIndicator';
 
@@ -99,7 +98,7 @@ export default function KasirPage() {
     }
     if (session.role === 'staff' && !isCheckedIn) {
       toast.info('Mohon lakukan absensi terlebih dahulu');
-      router.push('/settings/absensi');
+      router.push('/absensi');
     }
   }, [session, isCheckedIn, router]);
 
@@ -160,29 +159,35 @@ export default function KasirPage() {
     }
   };
 
-  const handlePrint = async () => {
+  const getActiveReceiptId = () => {
+    const desktopEl = document.getElementById('receipt-content-desktop');
+    if (desktopEl && desktopEl.clientWidth > 0) {
+      return 'receipt-content-desktop';
+    }
+    return 'receipt-content-mobile';
+  };
+
+  const handlePrint = async (size?: string) => {
     try {
-      if (Capacitor.isNativePlatform()) {
-        console.log('Generating PDF for Print...');
-        const pdfBlob = await generateReceiptPDF('receipt-content-success');
-        if (pdfBlob && lastTx) {
-          await shareReceipt(pdfBlob, `Nota-${lastTx.id}`);
-        } else {
-          alert('Gagal membuat file nota. Pastikan layar tidak tertutup.');
-        }
+      console.log('Generating PDF for Print...', size);
+      const elementId = getActiveReceiptId();
+      const pdfBlob = await generateReceiptPDF(elementId, size);
+      
+      if (pdfBlob) {
+        printReceipt(pdfBlob);
       } else {
         window.print();
       }
     } catch (err: any) {
       console.error('Print failed:', err);
-      alert('Error Cetak: ' + (err.message || 'Gagal membuat file'));
+      window.print();
     }
   };
 
-  const handleShare = async () => {
+  const handleShare = async (size?: string) => {
     try {
-      console.log('Generating PDF for Share...');
-      const pdfBlob = await generateReceiptPDF('receipt-content-success');
+      const elementId = getActiveReceiptId();
+      const pdfBlob = await generateReceiptPDF(elementId, size);
       if (pdfBlob && lastTx) {
         await shareReceipt(pdfBlob, `Nota-${lastTx.id}`);
       } else {
@@ -233,23 +238,8 @@ export default function KasirPage() {
           </DropdownMenu>
         </div>
         <div className="flex items-center gap-2">
-          {/* Inbox Button */}
-          <button
-            onClick={() => setInboxOpen(true)}
-            className="relative inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            title="Inbox Pesanan"
-          >
-            <Inbox className="h-5 w-5" />
-            {pendingOrderCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                <span className="relative inline-flex rounded-full size-4 bg-indigo-600 text-white text-[9px] font-black items-center justify-center">
-                  {pendingOrderCount > 9 ? '9+' : pendingOrderCount}
-                </span>
-              </span>
-            )}
-          </button>
-          {/* ... existing header content ... */}
+          <SyncIndicator />
+
           <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-100">
             <Button
               variant="ghost"
@@ -322,23 +312,21 @@ export default function KasirPage() {
               </h2>
             </div>
             <div className="flex items-center gap-2">
-              {isFullscreen && (
-                <button
-                  onClick={() => setInboxOpen(true)}
-                  className="relative inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50 transition-all"
-                  title="Inbox Pesanan"
-                >
-                  <Inbox className="size-4" />
-                  {pendingOrderCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full size-4 bg-indigo-600 text-white text-[9px] font-black items-center justify-center">
-                        {pendingOrderCount > 9 ? '9+' : pendingOrderCount}
-                      </span>
+              <button
+                onClick={() => setInboxOpen(true)}
+                className="relative inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50 transition-all"
+                title="Inbox Pesanan"
+              >
+                <Inbox className="size-4" />
+                {pendingOrderCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full size-4 bg-indigo-600 text-white text-[9px] font-black items-center justify-center">
+                      {pendingOrderCount > 9 ? '9+' : pendingOrderCount}
                     </span>
-                  )}
-                </button>
-              )}
+                  </span>
+                )}
+              </button>
               <Button 
                 variant="outline" 
                 size="icon"
@@ -356,16 +344,16 @@ export default function KasirPage() {
           </div>
 
           {/* Cart Items List - Desktop */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          <div className="flex-1 overflow-y-auto px-6 py-2">
              {items.map((item) => (
-               <div key={item.id} className="bg-white p-4 rounded-2xl border border-slate-200/50 shadow-sm flex items-center gap-4 group hover:border-indigo-100 transition-all">
+               <div key={item.id} className="py-3 border-b border-slate-200/60 flex items-center gap-4 group transition-all">
                  <div className="flex-1 min-w-0">
-                   <p className="text-[13px] font-black text-slate-800 truncate leading-tight mb-1">{item.name}</p>
+                   <p className="text-[13px] font-bold text-slate-800 truncate leading-tight mb-1">{item.name}</p>
                    <div className="flex items-center gap-2">
-                      <span className="px-1.5 py-0.5 rounded-lg bg-indigo-50 text-[10px] font-black text-indigo-600">
+                      <span className="text-[10px] font-black text-indigo-600">
                         {item.quantity}x
                       </span>
-                      <span className="text-[11px] font-bold text-slate-400">
+                      <span className="text-[10px] font-medium text-slate-400">
                         @ Rp {item.price.toLocaleString('id-ID')}
                       </span>
                    </div>
@@ -388,20 +376,15 @@ export default function KasirPage() {
           </div>
 
           {/* Sidebar Footer - Totals & Pay */}
-          <div className="p-4 bg-white border-t border-slate-200/60 space-y-4 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-[10px]">
-                <span className="font-black text-slate-400 uppercase tracking-widest">Subtotal</span>
-                <span className="font-black text-slate-700">Rp {getSubtotal().toLocaleString('id-ID')}</span>
-              </div>
+          <div className="p-3 bg-white border-t border-slate-200/60 space-y-3 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
+            <div className="space-y-1.5">
               {getOrderDiscountAmount() > 0 && (
                 <div className="flex justify-between items-center text-[10px] text-amber-600">
                   <span className="font-black uppercase tracking-widest">Diskon Nota</span>
                   <span className="font-black">- Rp {getOrderDiscountAmount().toLocaleString('id-ID')}</span>
                 </div>
               )}
-              <div className="h-px bg-slate-100 w-full" />
-              <div className="flex justify-between items-end py-0.5">
+              <div className="flex justify-between items-end">
                 <div className="flex flex-col">
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">Total Tagihan</span>
                   <span className="text-2xl font-black text-indigo-600 tracking-tighter">Rp {getTotal().toLocaleString('id-ID')}</span>
@@ -450,23 +433,21 @@ export default function KasirPage() {
         </div>
         
         <div className="flex gap-2">
-          {isFullscreen && (
-            <Button
-              variant="outline"
-              className="w-10 h-10 flex-shrink-0 text-indigo-600 rounded-lg border-indigo-100 bg-indigo-50 relative"
-              onClick={() => setInboxOpen(true)}
-            >
-              <Inbox className="h-4 w-4" />
-              {pendingOrderCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                   <span className="relative inline-flex rounded-full h-4 w-4 bg-indigo-600 text-[8px] font-black text-white items-center justify-center">
-                     {pendingOrderCount > 9 ? '9+' : pendingOrderCount}
-                   </span>
+          <button
+            onClick={() => setInboxOpen(true)}
+            className="relative inline-flex size-10 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50 transition-all"
+            title="Inbox Pesanan"
+          >
+            <Inbox className="h-4 w-4" />
+            {pendingOrderCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                <span className="relative inline-flex rounded-full size-4 bg-indigo-600 text-white text-[8px] font-black items-center justify-center">
+                  {pendingOrderCount > 9 ? '9+' : pendingOrderCount}
                 </span>
-              )}
-            </Button>
-          )}
+              </span>
+            )}
+          </button>
           <Button 
             variant="outline" 
             className="w-10 h-10 flex-shrink-0 text-gray-400 rounded-lg border-gray-200" 

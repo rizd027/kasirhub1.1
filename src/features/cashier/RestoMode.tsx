@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useCartStore } from "@/store/useCartStore";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import { LocalProduct } from "@/lib/dexie";
+import { LocalProduct } from "@/db/dexie";
 import { Plus, Check, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";

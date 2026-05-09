@@ -32,7 +32,6 @@ interface Prefs {
   showCashierName: boolean;
   lowStockThreshold: number;
   backupFrequency: 'manual' | 'hourly' | 'daily' | 'on_close';
-  autoLogoutMinutes: number; // 0 means disabled
 }
 
 const defaults: Prefs = {
@@ -53,7 +52,6 @@ const defaults: Prefs = {
   showCashierName: false,
   lowStockThreshold: 10,
   backupFrequency: 'manual',
-  autoLogoutMinutes: 0,
 };
 
 export default function PreferensiPage() {
@@ -416,23 +414,6 @@ export default function PreferensiPage() {
                 <SelectItem value="on_close">Setiap Tutup Toko</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <div className="px-6 py-4 border-b border-gray-200 flex flex-col">
-            <Label className="text-[10px] font-black uppercase text-gray-500 tracking-wider mb-1">Auto Logout (Inaktivitas)</Label>
-            <Select value={String(prefs.autoLogoutMinutes || 0)} onValueChange={v => setPrefs({ ...prefs, autoLogoutMinutes: Number(v) })}>
-              <SelectTrigger className="h-8 w-full justify-between border-none bg-transparent p-0 font-bold text-sm focus:ring-0 shadow-none rounded-none text-gray-800">
-                <SelectValue placeholder="Pilih waktu auto logout" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">Jangan Pernah Logout</SelectItem>
-                <SelectItem value="5">5 Menit</SelectItem>
-                <SelectItem value="15">15 Menit</SelectItem>
-                <SelectItem value="30">30 Menit</SelectItem>
-                <SelectItem value="60">1 Jam</SelectItem>
-                <SelectItem value="120">2 Jam</SelectItem>
-              </SelectContent>
-            </Select>
-            <span className="text-[10px] text-gray-400 font-medium mt-1">Sesi akan berakhir jika tidak ada interaksi keyboard/mouse.</span>
           </div>
         </div>
       </div>

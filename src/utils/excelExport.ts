@@ -1,6 +1,5 @@
-import ExcelJS from 'exceljs';
-
 export const exportToExcel = async (data: any[], fileName: string) => {
+  const ExcelJS = (await import('exceljs')).default;
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Laporan');
 
@@ -37,6 +36,7 @@ export const exportToExcel = async (data: any[], fileName: string) => {
 };
 
 export const exportTransactionsToExcel = async (transactions: any[], fileName: string) => {
+  const ExcelJS = (await import('exceljs')).default;
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Riwayat Transaksi');
 

@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useStaffStore } from '@/store/useStaffStore';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase';
 import { Loader2 } from 'lucide-react';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
+import { PinDialog } from '@/components/ui/PinDialog';
+import { db } from '@/db/dexie';
 
 const PUBLIC_ROUTES = ['/login', '/register', '/menu'];
 
@@ -13,6 +16,11 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { session, setSession, isCheckedIn, isHydrated } = useStaffStore();
   const [isChecking, setIsChecking] = useState(true);
+  const [isAppLocked, setIsAppLocked] = useState(false);
+  const isPinVerifiedRef = useRef(false);
+
+  // Realtime Supabase → Dexie sync
+  useRealtimeSync();
 
   // Listen to Supabase Auth state changes and hydrate Zustand session
   useEffect(() => {
@@ -36,27 +44,45 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
       try {
         const { data: { session: supaSession } } = await supabase.auth.getSession();
         
-        if (isMounted && supaSession?.user && !session) {
-          // If we have a supaSession but no local session, try to get profile
-          try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('full_name, role')
-              .eq('id', supaSession.user.id)
-              .single();
+        if (isMounted && supaSession?.user) {
+          // Trigger sync down
+          const { triggerSync } = await import('@/hooks/useSync');
+          triggerSync(supaSession.user.id).catch(console.error);
 
-            setSession({
-              id: supaSession.user.id,
-              name: profile?.full_name || supaSession.user.email?.split('@')[0] || 'Admin',
-              role: profile?.role === 'staff' ? 'staff' : 'admin',
-            });
-          } catch (profileErr) {
-            // Fallback for profile failure
-            setSession({
-              id: supaSession.user.id,
-              name: supaSession.user.email?.split('@')[0] || 'Admin',
-              role: 'admin',
-            });
+          // Hydrate PIN from Settings if not set locally
+          try {
+            const settings = await db.settings.get(supaSession.user.id);
+            if (settings?.pin_code) {
+              localStorage.setItem('kasirhub_app_password', settings.pin_code);
+            }
+          } catch (pinErr) {
+            console.error('Failed to hydrate PIN:', pinErr);
+          }
+
+          if (!session) {
+            // If we have a supaSession but no local session, try to get profile
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('full_name, role')
+                .eq('id', supaSession.user.id)
+                .maybeSingle();
+
+              setSession({
+                id: supaSession.user.id,
+                email: supaSession.user.email,
+                name: profile?.full_name || supaSession.user.email?.split('@')[0] || 'Admin',
+                role: profile?.role === 'staff' ? 'staff' : 'admin',
+              });
+            } catch (profileErr) {
+              // Fallback for profile failure
+              setSession({
+                id: supaSession.user.id,
+                email: supaSession.user.email,
+                name: supaSession.user.email?.split('@')[0] || 'Admin',
+                role: 'admin',
+              });
+            }
           }
         }
       } catch (err) {
@@ -69,6 +95,15 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
 
     hydrateFromSupabase();
 
+    // 3. Background Auto-Sync Interval (every 60 seconds)
+    const syncInterval = setInterval(async () => {
+      if (navigator.onLine && session?.id && !isChecking) {
+        console.log('[BackgroundSync] Starting periodic sync...');
+        const { triggerSync } = await import('@/hooks/useSync');
+        triggerSync(session.id).catch(console.error);
+      }
+    }, 60000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, supaSession) => {
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && supaSession?.user) {
         if (!session) {
@@ -76,10 +111,11 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
             .from('profiles')
             .select('full_name, role')
             .eq('id', supaSession.user.id)
-            .single();
+            .maybeSingle();
 
           setSession({
             id: supaSession.user.id,
+            email: supaSession.user.email,
             name: profile?.full_name || supaSession.user.email?.split('@')[0] || 'Admin',
             role: profile?.role === 'staff' ? 'staff' : 'admin',
           });
@@ -89,10 +125,11 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
 
     return () => {
       isMounted = false;
+      clearInterval(syncInterval);
       subscription.unsubscribe();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [session?.id]);
 
   // Route guard
   useEffect(() => {
@@ -102,7 +139,7 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
     if (PUBLIC_ROUTES.includes(pathname)) {
       if (session) {
         if (session.role === 'staff' && !isCheckedIn) {
-          router.replace('/settings/absensi');
+          router.replace('/absensi');
         } else {
           router.replace('/kasir');
         }
@@ -118,11 +155,24 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
 
     // 3. Staff not checked in → force absensi
     if (session.role === 'staff' && !isCheckedIn) {
-      if (pathname !== '/settings/absensi' && pathname !== '/settings/account') {
-        router.replace('/settings/absensi');
+      if (pathname !== '/absensi' && pathname !== '/settings/account') {
+        router.replace('/absensi');
       }
     }
   }, [isHydrated, isChecking, session, isCheckedIn, pathname, router]);
+
+  // Global App Lock Effect (Separated to stabilize dependencies)
+  useEffect(() => {
+    if (!isHydrated || isChecking || !session) return;
+
+    // Don't lock on public routes
+    if (PUBLIC_ROUTES.includes(pathname)) return;
+
+    const savedPin = localStorage.getItem('kasirhub_app_password');
+    if (savedPin && !isPinVerifiedRef.current && !isAppLocked) {
+      setIsAppLocked(true);
+    }
+  }, [isHydrated, isChecking, session, pathname, isAppLocked]);
 
   // Loading Splash Screen
   if (!isHydrated || isChecking) {
@@ -144,5 +194,24 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <PinDialog 
+        isOpen={isAppLocked}
+        onClose={() => {
+          // If locked, we can't really close without verifying
+          // but we can let them log out if needed
+          setIsAppLocked(false);
+          router.replace('/login');
+        }}
+        onSuccess={() => {
+          isPinVerifiedRef.current = true;
+          setIsAppLocked(false);
+        }}
+        title="App Locked"
+        description="Masukkan PIN untuk masuk ke KasirHub"
+      />
+      {children}
+    </>
+  );
 }

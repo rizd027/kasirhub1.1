@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { anonSupabase } from '@/lib/supabase';
+import { anonSupabase } from '@/services/supabase';
 import { ShoppingCart, Plus, Minus, Trash2, Send, CheckCircle2, ChevronLeft, Package, HelpCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -80,18 +80,23 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
 
         // If no UID, try to find it via SLUG
         if (!activeUid && slug) {
-          const { data: profileBySlug } = await anonSupabase
+          const { data: profileBySlug, error: slugError } = await anonSupabase
             .from('profiles')
             .select('id, store_name')
-            .eq('slug', slug)
-            .single();
+            .eq('slug', slug.toLowerCase().trim())
+            .maybeSingle(); // Use maybeSingle to avoid 406 errors on 0 results
           
+          if (slugError) {
+            console.error('Slug lookup error:', slugError);
+            throw new Error('Gagal menyambung ke database.');
+          }
+
           if (profileBySlug) {
             activeUid = profileBySlug.id;
             setUid(activeUid);
             if (profileBySlug.store_name) setShopName(profileBySlug.store_name);
           } else {
-            setError('Toko tidak ditemukan. Pastikan URL benar.');
+            setError('Toko tidak ditemukan. Pastikan URL sudah disimpan di Pengaturan Toko.');
             setLoading(false);
             return;
           }

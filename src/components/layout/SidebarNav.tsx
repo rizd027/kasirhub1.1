@@ -17,11 +17,10 @@ import { cn } from '@/lib/utils';
 import { useLayoutStore } from '@/store/useLayoutStore';
 import { useStaffStore } from '@/store/useStaffStore';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase';
 
 const navItems = [
   { label: 'Kasir', href: '/kasir', icon: ReceiptText },
-  { label: 'Absen', href: '/settings/absensi', icon: Fingerprint },
   { label: 'Riwayat', href: '/riwayat', icon: History },
   { label: 'Laporan', href: '/laporan', icon: BarChart3 },
   { label: 'Setting', href: '/settings', icon: Settings },
@@ -146,10 +145,13 @@ export function SidebarNav() {
           <Button
             variant="ghost"
             onClick={async () => {
+              if (session?.role === 'staff' && isCheckedIn) {
+                router.push('/absensi');
+                return;
+              }
               await supabase.auth.signOut();
               logout();
-              localStorage.clear();
-              sessionStorage.clear();
+              localStorage.removeItem('supabase.auth.token');
               router.replace('/login');
             }}
             className={cn(

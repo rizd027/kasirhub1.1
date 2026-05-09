@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ReportLayout } from '@/features/reports/ReportLayout';
-import { db, LocalTransaction } from '@/lib/dexie';
+import { db, LocalTransaction } from '@/db/dexie';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, Users, ShoppingBag, CreditCard, Wallet, Percent } from 'lucide-react';

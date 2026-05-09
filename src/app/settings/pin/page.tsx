@@ -33,19 +33,45 @@ export default function PinPage() {
       toast.error('Konfirmasi PIN tidak cocok');
       return;
     }
+
+    const { db } = await import('@/db/dexie');
+    const { useStaffStore } = await import('@/store/useStaffStore');
+    const userId = useStaffStore.getState().session?.id;
+
+    if (!userId) {
+      toast.error('Sesi tidak ditemukan');
+      return;
+    }
+
+    // 1. Save to LocalStorage for instant app lock
     localStorage.setItem(PIN_KEY, form.new);
+    
+    // 2. Save to Dexie (which triggers Sync to Cloud)
+    const existing = await db.settings.get(userId);
+    const now = new Date().toISOString();
+    
+    const updatedSettings = {
+      user_id: userId,
+      toko_info: existing?.toko_info || {},
+      preferences: existing?.preferences || {},
+      pin_code: form.new,
+      updated_at: now
+    };
+    
+    await db.settings.put(updatedSettings);
+    
+    // 3. Add to sync queue manually to ensure it goes up
+    const { addToSyncQueue } = await import('@/services/sync/syncManager');
+    await addToSyncQueue('settings', 'update', userId, updatedSettings);
+
     setSavedPin(form.new);
     setForm({ current: '', new: '', confirm: '' });
     setShowPin(false);
-    toast.success('PIN berhasil diaktifkan!');
+    toast.success('PIN berhasil diaktifkan dan disinkronkan!');
 
-    // Sync to cloud
-    try {
-      const { triggerSync } = await import('@/hooks/useSync');
-      await triggerSync();
-    } catch (err) {
-      console.error('Auto-sync failed:', err);
-    }
+    // Trigger sync
+    const { triggerSync } = await import('@/hooks/useSync');
+    triggerSync(userId).catch(console.error);
   };
 
   const handleRemove = async () => {
@@ -54,19 +80,37 @@ export default function PinPage() {
       toast.error('Masukkan PIN saat ini untuk menonaktifkan');
       return;
     }
+
+    const { db } = await import('@/db/dexie');
+    const { useStaffStore } = await import('@/store/useStaffStore');
+    const userId = useStaffStore.getState().session?.id;
+
+    if (!userId) return;
+
+    // 1. Remove from LocalStorage
     localStorage.removeItem(PIN_KEY);
+    
+    // 2. Remove from Dexie/Cloud
+    const existing = await db.settings.get(userId);
+    const updatedSettings = {
+      user_id: userId,
+      toko_info: existing?.toko_info || {},
+      preferences: existing?.preferences || {},
+      pin_code: null,
+      updated_at: new Date().toISOString()
+    };
+    await db.settings.put(updatedSettings);
+
+    const { addToSyncQueue } = await import('@/services/sync/syncManager');
+    await addToSyncQueue('settings', 'update', userId, updatedSettings);
+
     setSavedPin(null);
     setForm({ current: '', new: '', confirm: '' });
     setShowPin(false);
     toast.success('Keamanan PIN dinonaktifkan');
 
-    // Sync to cloud
-    try {
-      const { triggerSync } = await import('@/hooks/useSync');
-      await triggerSync();
-    } catch (err) {
-      console.error('Auto-sync failed:', err);
-    }
+    const { triggerSync } = await import('@/hooks/useSync');
+    triggerSync(userId).catch(console.error);
   };
 
   // Validasi sederhana untuk menyalakan tombol centang

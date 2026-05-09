@@ -12,20 +12,17 @@ import { Separator } from '@/components/ui/separator';
 import { PinDialog } from '@/components/ui/PinDialog';
 import { AlertConfirm } from '@/components/ui/alert-confirm';
 import { useStaffStore } from '@/store/useStaffStore';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase';
 import { Badge } from '@/components/ui/badge';
 import { Cloud, CloudOff, Loader2 } from 'lucide-react';
-import { Network } from '@capacitor/network';
-import { App } from '@capacitor/app';
 import { SyncIndicator } from '@/components/layout/SyncIndicator';
 
 const settingMenus = [
-  { title: 'Toko Saya', desc: 'Atur informasi toko', icon: Store, href: '/settings/toko', protected: true },
-  { title: 'Data Produk', desc: 'Tambah, ubah, atau hapus produk', icon: Package, href: '/settings/produk', protected: true },
-  { title: 'Stock', desc: 'Kelola stok gudang dan stok toko', icon: Boxes, href: '/settings/stock', protected: true },
-  { title: 'Karyawan', desc: 'Manajemen staf dan hak akses', icon: UserCircle2, href: '/settings/karyawan', protected: true },
-  { title: 'Absensi Karyawan', desc: 'Presensi masuk dan keluar staf', icon: Fingerprint, href: '/settings/absensi', protected: false },
-  { title: 'QR Menu Digital', desc: 'Buat QR untuk pemesanan mandiri pelanggan', icon: QrCode, href: '/settings/qr-menu', protected: true },
+  { title: 'Toko Saya', desc: 'Atur informasi toko', icon: Store, href: '/toko', protected: true },
+  { title: 'Data Produk', desc: 'Tambah, ubah, atau hapus produk', icon: Package, href: '/produk', protected: true },
+  { title: 'Stock', desc: 'Kelola stok gudang dan stok toko', icon: Boxes, href: '/stock', protected: true },
+  { title: 'Karyawan', desc: 'Manajemen staf dan hak akses', icon: UserCircle2, href: '/karyawan', protected: true },
+  { title: 'QR Menu Digital', desc: 'Buat QR untuk pemesanan mandiri pelanggan', icon: QrCode, href: '/qr-menu', protected: true },
 
   { title: 'PIN', desc: 'PIN Keamanan untuk membatasi ubah/hapus nota', icon: Key, href: '/settings/pin', protected: false },
   { title: 'Preferensi', desc: 'Mengubah format dan label', icon: LayoutGrid, href: '/settings/preferensi', protected: true },
@@ -37,38 +34,32 @@ const settingMenus = [
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { logout, session } = useStaffStore();
+  const { logout, session, isCheckedIn } = useStaffStore();
   const [pinTargetHref, setPinTargetHref] = useState<string | null>(null);
-  const [isCloudConnected, setIsCloudConnected] = useState<boolean | null>(null);
+  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
-    const checkConnection = async () => {
-      const { data: { session: supabaseSession } } = await supabase.auth.getSession();
-      setIsCloudConnected(!!supabaseSession);
-    };
-
-    checkConnection();
-
-    // 1. Auth state changes
+    // 1. Auth state listener fires immediately from local cache — no async wait needed
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, supabaseSession) => {
       setIsCloudConnected(!!supabaseSession);
     });
 
-    // 2. Network state changes
-    Network.addListener('networkStatusChange', () => {
-      checkConnection();
-    });
+    // 2. Also get session once synchronously from cache
+    supabase.auth.getSession().then(({ data: { session: supabaseSession } }) => {
+      setIsCloudConnected(!!supabaseSession);
+    }).catch(() => setIsCloudConnected(false));
 
-    // 3. App resume re-check
-    App.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) checkConnection();
-    });
+    // 3. Network state changes
+    const handleOnline = () => supabase.auth.getSession().then(({ data: { session } }) => setIsCloudConnected(!!session)).catch(() => {});
+    const handleOffline = () => setIsCloudConnected(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
       subscription.unsubscribe();
-      Network.removeAllListeners();
-      App.removeAllListeners();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -85,9 +76,9 @@ export default function SettingsPage() {
   }).map(menu => {
     if (menu.title === 'Account') {
       const title = session?.role === 'staff' ? 'Profil Saya' : 'Account';
-      const desc = isCloudConnected === null ? 'Memeriksa koneksi...' : 
-                   isCloudConnected ? 'Terhubung ke Database Cloud' : 
-                   'Login/Register untuk sinkronisasi cloud';
+      const desc = isCloudConnected
+        ? 'Terhubung ke Database Cloud ✓'
+        : 'Login/Register untuk sinkronisasi cloud';
       return { ...menu, title, desc };
     }
     if (menu.title === 'Penyimpanan Data') {
@@ -161,10 +152,25 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {/* Version Info */}
-          <div className="py-6 flex flex-col items-center gap-1">
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Versi Aplikasi</span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40">KasirHub v1.0.0</span>
+          {/* Version & Reset Info */}
+          <div className="py-8 flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Versi Aplikasi</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40">KasirHub v1.1.2</span>
+            </div>
+            
+            <button 
+              onClick={() => {
+                if (confirm('Bersihkan semua data cache dan sinkronisasi? Anda akan diarahkan ke halaman login.')) {
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  window.location.replace('/login');
+                }
+              }}
+              className="text-[10px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-500 transition-colors"
+            >
+              Reset Cache & Sinkronisasi
+            </button>
           </div>
         </div>
       </div>
@@ -189,10 +195,13 @@ export default function SettingsPage() {
         cancelText="Batal"
         variant="destructive"
         onConfirm={async () => {
+          if (session?.role === 'staff' && isCheckedIn) {
+            router.push('/absensi');
+            return;
+          }
           await supabase.auth.signOut();
           logout();
-          localStorage.clear();
-          sessionStorage.clear();
+          localStorage.removeItem('supabase.auth.token');
           router.replace('/login');
         }}
       />

@@ -1,0 +1,482 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { SettingsLayout } from '@/features/settings/SettingsLayout';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { uploadImage } from '@/services/cloudinary';
+import { cn } from '@/lib/utils';
+import { UploadCloud, Camera, Mail, MapPin, Check } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+
+
+
+const defaultForm = {
+  nama: '',
+  alamat: '',
+  telepon: '',
+  logo_url: '',
+  signature_url: '',
+  npwp: '',
+  bidang_usaha: '',
+  instagram: '',
+  tiktok: '',
+  email_bisnis: '',
+  google_maps_link: '',
+  slug: '',
+};
+
+export default function TokoSayaPage() {
+  const [form, setForm] = useState(defaultForm);
+  const [initialForm, setInitialForm] = useState(defaultForm);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [signatureMode, setSignatureMode] = useState<'draw' | 'upload'>('draw');
+  const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isDrawingRef = useRef(false);
+  const [isCanvasLocked, setIsCanvasLocked] = useState(true);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('toko_info');
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved);
+      const loadedForm = { ...defaultForm, ...parsed };
+      setForm(loadedForm);
+      setInitialForm(loadedForm);
+    } catch {
+      // ignore invalid old data
+    }
+  }, []);
+
+  const formatPhone = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    if (!digits) return '';
+    const normalized = digits.startsWith('62') ? `0${digits.slice(2)}` : digits;
+    const chunks = normalized.match(/.{1,4}/g) ?? [];
+    return chunks.slice(0, 4).join('-');
+  };
+
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    key: 'logo_url' | 'signature_url'
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // 1. Show immediate local preview
+    const localUrl = URL.createObjectURL(file);
+    setForm((prev) => ({ ...prev, [key]: localUrl }));
+
+    const isLogo = key === 'logo_url';
+    isLogo ? setUploadingLogo(true) : setUploadingSignature(true);
+
+    try {
+      const url = await uploadImage(file);
+      if (url) {
+        // 2. Update with final Cloudinary URL
+        setForm((prev) => ({ ...prev, [key]: url }));
+        toast.success(isLogo ? 'Logo toko berhasil diunggah' : 'Signature berhasil diunggah');
+      } else {
+        throw new Error('Upload failed: No URL returned');
+      }
+    } catch (err) {
+      console.error('Upload Error:', err);
+      toast.error('Gagal mengunggah gambar. Pastikan koneksi internet stabil.');
+      // Revert to empty if failed (optional, but safer)
+      setForm((prev) => ({ ...prev, [key]: '' }));
+    } finally {
+      isLogo ? setUploadingLogo(false) : setUploadingSignature(false);
+      URL.revokeObjectURL(localUrl);
+    }
+  };
+
+  const handleSave = async () => {
+    localStorage.setItem('toko_info', JSON.stringify(form));
+    setInitialForm(form);
+    toast.success('Informasi toko disimpan!');
+    
+    // Trigger sync to cloud
+    try {
+      const { triggerSync } = await import('@/hooks/useSync');
+      await triggerSync();
+
+      // Explicitly update both tables to ensure data is saved
+      const { supabase } = await import('@/services/supabase');
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // 1. Update Profiles (for SLUG & Name)
+        const { error: profError } = await supabase.from('profiles').update({ 
+          slug: form.slug.toLowerCase().trim(),
+          store_name: form.nama 
+        }).eq('id', user.id);
+
+        // 2. Update Settings (for full TOKO_INFO)
+        const { error: settError } = await supabase.from('settings').update({ 
+          toko_info: form,
+          updated_at: new Date().toISOString()
+        }).eq('user_id', user.id);
+
+        if (profError || settError) {
+          console.error('DB Sync failed:', { profError, settError });
+          toast.error('Gagal sinkronisasi data ke cloud.');
+        } else {
+          console.log('All shop data synced successfully to cloud');
+        }
+      }
+    } catch (err: any) {
+      console.error('Auto-sync failed:', err);
+      toast.error('Gagal sinkronisasi data ke cloud.');
+    }
+  };
+
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
+
+  const getCanvasPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (event.clientX - rect.left) * scaleX,
+      y: (event.clientY - rect.top) * scaleY,
+    };
+  };
+
+  const startDrawing = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const { x, y } = getCanvasPoint(event);
+    isDrawingRef.current = true;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#111827';
+  };
+
+  const draw = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawingRef.current) return;
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const { x, y } = getCanvasPoint(event);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const endDrawing = () => {
+    isDrawingRef.current = false;
+  };
+
+  const clearSignatureCanvas = () => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  const useDrawnSignature = () => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL('image/png');
+    setForm((prev) => ({ ...prev, signature_url: dataUrl }));
+    setIsCanvasLocked(true);
+    toast.success('Signature dari gambar tangan dipakai');
+  };
+
+  return (
+    <SettingsLayout
+      title="Toko Saya"
+      rightAction={
+        <Button
+          onClick={handleSave}
+          size="icon"
+          variant="ghost"
+          className={cn(
+            "h-9 w-9 rounded-full transition-all duration-300",
+            isDirty 
+              ? "text-indigo-600 opacity-100 scale-110" 
+              : "text-gray-300 opacity-20 scale-100 pointer-events-none"
+          )}
+          disabled={!isDirty}
+        >
+          <Check className="w-5 h-5 stroke-[2.5]" />
+        </Button>
+      }
+    >
+      <div className="w-full p-6 lg:p-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16">
+          {/* Left Column: Form Fields */}
+          <div className="lg:col-span-2 space-y-12">
+            {/* SECTION 1: IDENTITAS */}
+            <section className="space-y-8">
+              <div>
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-6 flex items-center gap-2">
+                  <div className="size-1.5 rounded-full bg-indigo-600" />
+                  Identitas Bisnis
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Nama Bisnis</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-300"
+                      placeholder="Contoh: Warung Maju Jaya"
+                      value={form.nama}
+                      onChange={e => setForm({ ...form, nama: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-black text-slate-700 uppercase tracking-widest">URL Menu Digital</Label>
+                    <div className="relative">
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 text-[10px] text-slate-300 font-medium">kasirhub.com/menu/</span>
+                      <Input
+                        className="h-10 pl-[95px] pr-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200 lowercase"
+                        placeholder="nama-toko-anda"
+                        value={form.slug}
+                        onChange={e => setForm({ ...form, slug: e.target.value.replace(/[^a-z0-9-]/g, '-') })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1 md:col-span-2">
+                    <Label className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Alamat Lengkap</Label>
+                    <Textarea
+                      className="min-h-[40px] px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-300 resize-none overflow-hidden"
+                      placeholder="Jl. Contoh No. 1, Kota"
+                      value={form.alamat}
+                      onChange={e => setForm({ ...form, alamat: e.target.value })}
+                      rows={1}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Bidang Usaha</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200"
+                      placeholder="Contoh: Minimarket, Cafe, dll"
+                      value={form.bidang_usaha}
+                      onChange={e => setForm({ ...form, bidang_usaha: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-black text-slate-700 uppercase tracking-widest">NPWP (Opsional)</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-300"
+                      placeholder="00.000.000.0-000.000"
+                      value={form.npwp}
+                      onChange={e => setForm({ ...form, npwp: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-6 flex items-center gap-2">
+                  <div className="size-1.5 rounded-full bg-indigo-600" />
+                  Kontak & Sosial Media
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Nomor Telepon</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-300"
+                      type="tel"
+                      placeholder="0812-3456-7890"
+                      value={form.telepon}
+                      onChange={e => setForm({ ...form, telepon: formatPhone(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Email Bisnis</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200"
+                      type="email"
+                      placeholder="bisnis@toko.com"
+                      value={form.email_bisnis}
+                      onChange={e => setForm({ ...form, email_bisnis: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Instagram</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200"
+                      placeholder="@username_toko"
+                      value={form.instagram}
+                      onChange={e => setForm({ ...form, instagram: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-black text-slate-700 uppercase tracking-widest">TikTok</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200"
+                      placeholder="@username_toko"
+                      value={form.tiktok}
+                      onChange={e => setForm({ ...form, tiktok: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1 md:col-span-2">
+                    <Label className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Google Maps Link</Label>
+                    <Input
+                      className="h-10 px-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200"
+                      placeholder="https://maps.app.goo.gl/..."
+                      value={form.google_maps_link}
+                      onChange={e => setForm({ ...form, google_maps_link: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* Right Column: Branding & Signature */}
+          <div className="space-y-10">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 flex items-center gap-2">
+                  <div className="size-1.5 rounded-full bg-indigo-600" />
+                  Logo Toko
+                </h3>
+                {form.logo_url && (
+                  <button
+                    onClick={() => setForm(prev => ({ ...prev, logo_url: '' }))}
+                    className="text-[9px] text-red-500 hover:text-red-600 transition-colors font-black uppercase tracking-widest"
+                  >
+                    Hapus
+                  </button>
+                )}
+              </div>
+              <div className="relative group">
+                <label className="flex flex-col items-center justify-center h-56 w-full cursor-pointer rounded-[2rem] border-2 border-dashed border-slate-100 bg-slate-50/50 transition-all hover:bg-white hover:border-indigo-200 overflow-hidden shadow-sm">
+                  {form.logo_url ? (
+                    <div className="relative h-full w-full flex items-center justify-center p-8">
+                      <img src={form.logo_url} alt="Logo preview" className="max-h-full max-w-full object-contain drop-shadow-xl" />
+                      <div className="absolute inset-0 bg-indigo-600/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
+                        <span className="text-white text-[10px] font-black px-5 py-2 bg-indigo-600 rounded-xl shadow-lg uppercase tracking-widest">Ganti Logo</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-4 text-slate-300 p-8">
+                      <div className="p-4 rounded-[1.5rem] bg-white shadow-sm text-indigo-400">
+                        <UploadCloud className="h-6 w-6" />
+                      </div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{uploadingLogo ? 'MENGUNGGAH...' : 'PILIH LOGO'}</p>
+                    </div>
+                  )}
+                  <Input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'logo_url')} />
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 flex items-center gap-2">
+                  <div className="size-1.5 rounded-full bg-indigo-600" />
+                  Tanda Tangan
+                </h3>
+                <div className="flex p-1 bg-slate-100/50 rounded-xl border border-slate-200/60">
+                  <button
+                    type="button"
+                    onClick={() => setSignatureMode('draw')}
+                    className={cn(
+                      "px-3 py-1 text-[8px] font-black rounded-lg transition-all tracking-widest uppercase",
+                      signatureMode === 'draw' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                    )}
+                  >
+                    Gbr
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSignatureMode('upload')}
+                    className={cn(
+                      "px-3 py-1 text-[8px] font-black rounded-lg transition-all tracking-widest uppercase",
+                      signatureMode === 'upload' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                    )}
+                  >
+                    File
+                  </button>
+                </div>
+              </div>
+
+              <div className="h-56 flex flex-col">
+                {signatureMode === 'upload' ? (
+                  <label className="flex flex-col items-center justify-center flex-1 cursor-pointer rounded-[2rem] border-2 border-dashed border-slate-100 bg-slate-50/50 transition-all hover:bg-white hover:border-indigo-200 overflow-hidden shadow-sm">
+                    {form.signature_url && signatureMode === 'upload' ? (
+                      <div className="relative h-full w-full flex items-center justify-center p-8">
+                        <img src={form.signature_url} alt="Signature preview" className="max-h-full max-w-full object-contain grayscale opacity-80" />
+                        <div className="absolute inset-0 bg-indigo-600/10 opacity-0 hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
+                          <span className="text-white text-[10px] font-black px-5 py-2 bg-indigo-600 rounded-xl shadow-lg uppercase tracking-widest">Ganti File</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-4 text-slate-300">
+                        <div className="p-4 rounded-[1.5rem] bg-white shadow-sm text-indigo-400">
+                          <UploadCloud className="h-6 w-6" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">{uploadingSignature ? 'MENGUNGGAH...' : 'UPLOAD TTD'}</span>
+                      </div>
+                    )}
+                    <Input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'signature_url')} />
+                  </label>
+                ) : (
+                  <div className="flex-1 flex flex-col gap-4">
+                    <div className="flex-1 relative rounded-[2rem] border border-slate-100 bg-white overflow-hidden shadow-inner ring-1 ring-black/5">
+                      <canvas
+                        ref={signatureCanvasRef}
+                        width={600}
+                        height={300}
+                        className={cn(
+                          "h-full w-full",
+                          isCanvasLocked ? "cursor-default" : "cursor-crosshair touch-none"
+                        )}
+                        onPointerDown={isCanvasLocked ? undefined : startDrawing}
+                        onPointerMove={isCanvasLocked ? undefined : draw}
+                        onPointerUp={isCanvasLocked ? undefined : endDrawing}
+                        onPointerLeave={isCanvasLocked ? undefined : endDrawing}
+                      />
+
+                      {isCanvasLocked && form.signature_url && (
+                        <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
+                          <img src={form.signature_url} alt="Saved signature" className="max-h-full max-w-full object-contain grayscale opacity-60" />
+                        </div>
+                      )}
+
+                      {isCanvasLocked && (
+                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 backdrop-blur-[2px] transition-all">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-10 px-5 bg-white border-slate-200 text-[10px] font-black tracking-[0.2em] shadow-xl shadow-black/5 rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all uppercase"
+                            onClick={() => setIsCanvasLocked(false)}
+                          >
+                            Edit Signature
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between px-2">
+                      <button type="button" className="text-[9px] font-black text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest" onClick={clearSignatureCanvas}>
+                        Hapus
+                      </button>
+                      <button type="button" className="text-[9px] font-black text-indigo-600 hover:text-indigo-700 transition-all uppercase tracking-widest" onClick={useDrawnSignature}>
+                        Gunakan TTD
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </SettingsLayout>
+  );
+}

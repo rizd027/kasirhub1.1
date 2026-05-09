@@ -2,12 +2,24 @@
 
 import { useEffect, useState } from 'react';
 import { ReportLayout } from '@/features/reports/ReportLayout';
-import { db } from '@/lib/dexie';
+import { db } from '@/db/dexie';
 import { format, startOfMonth, endOfMonth, isAfter, isBefore, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
-import { TrendingUp, TrendingDown, Info, DollarSign, Calculator, Receipt, Tag } from 'lucide-react';
+import { 
+  TrendingUp, TrendingDown, Info, DollarSign, Calculator, 
+  Receipt, Tag, Calendar, Clock, LayoutGrid, Download, 
+  FileText, FileSpreadsheet 
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { exportReportPDF, exportReportExcel } from '@/utils/reportExport';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button, buttonVariants } from '@/components/ui/button';
 
 export default function LabaRugiPage() {
   const [loading, setLoading] = useState(true);
@@ -47,7 +59,7 @@ export default function LabaRugiPage() {
         revenue += tx.subtotal; // Use subtotal before discounts
         discounts += tx.discount_total;
         tx.items.forEach(item => {
-          cogs += (item.cost || 0) * item.quantity;
+          cogs += (item.cost_at_time || 0) * item.quantity;
         });
       });
 
@@ -62,110 +74,155 @@ export default function LabaRugiPage() {
     calculate();
   }, [filterDate]);
 
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      <Select value={filterDate} onValueChange={(v: any) => setFilterDate(v)}>
+        <SelectTrigger className="w-[130px] h-9 rounded-xl bg-slate-50 border-2 border-slate-300 text-[9px] font-black uppercase tracking-widest focus:ring-0 shadow-sm flex items-center px-3">
+          <div className="flex items-center gap-2 truncate">
+            {filterDate === 'today' && <Clock className="h-3 w-3 text-indigo-600" />}
+            {filterDate === 'this_month' && <Calendar className="h-3 w-3 text-indigo-600" />}
+            {filterDate === 'all' && <LayoutGrid className="h-3 w-3 text-indigo-600" />}
+            <span className="truncate">
+              {filterDate === 'today' ? 'Hari Ini' : filterDate === 'this_month' ? 'Bulan Ini' : 'Semua'}
+            </span>
+          </div>
+        </SelectTrigger>
+        <SelectContent align="end" className="w-[160px] rounded-xl border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
+          <SelectItem value="today" className="text-[10px] font-black uppercase tracking-widest py-2.5 px-3 focus:bg-indigo-50 focus:text-indigo-700 rounded-lg cursor-pointer outline-none">
+            <div className="flex items-center gap-3"><Clock className="h-3.5 w-3.5 opacity-70" /><span>Hari Ini</span></div>
+          </SelectItem>
+          <SelectItem value="this_month" className="text-[10px] font-black uppercase tracking-widest py-2.5 px-3 focus:bg-indigo-50 focus:text-indigo-700 rounded-lg cursor-pointer outline-none">
+            <div className="flex items-center gap-3"><Calendar className="h-3.5 w-3.5 opacity-70" /><span>Bulan Ini</span></div>
+          </SelectItem>
+          <SelectItem value="all" className="text-[10px] font-black uppercase tracking-widest py-2.5 px-3 focus:bg-indigo-50 focus:text-indigo-700 rounded-lg cursor-pointer outline-none">
+            <div className="flex items-center gap-3"><LayoutGrid className="h-3.5 w-3.5 opacity-70" /><span>Semua</span></div>
+          </SelectItem>
+        </SelectContent>
+      </Select>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline", size: "icon" }), "h-9 w-9 rounded-xl border-2 border-slate-300 bg-white text-slate-900 shadow-sm")}>
+          <Download className="h-4 w-4" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48 rounded-xl border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
+          <DropdownMenuItem onClick={exportReportPDF} className="flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer focus:bg-red-50 focus:text-red-700 outline-none">
+            <FileText className="h-4 w-4 text-red-500" /><span className="text-[10px] font-black uppercase tracking-wider">Ekspor PDF</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={exportReportExcel} className="flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 outline-none">
+            <FileSpreadsheet className="h-4 w-4 text-emerald-600" /><span className="text-[10px] font-black uppercase tracking-wider">Ekspor Excel</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+
   return (
-    <ReportLayout title="Laporan Laba Rugi">
-      <div className="p-0">
-        {/* Filter Section */}
-        <div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Periode Data</span>
-          <Select value={filterDate} onValueChange={(v: any) => setFilterDate(v)}>
-            <SelectTrigger className="w-[140px] h-9 rounded-xl bg-slate-50 border-none text-[10px] font-black uppercase">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              <SelectItem value="today">Hari Ini</SelectItem>
-              <SelectItem value="this_month">Bulan Ini</SelectItem>
-              <SelectItem value="all">Semua Waktu</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Content Section */}
+    <ReportLayout title="Laporan Laba" rightElement={headerActions}>
+      <div className="space-y-0 pb-20">
+        {/* Content Section - High Contrast */}
         <div className="bg-white">
-          <div className="px-6 py-5 border-b border-slate-50">
-            <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-6">Ringkasan Profitabilitas</h3>
+          <div className="px-6 py-8 border-b border-slate-200">
+            <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-[0.3em] mb-8 border-l-4 border-indigo-600 pl-3">Profitabilitas Utama</h3>
             
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
+            <div className="divide-y-2 divide-slate-100">
+              {/* Gross Revenue */}
+              <div className="py-6 flex justify-between items-center group">
                 <div className="flex items-center gap-4">
-                  <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl"><DollarSign className="h-5 w-5" /></div>
+                  <div className="p-2.5 bg-slate-50 text-slate-900 group-hover:text-indigo-600 transition-colors rounded-xl border-2 border-slate-200">
+                    <DollarSign className="h-4 w-4" />
+                  </div>
                   <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-slate-800 leading-tight">Pendapatan Kotor</span>
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase mt-0.5 tracking-tight">Total Penjualan</span>
+                    <span className="text-xs font-black text-slate-900 uppercase tracking-tight">Pendapatan Kotor</span>
+                    <span className="text-[9px] font-bold text-slate-600 uppercase tracking-tighter mt-0.5">Total Penjualan</span>
                   </div>
                 </div>
-                <span className="text-base font-semibold text-slate-800">Rp {stats.revenue.toLocaleString('id-ID')}</span>
+                <span className="text-base font-black text-slate-900">Rp {stats.revenue.toLocaleString('id-ID')}</span>
               </div>
 
-              <div className="flex justify-between items-center">
+              {/* COGS (HPP) */}
+              <div className="py-6 flex justify-between items-center group">
                 <div className="flex items-center gap-4">
-                  <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl"><Calculator className="h-5 w-5" /></div>
+                  <div className="p-2.5 bg-slate-50 text-slate-900 group-hover:text-amber-600 transition-colors rounded-xl border-2 border-slate-200">
+                    <Calculator className="h-4 w-4" />
+                  </div>
                   <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-slate-800 leading-tight">Harga Pokok (HPP)</span>
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase mt-0.5 tracking-tight">Modal Barang</span>
+                    <span className="text-xs font-black text-slate-900 uppercase tracking-tight">Harga Pokok (HPP)</span>
+                    <span className="text-[9px] font-bold text-slate-600 uppercase tracking-tighter mt-0.5">Modal Barang</span>
                   </div>
                 </div>
-                <span className="text-base font-semibold text-slate-800">Rp {stats.cogs.toLocaleString('id-ID')}</span>
+                <span className="text-base font-black text-slate-900">Rp {stats.cogs.toLocaleString('id-ID')}</span>
               </div>
 
-              <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Laba Penjualan</span>
-                <span className="text-base font-semibold text-indigo-600">Rp {stats.grossProfit.toLocaleString('id-ID')}</span>
-              </div>
-
-              <div className="flex justify-between items-center">
+              {/* Gross Profit */}
+              <div className="py-6 flex justify-between items-center group bg-indigo-50/40 -mx-6 px-6 border-y border-indigo-100">
                 <div className="flex items-center gap-4">
-                  <div className="p-2.5 bg-red-50 text-red-500 rounded-xl"><Tag className="h-5 w-5" /></div>
+                  <div className="p-2.5 bg-white text-indigo-600 rounded-xl border-2 border-indigo-200 shadow-sm">
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
                   <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-slate-800 leading-tight">Total Potongan (Diskon)</span>
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase mt-0.5 tracking-tight">Diskon Transaksi</span>
+                    <span className="text-xs font-black text-indigo-800 uppercase tracking-tight">Laba Penjualan</span>
+                    <span className="text-[9px] font-bold text-indigo-600 uppercase tracking-tighter mt-0.5">Gross Profit</span>
                   </div>
                 </div>
-                <span className="text-base font-semibold text-red-500">-Rp {stats.discounts.toLocaleString('id-ID')}</span>
+                <span className="text-base font-black text-indigo-700">Rp {stats.grossProfit.toLocaleString('id-ID')}</span>
+              </div>
+
+              {/* Discounts */}
+              <div className="py-6 flex justify-between items-center group">
+                <div className="flex items-center gap-4">
+                  <div className="p-2.5 bg-slate-50 text-slate-900 group-hover:text-red-600 transition-colors rounded-xl border-2 border-slate-200">
+                    <Tag className="h-4 w-4" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black text-slate-900 uppercase tracking-tight">Potongan Harga</span>
+                    <span className="text-[9px] font-bold text-slate-600 uppercase tracking-tighter mt-0.5">Total Diskon</span>
+                  </div>
+                </div>
+                <span className="text-base font-black text-red-600">-Rp {stats.discounts.toLocaleString('id-ID')}</span>
               </div>
             </div>
           </div>
 
-          <div className="px-6 py-8 border-b border-slate-100 flex flex-col gap-4">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Laba Bersih Akhir</span>
-              <div className="text-4xl font-semibold text-emerald-600 mt-2">Rp {stats.netProfit.toLocaleString('id-ID')}</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={cn(
-                "px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase flex items-center gap-1.5",
-                stats.margin >= 20 ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+          {/* Final Net Profit Section */}
+          <div className="px-6 py-12 border-b-2 border-slate-200 bg-slate-50 flex flex-col items-center text-center">
+             <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.5em] mb-4">Laba Bersih Akhir</span>
+             <div className="text-6xl font-black text-emerald-700 tracking-tighter mb-6">
+               Rp {stats.netProfit.toLocaleString('id-ID')}
+             </div>
+             <div className={cn(
+                "px-6 py-2.5 rounded-full text-xs font-black uppercase flex items-center gap-2 border-2 shadow-lg transition-all bg-white",
+                stats.margin >= 20 ? "text-emerald-700 border-emerald-300" : "text-amber-700 border-amber-300"
               )}>
-                {stats.margin >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                {stats.margin >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                 Margin Keuntungan {stats.margin.toFixed(1)}%
               </div>
-            </div>
           </div>
         </div>
 
-        {/* Insight Section */}
+        {/* Analysis Insight Box - High Contrast */}
         <div className="p-6">
-          <div className="p-5 bg-indigo-600 rounded-2xl text-white shadow-xl shadow-indigo-100/50 relative overflow-hidden">
-            <div className="relative z-10 flex items-start gap-4">
-              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                <Info className="h-5 w-5 text-white shrink-0" />
+          <div className="p-8 bg-white rounded-3xl border-2 border-slate-300 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-[0.08]">
+              <Info className="h-28 w-28 -rotate-12 text-slate-900" />
+            </div>
+            <div className="relative z-10 flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <div className="h-3 w-3 rounded-full bg-indigo-600" />
+                <h4 className="text-xs font-black uppercase tracking-widest text-slate-900">Analisis Bisnis Anda</h4>
               </div>
-              <div>
-                <h4 className="text-sm font-semibold uppercase tracking-tight">Analisis Margin Bisnis</h4>
-                <p className="text-[11px] font-medium opacity-90 leading-relaxed mt-1.5">
-                  {stats.margin >= 30 
-                    ? "Bisnis Anda memiliki margin yang sangat sehat. Pertahankan efisiensi biaya produksi dan stok Anda."
-                    : stats.margin >= 15
-                    ? "Margin Anda berada di level rata-rata. Cobalah untuk mengurangi diskon berlebih untuk meningkatkan laba bersih."
-                    : "Margin rendah terdeteksi. Periksa kembali harga modal produk atau evaluasi kebijakan diskon Anda."}
-                </p>
-              </div>
+              <p className="text-xs font-black text-slate-700 leading-relaxed uppercase tracking-tight max-w-[90%]">
+                {stats.margin >= 30 
+                  ? "Sangat sehat. Efisiensi biaya dan strategi harga Anda sudah optimal. Pertahankan momentum ini untuk ekspansi lebih lanjut."
+                  : stats.margin >= 15
+                  ? "Level rata-rata. Pertimbangkan untuk mengurangi diskon transaksi guna memaksimalkan laba bersih setiap penjualan."
+                  : "Margin rendah terdeteksi. Segera evaluasi harga modal produk atau kurangi pengeluaran promosi yang tidak efisien."}
+              </p>
             </div>
           </div>
 
-          <div className="text-center mt-8 pb-10">
-            <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest">
-              Data dihitung secara otomatis berdasarkan transaksi lokal
+          <div className="text-center mt-16 pb-12">
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em]">
+              KasirHub Intelligence • High Contrast Mode
             </p>
           </div>
         </div>
