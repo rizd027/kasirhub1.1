@@ -39,7 +39,6 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
               const height = Math.min(viewfinderHeight * 0.6, 180);
               return { width, height };
             },
-            // Removed forced aspectRatio to prevent rescaling jitter
             formatsToSupport: [
               Html5QrcodeSupportedFormats.EAN_13,
               Html5QrcodeSupportedFormats.EAN_8,
@@ -109,7 +108,6 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className="sm:max-w-[360px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-lg duration-0 animate-none data-[open]:animate-none data-[closed]:animate-none data-[state=open]:animate-none data-[state=closed]:animate-none">
-        {/* Style to hide library UI elements and fix video fit */}
         <style dangerouslySetInnerHTML={{ __html: `
           #reader video { 
             object-fit: cover !important;
@@ -155,10 +153,8 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
         </DialogHeader>
 
         <div className="relative aspect-square bg-gray-900 flex items-center justify-center overflow-hidden">
-          {/* Scanner Container */}
           <div id="reader" className="absolute inset-0 w-full h-full" />
 
-          {/* Loading / Error States */}
           {(isInitializing || hasError) && (
             <div className="absolute inset-0 z-40 bg-white flex flex-col items-center justify-center p-8 text-center">
               {isInitializing ? (
@@ -183,17 +179,14 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
             </div>
           )}
 
-          {/* Minimalist Scan Box */}
           {!isInitializing && !hasError && (
             <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center">
               <div className="relative w-[240px] h-[160px]">
-                {/* Corner Marks (Sharp) */}
                 <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-indigo-600 rounded-none" />
                 <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-indigo-600 rounded-none" />
                 <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-indigo-600 rounded-none" />
                 <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-indigo-600 rounded-none" />
                 
-                {/* Minimal Ready Text */}
                 <div className="absolute -bottom-8 left-0 right-0 text-center">
                   <span className="text-[8px] font-black text-white/80 uppercase tracking-[0.3em]">
                     Ready to Scan
@@ -204,7 +197,6 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
           )}
         </div>
 
-        {/* Compact Footer */}
         <div className="px-5 py-4 bg-white border-t border-gray-100 flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest leading-none mb-1">Instruksi</span>

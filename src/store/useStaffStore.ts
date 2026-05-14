@@ -8,6 +8,7 @@ interface UserSession {
   role: 'admin' | 'staff';
   username?: string;
   can_view_reports?: boolean;
+  owner_id?: string;
 }
 
 interface StaffState {

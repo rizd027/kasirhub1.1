@@ -67,17 +67,14 @@ export function ReprintModal({ open, onOpenChange, transaction }: ReprintModalPr
 
   return (
     <div className="fixed inset-0 z-[1000] flex flex-col bg-white lg:flex-row no-print">
-      {/* Mobile Header (Back Button Style) */}
       <div className="lg:hidden flex items-center justify-between px-4 h-16 border-b bg-white sticky top-0 z-10 shrink-0">
         <button onClick={() => onOpenChange(false)} className="flex items-center gap-2 text-slate-800">
           <ChevronLeft className="h-5 w-5" />
           <span className="font-bold">Kembali</span>
         </button>
         <h2 className="text-sm font-black uppercase tracking-widest text-slate-400">Cetak Ulang</h2>
-        <div className="w-9" /> {/* Spacer */}
       </div>
 
-      {/* LEFT SIDE: Preview (Desktop) / Main Content (Mobile) */}
       <div className="flex-1 overflow-y-auto bg-slate-50 lg:bg-[#312ECB] flex flex-col items-center justify-start lg:justify-center p-6 lg:p-12">
         <div className="hidden lg:block absolute top-10 left-10 text-white/50">
           <h2 className="text-xs font-black uppercase tracking-[0.4em]">Pratinjau Nota</h2>
@@ -91,7 +88,6 @@ export function ReprintModal({ open, onOpenChange, transaction }: ReprintModalPr
         <p className="lg:hidden text-[10px] font-black text-slate-400 uppercase tracking-widest mt-8 mb-4">Opsi Cetak</p>
       </div>
 
-      {/* RIGHT SIDE: Action Panel (Desktop) / Bottom Panel (Mobile) */}
       <div className="w-full lg:w-[450px] bg-white border-t lg:border-t-0 lg:border-l border-slate-100 flex flex-col shrink-0">
         <div className="hidden lg:flex items-center justify-between p-8 border-b border-slate-50">
           <div>
@@ -104,7 +100,6 @@ export function ReprintModal({ open, onOpenChange, transaction }: ReprintModalPr
         </div>
 
         <div className="p-6 lg:p-8 flex-1 flex flex-col justify-center space-y-6">
-          {/* Paper Size Selector */}
           <div className="space-y-3">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Pilih Ukuran Kertas</label>
             <Select value={paperSize} onValueChange={(val) => setPaperSize(val || '80mm')}>

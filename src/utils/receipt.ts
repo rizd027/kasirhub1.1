@@ -16,22 +16,19 @@ export const generateReceiptPDF = async (elementId: string, paperSize: string = 
   const html2canvas = (await import('html2canvas-pro')).default;
   const { jsPDF } = await import('jspdf');
 
-  // Get exact dimensions
   const width = element.clientWidth;
   const height = element.clientHeight;
 
-  // Determine width based on Indonesian standards
   let pdfWidth = 80;
-  if (paperSize === '58mm') pdfWidth = 58;        // Mini Thermal (UMKM/EDC)
-  if (paperSize === '80mm') pdfWidth = 80;        // Standard Thermal (Ritel)
-  if (paperSize === '1/8 Folio') pdfWidth = 85;   // Nota Mini / Olshop
-  if (paperSize === '1/4 Folio') pdfWidth = 105;  // Nota Kecil / Bon Kontan
-  if (paperSize === 'A5') pdfWidth = 148;         // Nota Sedang / Setengah HVS
-  if (paperSize === '1/2 A5') pdfWidth = 165;     // Struk Sedang
-  if (paperSize === '1/2 Folio') pdfWidth = 215;  // Nota Besar / Kontan Full
-  if (paperSize === 'A4') pdfWidth = 210;         // Nota Besar / Invoice Full
+  if (paperSize === '58mm') pdfWidth = 58;
+  if (paperSize === '80mm') pdfWidth = 80;
+  if (paperSize === '1/8 Folio') pdfWidth = 85;
+  if (paperSize === '1/4 Folio') pdfWidth = 105;
+  if (paperSize === 'A5') pdfWidth = 148;
+  if (paperSize === '1/2 A5') pdfWidth = 165;
+  if (paperSize === '1/2 Folio') pdfWidth = 215;
+  if (paperSize === 'A4') pdfWidth = 210;
 
-  // Process canvas
   const canvas = await Promise.race([
     html2canvas(element, { 
       useCORS: true, 
@@ -62,7 +59,6 @@ export const generateReceiptPDF = async (elementId: string, paperSize: string = 
 
 export const shareReceipt = async (file: Blob, fileName: string) => {
   if (typeof navigator !== 'undefined' && navigator.share) {
-    // Standard Web Share
     const shareFile = new File([file], `${fileName}.pdf`, { type: 'application/pdf' });
     try {
       await navigator.share({
@@ -73,7 +69,6 @@ export const shareReceipt = async (file: Blob, fileName: string) => {
     } catch (err: any) {
       if (err.name !== 'AbortError') {
         console.error('Web Share failed:', err);
-        // Fallback to download if share fails for reasons other than user cancel
         downloadReceipt(file, fileName);
       }
     }

@@ -53,12 +53,24 @@ export function PinDialog({
   }, [isOpen, pin, isError]); // Added dependencies to ensure fresh state access
 
   useEffect(() => {
+    const handlePopState = () => {
+      onClose();
+    };
+
     if (isOpen) {
       setPin('');
       setIsError(false);
       setIsShaking(false);
+
+      // Push state for hardware back button support
+      window.history.pushState({ modal: 'pin' }, '');
+      window.addEventListener('popstate', handlePopState);
     }
-  }, [isOpen]);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isOpen, onClose]);
 
   const verify = (value: string) => {
     const savedPin = localStorage.getItem(PIN_KEY);

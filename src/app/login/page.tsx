@@ -43,7 +43,8 @@ export default function LoginPage() {
           id: data.user.id,
           email: data.user.email,
           name: profile?.full_name || 'Admin',
-          role: 'admin'
+          role: 'admin',
+          owner_id: data.user.id
         });
         
         toast.success('Selamat datang, Bos!');
@@ -51,7 +52,7 @@ export default function LoginPage() {
       } else {
         const { data, error } = await supabase
           .from('employees')
-          .select('id, name, username, password, role, can_view_reports')
+          .select('id, name, username, password, role, can_view_reports, user_id')
           .ilike('username', username.trim())
           .maybeSingle();
 
@@ -74,6 +75,7 @@ export default function LoginPage() {
           role: 'staff',
           username: data.username,
           can_view_reports: data.can_view_reports,
+          owner_id: data.user_id,
         });
 
         toast.success(`Selamat bertugas, ${data.name}!`);
@@ -265,6 +267,21 @@ export default function LoginPage() {
                 Daftar Gratis
               </Link>
             </p>
+
+            <button 
+              onClick={async () => {
+                if (confirm('Bersihkan seluruh data aplikasi? Tindakan ini akan menghapus semua cache dan memaksa login ulang.')) {
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  const { db } = await import('@/db/dexie');
+                  await db.delete();
+                  window.location.reload();
+                }
+              }}
+              className="text-[9px] font-black text-rose-300 hover:text-rose-500 uppercase tracking-[0.2em] transition-colors mt-2"
+            >
+              Reset Data Aplikasi (Emergency)
+            </button>
 
             <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.4em] mt-2">
               KasirHub by Jombang Dev &copy; 2024

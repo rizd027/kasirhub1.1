@@ -1,7 +1,3 @@
-/**
- * Calculates tiered discount based on the formula:
- * ((Price * (1 - Disc1%)) * (1 - Disc2%)) - FixedAmount
- */
 export const calculateTieredDiscount = (
   price: number,
   disc1Percent: number = 0,

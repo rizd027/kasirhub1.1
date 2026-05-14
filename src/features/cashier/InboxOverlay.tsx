@@ -47,7 +47,6 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
     setOrders(data || []);
   };
 
-  // Auto-reconnecting realtime channel (handles Android app resume & network drops)
   useRealtimeChannel(
     () => supabase
       .channel(`inbox-${userId}-${Date.now()}`)
@@ -74,7 +73,6 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
     [userId]
   );
 
-  // Fetch initial data + re-fetch on app resume
   useEffect(() => {
     if (!userId) return;
     fetchPendingOrders();
@@ -94,9 +92,7 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
 
     setLoadingId(order.id);
     try {
-      // Add each item to cart using addItem
       for (const item of order.items) {
-        // Build a product-like object compatible with addItem
         const productLike = {
           id: item.product_id,
           name: item.name,
@@ -107,14 +103,12 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
         }
       }
 
-      // Sync customer name/table info
       const info = order.table_number 
         ? `Meja ${order.table_number}${order.customer_name ? ` (${order.customer_name})` : ''}`
         : order.customer_name || '';
       onSetCustomerName(info);
       onOpenChange(false);
 
-      // Mark order as accepted (run in background)
       await supabase
         .from('customer_orders')
         .update({ status: 'accepted' })
@@ -151,15 +145,12 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" onClick={() => onOpenChange(false)}>
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
       
-      {/* Panel — slides in from right */}
       <div
         className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-white shadow-2xl flex flex-col"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Pesanan Mandiri</p>
@@ -175,7 +166,6 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
           </button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto">
           {orders.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full py-20 px-6 text-center">
@@ -196,7 +186,6 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
 
                 return (
                   <div key={order.id} className="p-5 space-y-4">
-                    {/* Order Header */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center">
@@ -217,7 +206,6 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
                       </div>
                     </div>
 
-                    {/* Items */}
                     <div className="bg-slate-50 rounded-lg border border-slate-100 divide-y divide-slate-100">
                       {order.items.map((item, i) => (
                         <div key={i} className="flex items-center justify-between px-4 py-3">
@@ -232,13 +220,11 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
                       ))}
                     </div>
 
-                    {/* Total */}
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{totalQty} Item · Total</span>
                       <span className="text-base font-black text-indigo-600">Rp {totalPrice.toLocaleString('id-ID')}</span>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleReject(order)}

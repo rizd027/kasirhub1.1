@@ -24,15 +24,13 @@ export function BottomNav() {
   const { session, isCheckedIn } = useStaffStore();
 
   const filteredNavItems = navItems.filter(item => {
-    // Role based filtering
     if (session?.role === 'staff') {
       if (item.label === 'Laporan') return false;
       if (item.label === 'Absen') return !isCheckedIn;
       return true;
     }
 
-    // Owner / Admin filtering
-    if (item.label === 'Absen') return false; // Owner uses specific menu
+      if (item.label === 'Absen') return false;
     return true;
   });
 

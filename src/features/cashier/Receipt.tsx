@@ -82,7 +82,6 @@ export function Receipt({ transaction, idElement = 'receipt-content' }: ReceiptP
       )}
       style={{ lineHeight: '1.2' }}
     >
-      {/* Header */}
       <div className="text-center mb-4">
         {tokoInfo.logo_url && prefs.showLogoOnReceipt && (
           <div className="mb-2 flex justify-center">
@@ -101,7 +100,6 @@ export function Receipt({ transaction, idElement = 'receipt-content' }: ReceiptP
 
       <div className="border-t border-dashed border-black my-2"></div>
 
-      {/* Info Transaksi */}
       <div className="flex justify-between mb-1">
         <span>Tgl:</span>
         <span>{format(new Date(transaction.created_at), prefs.dateFormat.replace('yyyy', 'yy').replace('MMMM', 'MMM'), { locale: id })}</span>
@@ -129,7 +127,6 @@ export function Receipt({ transaction, idElement = 'receipt-content' }: ReceiptP
 
       <div className="border-t border-dashed border-black my-2"></div>
 
-      {/* Items */}
       <div className="flex flex-col gap-1 mb-2">
         {transaction.items.map((item: any, idx) => (
           <div key={idx} className="flex flex-col">
@@ -151,7 +148,6 @@ export function Receipt({ transaction, idElement = 'receipt-content' }: ReceiptP
 
       <div className="border-t border-dashed border-black my-2"></div>
 
-      {/* Summary */}
       <div className="flex flex-col gap-1">
         <div className="flex justify-between">
           <span>Subtotal:</span>
@@ -187,11 +183,9 @@ export function Receipt({ transaction, idElement = 'receipt-content' }: ReceiptP
 
       <div className="border-t border-dashed border-black my-2"></div>
 
-      {/* QR Code Simulation */}
       {prefs.showQrOnReceipt && (
         <div className="flex flex-col items-center my-4">
           <div className="w-20 h-20 border border-gray-200 flex items-center justify-center p-1">
-            {/* Simple QR Mockup */}
             <div className="grid grid-cols-5 grid-rows-5 gap-0.5 w-full h-full bg-black">
               {[...Array(25)].map((_, i) => (
                 <div key={i} className={cn("bg-white", Math.random() > 0.5 ? "opacity-100" : "opacity-0")} />
@@ -202,7 +196,6 @@ export function Receipt({ transaction, idElement = 'receipt-content' }: ReceiptP
         </div>
       )}
 
-      {/* Footer */}
       <div className="text-center mt-4 italic text-[8px] whitespace-pre-wrap">
         {tokoInfo.pesan_nota}
       </div>

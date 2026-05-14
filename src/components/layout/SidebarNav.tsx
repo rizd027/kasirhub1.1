@@ -56,7 +56,6 @@ export function SidebarNav() {
         isSidebarCollapsed ? "w-20" : "w-72"
       )}
     >
-      {/* Brand / Logo Section */}
       <div className={cn(
         "h-24 flex items-center transition-all duration-300",
         isSidebarCollapsed ? "justify-center" : "px-8"
@@ -78,7 +77,6 @@ export function SidebarNav() {
         </div>
       </div>
 
-      {/* Navigation Items */}
       <nav className="flex-1 px-4 space-y-1.5">
         {filteredNavItems.map((item) => {
           const Icon = item.icon;
@@ -111,7 +109,6 @@ export function SidebarNav() {
         })}
       </nav>
 
-      {/* Bottom Section: Profile & Collapse */}
       <div className="p-4 border-t border-slate-200/40 bg-white/20 space-y-2">
         {!isSidebarCollapsed && (
           <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 flex items-center gap-3 mb-2 border border-slate-200/50 shadow-sm">

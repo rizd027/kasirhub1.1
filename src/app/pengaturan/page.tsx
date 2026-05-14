@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Store, Key, LayoutGrid, 
-  Database, ArrowUpDown, HelpCircle, ChevronRight,
+  Database, ArrowUpDown, HelpCircle, ChevronRight, ChevronLeft,
   Package, UserCircle2, Boxes, Fingerprint, LogOut, QrCode, Scale, Calculator, Layers
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { PinDialog } from '@/components/ui/PinDialog';
 import { AlertConfirm } from '@/components/ui/alert-confirm';
@@ -105,8 +106,17 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col h-full bg-background overflow-x-hidden">
-      <header className="flex items-center justify-between px-6 h-16 border-b bg-background/80 backdrop-blur-md sticky top-0 z-20">
-        <div className="flex-1" />
+      <header className="flex items-center justify-between px-4 h-16 border-b bg-background/80 backdrop-blur-md sticky top-0 z-20">
+        <div className="flex-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="size-9 rounded-lg hover:bg-slate-50 transition-all active:scale-90" 
+            onClick={() => router.push('/kasir')}
+          >
+            <ChevronLeft className="h-5 w-5 text-slate-600" />
+          </Button>
+        </div>
         <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-800">Setting</h1>
         <div className="flex-1 flex justify-end">
           <SyncIndicator />

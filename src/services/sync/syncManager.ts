@@ -1,7 +1,7 @@
-import { db } from '@/db/dexie';
-import { supabase } from '../supabase';
+import { db, SyncQueue } from '@/db/dexie';
+import { supabase } from '@/services/supabase';
+import { toast } from 'sonner';
 
-// ─── Last Sync Timestamp Helpers ─────────────────────────────────────────────
 export const getLastSyncAt = (tableName: string): string => {
     return localStorage.getItem(`last_sync_${tableName}`) || '2000-01-01T00:00:00.000Z';
 };
@@ -14,11 +14,6 @@ export const resetLastSyncAt = (tableName: string): void => {
     localStorage.setItem(`last_sync_${tableName}`, '2000-01-01T00:00:00.000Z');
 };
 
-// ─── Session Initial Sync Flag ────────────────────────────────────────────────
-/**
- * sessionStorage flag — reset otomatis saat refresh / tab baru.
- * Menjamin satu kali full pull per sesi, tidak di setiap navigasi halaman.
- */
 const INITIAL_SYNC_KEY = 'kasirhub_initial_sync_done';
 
 export const hasCompletedInitialSync = (): boolean => {
@@ -36,7 +31,6 @@ export const resetInitialSync = (): void => {
     sessionStorage.removeItem(INITIAL_SYNC_KEY);
 };
 
-// ─── Constants ───────────────────────────────────────────────────────────────
 const PUSH_LOCK_KEY  = 'kasirhub_push_lock';
 const PULL_LOCK_KEY  = 'kasirhub_pull_lock';
 const LOCK_TTL_MS    = 30_000;   // 30 detik (cukup untuk operasi panjang, tidak blokir refresh)
@@ -49,7 +43,6 @@ const BACKOFF_MS     = [1_000, 3_000, 10_000, 30_000, 60_000];
 const FULL_SYNC_COOLDOWN_MS = 30_000;
 const WATCHDOG_INTERVAL_MS  = 300_000; // tetap 5 menit
 
-// ─── Table Configuration ──────────────────────────────────────────────────────
 export const TABLE_CONFIG: Record<string, {
     pk: string;
     hasUserId: boolean;
@@ -74,7 +67,6 @@ export const TABLE_CONFIG: Record<string, {
     customer_orders:     { pk: 'id',      hasUserId: true,  hasSoftDelete: true  },
 };
 
-// ─── Tab Identity ─────────────────────────────────────────────────────────────
 const TAB_ID = (() => {
     if (typeof window === 'undefined') return 'server';
     const stored = sessionStorage.getItem('kasirhub_tab_id');
@@ -84,7 +76,6 @@ const TAB_ID = (() => {
     return id;
 })();
 
-// ─── Internal State ───────────────────────────────────────────────────────────
 let isPushActive = false;
 let isPullActive = false;
 let needsAnotherPush = false;
@@ -92,7 +83,6 @@ let lastFullSyncAt = 0;
 let pushStartedAt = 0;
 let pullStartedAt = 0;
 
-// ─── State Listeners (untuk UI) ──────────────────────────────────────────────
 const listeners = new Set<(state: boolean) => void>();
 
 export const onSyncStateChange = (cb: (state: boolean) => void): (() => void) => {
@@ -105,7 +95,6 @@ const notifyState = (): void => {
     listeners.forEach(cb => { try { cb(active); } catch { } });
 };
 
-// ─── Distributed Lock (per-type: push / pull) ────────────────────────────────
 const acquireLock = (lockKey: string, force = false): boolean => {
     if (typeof window === 'undefined') return true;
     const now = Date.now();
@@ -148,7 +137,6 @@ const refreshLock = (lockKey: string): void => {
     } catch { }
 };
 
-// ─── Watchdog: auto-reset jika sync stuck ────────────────────────────────────
 let watchdogTimer: ReturnType<typeof setInterval> | null = null;
 
 const startWatchdog = (): void => {
@@ -198,7 +186,6 @@ if (typeof window !== 'undefined') {
     });
 }
 
-// ─── Timeout Helper ───────────────────────────────────────────────────────────
 const withTimeout = async <T>(
     builderFn: (signal: AbortSignal) => any,
     ms = REQ_TIMEOUT_MS,
@@ -236,7 +223,6 @@ const withTimeout = async <T>(
     });
 };
 
-// ─── Error Classification ─────────────────────────────────────────────────────
 type SyncErrorType = 'network' | 'auth' | 'validation' | 'rate_limit' | 'unknown';
 
 const classifyError = (error: any): SyncErrorType => {
@@ -255,11 +241,6 @@ const isRetryable = (type: SyncErrorType, count: number): boolean =>
 const backoff = (count: number): number =>
     BACKOFF_MS[Math.min(count, BACKOFF_MS.length - 1)];
 
-// ─── Payload Preparation ──────────────────────────────────────────────────────
-/**
- * Bersihkan payload sebelum dikirim ke Supabase.
- * Selalu sertakan primary key. Hapus field lokal-only.
- */
 const LOCAL_ONLY_FIELDS = new Set([
     'sync_status', 'is_new', 'expanded', 'synced', 'remote_id', 'temp_id',
     'is_active_local', 'is_loading', 'ai_suggested', 'is_ai_generated',
@@ -306,7 +287,6 @@ const preparePayload = (
     return clean;
 };
 
-// ─── Push: Local → Cloud ──────────────────────────────────────────────────────
 export const runPushSync = async (force = false, signal?: AbortSignal): Promise<void> => {
     if (isPushActive || isPullActive) { // Cegah tabrakan dengan pull
         if (!force) needsAnotherPush = true;
@@ -465,8 +445,10 @@ const _runPushSyncCore = async (force: boolean, signal?: AbortSignal): Promise<v
 
                     const errType = classifyError(err);
                     if (errType === 'auth') {
-                        console.error('[Sync Push] 🔐 Auth error — hentikan semua sync');
-                        return;
+                        const msg = `Sinkronisasi ${table} gagal (Izin Ditolak). Hubungi Admin untuk perbaikan RLS.`;
+                        console.error(`[Sync Push] 🔐 Auth error pada ${table}:`, msg);
+                        toast.error(msg, { id: `sync-error-${table}` });
+                        continue;
                     }
 
                     console.warn(`[Sync Push] ⚠️ Batch failed for [${table}] (${payloads.length} records, ${(payloadSize/1024).toFixed(2)} KB), retrying individually... Error:`, err.message);
@@ -558,7 +540,6 @@ const _runPushSyncCore = async (force: boolean, signal?: AbortSignal): Promise<v
     }
 };
 
-// ─── Pull: Cloud → Local ──────────────────────────────────────────────────────
 export const runPullSync = async (
     userId: string,
     tableNames: string[],
@@ -643,8 +624,10 @@ const _runPullSyncCore = async (
                 if (error) {
                     const errType = classifyError(error);
                     if (errType === 'auth') {
-                        console.error('[Sync Pull] 🔐 Auth error — hentikan');
-                        return;
+                        const msg = `Gagal mengambil data ${table} (Izin Ditolak).`;
+                        console.warn(`[Sync Pull] 🔐 Auth error pada ${table}:`, msg);
+                        toast.error(msg, { id: `pull-error-${table}` });
+                        continue;
                     }
                     console.warn(`[Sync Pull] ⚠️ [${table}]:`, error.message);
                     continue;
@@ -703,13 +686,7 @@ const _runPullSyncCore = async (
     }
 };
 
-// ─── Public API ───────────────────────────────────────────────────────────────
 
-/**
- * Tambahkan operasi ke sync queue.
- * Otomatis men-deduplicate: jika sudah ada job pending untuk record yang sama,
- * update payload-nya saja (tidak double-push).
- */
 export const addToSyncQueue = async (
     tableName: string,
     operation: 'insert' | 'update' | 'delete',
@@ -760,17 +737,6 @@ export const addToSyncQueue = async (
     }
 };
 
-/**
- * Full sync: push dulu, lalu pull.
- *
- * 🔐 Strategi session-aware:
- * - Jika initial sync BELUM selesai di sesi ini → lakukan push + full pull
- *   kemudian tandai selesai (markInitialSyncDone).
- * - Jika initial sync SUDAH selesai → hanya push queue lokal.
- *   Pull dilakukan oleh realtime subscription (useRealtimeSync) saat ada perubahan.
- *
- * Dengan ini: perpindahan halaman TIDAK memicu pull ulang — data sudah ada di IndexedDB.
- */
 export const triggerFullSync = async (userId: string, force = false): Promise<void> => {
     // Setelah initial sync selesai: hanya push, skip full pull
     if (hasCompletedInitialSync() && !force) {
@@ -847,9 +813,6 @@ export const retryFailedJobs = async (): Promise<void> => {
     runPushSync().catch(() => { });
 };
 
-/**
- * Force reset semua state sync (darurat).
- */
 export const forceResetSync = (): void => {
     isPushActive = false;
     isPullActive = false;
@@ -863,9 +826,6 @@ export const forceResetSync = (): void => {
     console.log('[Sync] 🔧 Force reset done');
 };
 
-/**
- * Statistik queue untuk diagnostics.
- */
 export const getSyncStats = async () => {
     const [pending, failed, total] = await Promise.all([
         db.sync_queue.where('sync_status').equals('pending').count(),
@@ -882,18 +842,12 @@ export const getSyncStats = async () => {
     };
 };
 
-// ─── Legacy Compatibility ─────────────────────────────────────────────────────
 export const runSync = runPushSync;
 
-/** @deprecated — gunakan retryFailedJobs() */
 export const retrySyncErrors = async (_userId?: string): Promise<void> => {
     return retryFailedJobs();
 };
 
-/**
- * @deprecated — dipertahankan untuk backward compat dengan file syncXxx.ts lama.
- * Sebaiknya gunakan runPullSync() langsung.
- */
 export const queryWithTimestampFallback = async (
     table: string,
     userId: string,
@@ -916,7 +870,6 @@ export const queryWithTimestampFallback = async (
     return query as unknown as Promise<{ data: any[] | null; error: any }>;
 };
 
-// ─── Debug Window Object ──────────────────────────────────────────────────────
 if (typeof window !== 'undefined') {
     (window as any).kasirhubSync = {
         forceResetSync,

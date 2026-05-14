@@ -10,7 +10,7 @@ export interface LocalStockMutation {
   qty: number;
   note?: string;
   created_at: string;
-  synced: number; // 0 for no, 1 for yes
+  synced: number;
 }
 
 export interface LocalAttendance {
@@ -21,13 +21,13 @@ export interface LocalAttendance {
   photo_url: string;
   latitude?: number;
   longitude?: number;
-  is_verified: number; // 0 for no, 1 for yes
+  is_verified: number;
   note?: string;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
   sync_status: 'synced' | 'pending' | 'failed';
-  synced: number; // 0 for no, 1 for yes
+  synced: number;
 }
 
 export interface Category {
@@ -54,8 +54,6 @@ export interface Product {
     stock_store: number;
     stock_warehouse: number;
     note?: string;
-    batch_id?: string; // Marker for derived products from HPP batch
-    // Manufacturing / Pro HPP Fields
     prod_target_batch?: number;
     prod_output_qty?: number;
     prod_wastage_percent?: number;
@@ -95,7 +93,7 @@ export interface TransactionItem {
     product_id: string;
     quantity: number;
     price_at_time: number;
-    cost_at_time: number; // HPP saat transaksi
+    cost_at_time: number;
     name_at_time: string;
     discount_details?: any;
     user_id: string;
@@ -187,7 +185,6 @@ export interface Employee {
     sync_status?: 'synced' | 'pending' | 'failed';
 }
 
-// Aliases for legacy UI components
 export type LocalProduct = Product;
 export type LocalTransaction = Transaction;
 
@@ -230,7 +227,7 @@ export interface ProductIngredient {
     product_id: string;
     ingredient_id: string;
     quantity: number;
-    is_packaging?: number; // 0 for raw material, 1 for packaging
+    is_packaging?: number;
     created_at: string;
     updated_at: string;
     deleted_at?: string | null;
@@ -246,7 +243,7 @@ export interface HppBatch {
     raw_material_qty: number;
     raw_material_unit: string;
     batch_qty: number;
-    serving_size?: number; // For culinary: 1 recipe = X portions
+    serving_size?: number;
     wastage_pct?: number; 
     contingency_pct?: number; 
     tax_included?: boolean; 
@@ -255,12 +252,12 @@ export interface HppBatch {
     labor_rate?: number; // Precision labor
     shipping_cost?: number; 
     tax_import_cost?: number; 
-    insurance_cost?: number; // Reseller logistics
-    handling_fee?: number; // Reseller logistics
-    packaging_cost?: number; 
-    marketing_insert_cost?: number; // Thank you cards, etc
-    utility_costs?: number; // Gas, Water, Electricity
-    maintenance_costs?: number; // Tool depreciation
+    insurance_cost?: number;
+    handling_fee?: number;
+    packaging_cost?: number;
+    marketing_insert_cost?: number;
+    utility_costs?: number;
+    maintenance_costs?: number;
     ads_cost?: number;
     cod_fee_pct?: number;
     return_rate_pct?: number;
@@ -319,7 +316,6 @@ export class AppDB extends Dexie {
     product_ingredients!: Table<ProductIngredient>;
     customer_orders!: Table<any>;
     
-    // Legacy tables
     stock_mutations!: Table<LocalStockMutation>;
     attendance!: Table<LocalAttendance>;
     employees!: Table<Employee>;

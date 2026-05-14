@@ -36,16 +36,13 @@ export function RestoMode({
   const [showPin, setShowPin] = useState(false);
   const [pinAction, setPinAction] = useState<{ id: string, next: number } | null>(null);
 
-  // Lazy Load State
   const [visibleCount, setVisibleCount] = useState(20);
   const observerTarget = useRef<HTMLDivElement>(null);
 
-  // Reset pagination when category changes
   useEffect(() => {
     setVisibleCount(20);
   }, [activeCategory]);
 
-  // Intersection Observer for Infinite Scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -69,7 +66,6 @@ export function RestoMode({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* Category Filter */}
       <div className="bg-white border-b sticky top-0 z-30 px-6 h-16 flex items-center shrink-0">
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex gap-2 pb-1 items-center">
@@ -135,7 +131,6 @@ export function RestoMode({
         </ScrollArea>
       </div>
 
-      {/* Product Grid */}
       <div className="flex-1 overflow-y-auto bg-slate-50/50">
         <div className={cn(
           "grid gap-4 p-4 pb-40 lg:pb-4",
@@ -210,7 +205,6 @@ export function RestoMode({
                     </div>
                   )}
                   
-                  {/* Stock Badge */}
                   <Badge className={cn(
                     "absolute top-2 right-2 border-none text-[9px] font-black tracking-tighter px-1.5 py-0 z-10",
                     isOutOfStock ? "bg-red-500 text-white" : "bg-black/40 backdrop-blur-sm text-white"
@@ -218,7 +212,6 @@ export function RestoMode({
                     {(product as any).is_bundle ? 'PAKET' : (isOutOfStock ? 'HABIS' : product.stock_store)}
                   </Badge>
 
-                  {/* Quick Add Overlay (only if not in cart) */}
                   {!isOutOfStock && quantity === 0 && (
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-20">
                       <div className="opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all bg-indigo-600 rounded-full p-2.5 text-white shadow-xl shadow-indigo-300/40">
@@ -234,7 +227,6 @@ export function RestoMode({
                     Rp {product.price_sell.toLocaleString('id-ID')}
                   </div>
 
-                  {/* Counter Below Price */}
                   <div className="h-8 flex items-center justify-between">
                     {quantity > 0 ? (
                       <div className="flex items-center justify-between w-full bg-slate-50 rounded-lg p-0.5 border border-slate-100 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -274,7 +266,6 @@ export function RestoMode({
           )}
         </div>
         
-        {/* Infinite Scroll Observer Target */}
         {filteredProducts && visibleCount < filteredProducts.length && (
           <div ref={observerTarget} className="py-8 flex justify-center items-center opacity-50">
             <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100">

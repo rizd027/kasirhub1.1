@@ -96,7 +96,7 @@ export function SettingsLayout({
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <header className="flex items-center h-16 border-b bg-background/80 backdrop-blur-md sticky top-0 z-40 px-4">
+      <header className="flex items-center h-16 border-b bg-background/80 backdrop-blur-md sticky top-0 z-40 px-3">
         {leftAction ? (
           leftAction
         ) : (
@@ -112,11 +112,11 @@ export function SettingsLayout({
         
         <div className="flex flex-col min-w-0 overflow-hidden ml-1 sm:ml-2">
           {subtitle && (
-            <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-indigo-600 opacity-70 mb-0.5 truncate">
+            <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-indigo-600 opacity-70 mb-0.5 truncate hidden xs:block">
               {subtitle}
             </span>
           )}
-          <h1 className="text-[11px] sm:text-sm font-black text-slate-800 uppercase tracking-widest truncate whitespace-nowrap">
+          <h1 className="text-[9px] sm:text-xs md:text-sm font-black text-slate-800 uppercase tracking-widest truncate whitespace-nowrap">
             {title}
           </h1>
         </div>

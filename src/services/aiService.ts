@@ -3,7 +3,6 @@ import { toast } from "sonner";
 const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
 const GROQ_API_KEY = process.env.NEXT_PUBLIC_GROQ_API_KEY || "";
 
-// AI Themed Toasts
 export const aiToast = {
   success: (msg: string) => toast.success(`✨ AI Power: ${msg}`, {
     className: "bg-indigo-600 text-white border-indigo-400",
@@ -19,20 +18,14 @@ export const aiToast = {
 
 export type AIAnalysisMode = 'product' | 'ingredient' | 'expense' | 'verification' | 'business_advice';
 
-/**
- * Optimized AI Analysis Service for various retail data types.
- */
 export async function analyzeImage(imageUrl: string, mode: AIAnalysisMode): Promise<any> {
   console.log(`[AI] Analyzing ${mode} for:`, imageUrl);
 
-  // Optimization: Downscale image for AI
   let aiImageUrl = imageUrl;
   if (imageUrl.includes('cloudinary.com')) {
-    // Force format to JPG (f_jpg) because q_auto might return AVIF which Gemini API rejects (400 Bad Request)
     aiImageUrl = imageUrl.replace('/upload/', '/upload/w_800,c_limit,f_jpg,q_auto:eco/');
   }
 
-  // Helper to fetch and convert to base64
   const getBase64 = async (url: string) => {
     const response = await fetch(url);
     const blob = await response.blob();
@@ -40,7 +33,6 @@ export async function analyzeImage(imageUrl: string, mode: AIAnalysisMode): Prom
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = (reader.result as string).split(",")[1];
-        // Enforce valid image MIME type for Gemini
         let type = blob.type;
         if (!type || type === 'application/octet-stream') {
            type = url.toLowerCase().includes('.png') ? 'image/png' : 
@@ -54,7 +46,6 @@ export async function analyzeImage(imageUrl: string, mode: AIAnalysisMode): Prom
 
   const { base64, mimeType } = await getBase64(aiImageUrl);
 
-  // Define prompts based on mode
   let prompt = "";
   if (mode === 'product') {
     prompt = `Identifikasi produk dalam gambar. Jika ini adalah rak toko, pilih satu produk paling jelas. 
@@ -77,7 +68,6 @@ export async function analyzeImage(imageUrl: string, mode: AIAnalysisMode): Prom
     Gunakan Bahasa Indonesia.`;
   }
 
-  // 1. Try Gemini
   const geminiModels = [
     { name: "gemini-2.0-flash", version: "v1beta" },
     { name: "gemini-2.0-flash-lite-preview-02-05", version: "v1beta" },
@@ -113,7 +103,6 @@ export async function analyzeImage(imageUrl: string, mode: AIAnalysisMode): Prom
         return JSON.parse(data.candidates[0].content.parts[0].text);
       }
     } catch (err: any) {
-      // Silently fail Gemini to try next model or fallback
     }
   }
 
@@ -154,11 +143,7 @@ export async function analyzeImage(imageUrl: string, mode: AIAnalysisMode): Prom
   throw new Error("Gagal mengidentifikasi gambar. Pastikan gambar sudah terunggah sempurna atau coba lagi beberapa saat lagi.");
 }
 
-/**
- * Text-based AI Analysis for Business Intelligence
- */
 export async function analyzeText(prompt: string): Promise<string> {
-  // 1. Try Gemini Models
   const geminiModels = [
     { name: "gemini-2.0-flash", version: "v1beta" },
     { name: "gemini-1.5-flash", version: "v1" },
@@ -187,7 +172,7 @@ export async function analyzeText(prompt: string): Promise<string> {
       });
 
       if (!response.ok) {
-        if (response.status === 429) continue; // Rate limit - try next model
+        if (response.status === 429) continue;
         throw new Error(`API Error (${response.status})`);
       }
 
@@ -205,7 +190,6 @@ export async function analyzeText(prompt: string): Promise<string> {
     }
   }
 
-  // 2. Try Groq (Fallback)
   const groqModels = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
   for (const model of groqModels) {
     if (!GROQ_API_KEY) break;
@@ -245,9 +229,6 @@ export async function analyzeText(prompt: string): Promise<string> {
   throw new Error("Maaf, semua layanan AI sedang sibuk atau mencapai batas kuota. Silakan coba lagi beberapa saat lagi.");
 }
 
-/**
- * Legacy support for backward compatibility
- */
 export async function identifyProductFromImage(imageUrl: string) {
   return analyzeImage(imageUrl, 'product');
 }

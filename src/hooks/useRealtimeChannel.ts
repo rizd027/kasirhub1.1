@@ -1,12 +1,3 @@
-/**
- * useRealtimeChannel — wrapper untuk Supabase realtime yang:
- * 1. Auto-reconnect saat channel CLOSED/TIMED_OUT
- * 2. Re-subscribe saat app kembali aktif (visibilitychange event)
- * 3. Cleanup channel saat komponen unmount
- *
- * Gunakan hook ini sebagai pengganti supabase.channel().on().subscribe()
- * untuk semua fitur realtime.
- */
 
 import { useEffect, useRef, useCallback } from 'react';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -21,7 +12,6 @@ export function useRealtimeChannel(
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   const subscribe = useCallback(() => {
-    // Remove any existing channel first
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
@@ -32,7 +22,6 @@ export function useRealtimeChannel(
 
     channel.subscribe((status) => {
       if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        // Auto-retry after 3 seconds if channel drops
         setTimeout(() => {
           if (channelRef.current === channel) {
             subscribe();
@@ -47,7 +36,6 @@ export function useRealtimeChannel(
   useEffect(() => {
     subscribe();
 
-    // Re-subscribe when tab becomes visible
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         console.log('App resumed, re-syncing channel...');
