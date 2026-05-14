@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  MessageSquare, 
-  X, 
-  Send, 
-  Sparkles, 
-  TrendingUp, 
-  AlertCircle, 
-  Bot, 
-  User, 
+import {
+  MessageSquare,
+  X,
+  Send,
+  Sparkles,
+  TrendingUp,
+  AlertCircle,
+  Bot,
+  User,
   Loader2,
   ChevronRight,
   Lightbulb,
@@ -44,7 +44,7 @@ export function BusinessAssistant() {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  
+
   const [prefs, setPrefs] = useState<any>(null);
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export function BusinessAssistant() {
               }
             ]);
           }
-        } catch (e) {}
+        } catch (e) { }
       }
     };
 
@@ -79,6 +79,26 @@ export function BusinessAssistant() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Handle back button to close assistant on mobile
+  useEffect(() => {
+    const handlePopState = () => {
+      setIsOpen(false);
+    };
+
+    if (isOpen) {
+      window.history.pushState({ assistantOpen: true }, '');
+      window.addEventListener('popstate', handlePopState);
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      // If we are unmounting or isOpen becomes false, and we still have our state, pop it
+      if (!isOpen && window.history.state?.assistantOpen) {
+        window.history.back();
+      }
+    };
+  }, [isOpen]);
 
   // Hide on certain pages to avoid obstruction or unnecessary presence
   const hiddenRoutes = ['/login', '/register', '/kasir', '/menu'];
@@ -121,17 +141,17 @@ export function BusinessAssistant() {
       const recentTransactions = transactions.slice(-20);
       const lowStockCount = products.filter(p => (p.stock_store || 0) <= (prefs?.lowStockThreshold || 10)).length;
       const totalSales = transactions.reduce((acc, t) => acc + (t.total_amount || 0), 0);
-      
+
       // Calculate profit: Total Sales - Total Cost of Goods Sold (HPP)
       const totalCost = transactionItems.reduce((acc, item) => acc + ((item.cost_at_time || 0) * (item.quantity || 1)), 0);
       const totalProfit = totalSales - totalCost;
-      
+
       const contextData = {
         inventory: {
           totalProducts: products.length,
           lowStockItems: products.filter(p => (p.stock_store || 0) <= (prefs?.lowStockThreshold || 10)).slice(0, 5).map(p => `${p.name} (Sisa: ${p.stock_store})`),
           lowStockCount,
-          topSelling: products.sort((a,b) => (b.stock_store||0) - (a.stock_store||0)).slice(0,5).map(p => p.name)
+          topSelling: products.sort((a, b) => (b.stock_store || 0) - (a.stock_store || 0)).slice(0, 5).map(p => p.name)
         },
         finance: {
           totalSales: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(totalSales),
@@ -173,7 +193,7 @@ export function BusinessAssistant() {
       `;
 
       const response = await analyzeText(systemPrompt);
-      
+
       const assistantMessage: Message = {
         role: 'assistant',
         content: response,
@@ -209,8 +229,8 @@ export function BusinessAssistant() {
           prefs?.chatbotFabSize === 'lg' && "size-18 lg:size-20",
           // Visibility & Auto-Hide (Docking) logic
           isOpen ? "scale-0 opacity-0 pointer-events-none" : "scale-100",
-          prefs?.chatbotFabAutoHide && !isOpen 
-            ? "translate-x-1/2 lg:translate-x-1/2 hover:translate-x-0 opacity-50 hover:opacity-100" 
+          prefs?.chatbotFabAutoHide && !isOpen
+            ? "translate-x-1/2 lg:translate-x-1/2 hover:translate-x-0 opacity-50 hover:opacity-100"
             : "translate-x-0"
         )}
       >
@@ -237,7 +257,7 @@ export function BusinessAssistant() {
             </div>
             <div>
               <h2 className="text-[11px] font-black uppercase tracking-[0.12em] flex items-center gap-1.5">
-                Business Intelligence
+                KasirHub AI Chatbot
                 <Sparkles className="size-3 text-indigo-400 animate-pulse" />
               </h2>
               <div className="flex items-center gap-1.5 mt-0.5">
@@ -246,7 +266,7 @@ export function BusinessAssistant() {
               </div>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => setIsOpen(false)}
             className="size-8 rounded-lg hover:bg-white/10 flex items-center justify-center transition-all hover:rotate-90"
           >
@@ -255,12 +275,12 @@ export function BusinessAssistant() {
         </div>
 
         {/* Messages Area */}
-        <div 
+        <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-slate-50/30"
         >
           {messages.map((msg, idx) => (
-            <div 
+            <div
               key={idx}
               className={cn(
                 "flex gap-3 max-w-[85%]",
@@ -283,12 +303,12 @@ export function BusinessAssistant() {
                 ) : (
                   <ReactMarkdown
                     components={{
-                      strong: ({node, ...props}) => <strong className="font-black text-slate-900" {...props} />,
-                      p: ({node, ...props}) => <p className="mb-2 last:mb-0 leading-snug" {...props} />,
-                      ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2 space-y-0.5" {...props} />,
-                      li: ({node, ...props}) => <li className="mb-0" {...props} />,
-                      h1: ({node, ...props}) => <h1 className="text-base font-black uppercase tracking-tight mb-2 mt-2 first:mt-0" {...props} />,
-                      h2: ({node, ...props}) => <h2 className="text-sm font-black uppercase tracking-tight mb-1 mt-1.5 first:mt-0" {...props} />,
+                      strong: ({ node, ...props }) => <strong className="font-black text-slate-900" {...props} />,
+                      p: ({ node, ...props }) => <p className="mb-2 last:mb-0 leading-snug" {...props} />,
+                      ul: ({ node, ...props }) => <ul className="list-disc ml-4 mb-2 space-y-0.5" {...props} />,
+                      li: ({ node, ...props }) => <li className="mb-0" {...props} />,
+                      h1: ({ node, ...props }) => <h1 className="text-base font-black uppercase tracking-tight mb-2 mt-2 first:mt-0" {...props} />,
+                      h2: ({ node, ...props }) => <h2 className="text-sm font-black uppercase tracking-tight mb-1 mt-1.5 first:mt-0" {...props} />,
                     }}
                   >
                     {msg.content}
@@ -340,7 +360,7 @@ export function BusinessAssistant() {
         <div className="px-4 pb-4 bg-white/80">
           <div className="relative group">
             <label htmlFor="ai-assistant-input" className="sr-only">Tanya asisten strategi</label>
-            <input 
+            <input
               id="ai-assistant-input"
               name="ai-assistant-input"
               type="text"
@@ -350,7 +370,7 @@ export function BusinessAssistant() {
               placeholder="Tanya asisten strategi..."
               className="w-full h-11 pl-4 pr-12 rounded-xl bg-slate-100/50 border border-slate-200 focus:border-indigo-600 focus:bg-white focus:ring-4 focus:ring-indigo-600/5 text-[12px] font-medium transition-all shadow-inner"
             />
-            <button 
+            <button
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
               className="absolute right-1.5 top-1/2 -translate-y-1/2 size-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center transition-all hover:bg-indigo-700 active:scale-90 shadow-lg shadow-indigo-200 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
@@ -358,15 +378,12 @@ export function BusinessAssistant() {
               <Send className="size-4" />
             </button>
           </div>
-          <p className="text-center text-[9px] font-black text-slate-300 uppercase tracking-[0.15em] mt-2.5 opacity-60">
-            KasirHub Intelligence ✨
-          </p>
         </div>
       </div>
 
       {/* Backdrop */}
       {isOpen && (
-        <div 
+        <div
           onClick={() => setIsOpen(false)}
           className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[55] transition-all"
         />

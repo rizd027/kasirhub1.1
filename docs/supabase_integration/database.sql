@@ -269,6 +269,30 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 3.2 Automated Profile & Settings Creation
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  -- SKIP profile/settings for anonymous consumers
+  IF (new.raw_app_meta_data->>'provider' = 'anonymous') THEN
+    RETURN new;
+  END IF;
+
+  INSERT INTO public.profiles (id, full_name, role)
+  VALUES (new.id, 'User Baru', 'admin');
+  
+  INSERT INTO public.settings (user_id)
+  VALUES (new.id);
+
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 -- 4. Indices for Performance & FKs
 -- All foreign keys should be indexed for JOIN performance
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
@@ -378,6 +402,7 @@ CREATE POLICY "Users can manage own products" ON products FOR ALL TO authenticat
 DROP POLICY IF EXISTS "Users can manage own customer_orders" ON customer_orders;
 DROP POLICY IF EXISTS "Customers can insert their own orders" ON customer_orders;
 DROP POLICY IF EXISTS "Buyers can view their own orders" ON customer_orders;
+DROP POLICY IF EXISTS "Owners can manage orders" ON customer_orders;
 CREATE POLICY "Customers can insert their own orders" ON customer_orders FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "Buyers can view their own orders" ON customer_orders FOR SELECT TO authenticated USING (buyer_id = auth.uid() OR auth.uid() = user_id);
 CREATE POLICY "Owners can manage orders" ON customer_orders FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);

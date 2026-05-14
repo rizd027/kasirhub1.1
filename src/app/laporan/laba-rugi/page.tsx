@@ -129,8 +129,8 @@ export default function LabaRugiPage() {
       <div className="space-y-0 pb-20">
         {/* Content Section - High Contrast */}
         <div className="bg-white">
-          <div className="px-6 py-8 border-b border-slate-200">
-            <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-[0.3em] mb-8 border-l-4 border-indigo-600 pl-3">Profitabilitas Utama</h3>
+          <div className="px-4 py-6 lg:px-6 lg:py-8 border-b border-slate-200">
+            <h3 className="text-[9px] lg:text-[10px] font-black text-slate-800 uppercase tracking-[0.2em] lg:tracking-[0.3em] mb-6 lg:mb-8 border-l-4 border-indigo-600 pl-3">Profitabilitas Utama</h3>
             
             <div className="divide-y-2 divide-slate-100">
               {/* Gross Revenue */}
@@ -206,17 +206,17 @@ export default function LabaRugiPage() {
           </div>
 
           {/* Final Net Profit Section */}
-          <div className="px-6 py-12 border-b-2 border-slate-200 bg-slate-50 flex flex-col items-center text-center">
-             <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.5em] mb-4">Laba Bersih Akhir</span>
-             <div className="text-6xl font-black text-emerald-700 tracking-tighter mb-6">
+          <div className="px-4 py-8 lg:px-6 lg:py-12 border-b-2 border-slate-200 bg-slate-50 flex flex-col items-center text-center">
+             <span className="text-[10px] lg:text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] lg:tracking-[0.5em] mb-3 lg:mb-4">Laba Bersih Akhir</span>
+             <div className="text-4xl lg:text-6xl font-black text-emerald-700 tracking-tighter mb-4 lg:mb-6">
                Rp {stats.netProfit.toLocaleString('id-ID')}
              </div>
              <div className={cn(
-                "px-6 py-2.5 rounded-full text-xs font-black uppercase flex items-center gap-2 border-2 shadow-lg transition-all bg-white",
+                "px-4 lg:px-6 py-2 lg:py-2.5 rounded-full text-[10px] lg:text-xs font-black uppercase flex items-center gap-2 border-2 shadow-lg transition-all bg-white",
                 stats.margin >= 20 ? "text-emerald-700 border-emerald-300" : "text-amber-700 border-amber-300"
               )}>
                 {stats.margin >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                Margin Keuntungan {stats.margin.toFixed(1)}%
+                Margin {stats.margin.toFixed(1)}%
               </div>
           </div>
         </div>

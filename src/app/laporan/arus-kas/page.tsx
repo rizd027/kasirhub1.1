@@ -105,19 +105,19 @@ export default function ArusKasPage() {
     <ReportLayout title="Arus Kas" rightElement={headerActions}>
       <div className="space-y-0 pb-20">
         {/* Summary Section - High Contrast & Sharp */}
-        <div className="px-6 py-6 bg-slate-50/50 border-b-2 border-slate-300 flex flex-col gap-1">
+        <div className="px-4 py-5 lg:px-6 lg:py-6 bg-slate-50/50 border-b-2 border-slate-300 flex flex-col gap-1">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Total Saldo Masuk</span>
-            <div className="h-10 w-10 bg-emerald-600 text-white rounded-lg shadow-lg border-2 border-emerald-400 flex items-center justify-center">
-              <ArrowDownLeft className="h-5 w-5" />
+            <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] text-slate-500">Total Saldo Masuk</span>
+            <div className="h-9 w-9 lg:h-10 lg:w-10 bg-emerald-600 text-white rounded-lg shadow-lg border-2 border-emerald-400 flex items-center justify-center">
+              <ArrowDownLeft className="h-4 w-4 lg:h-5 lg:w-5" />
             </div>
           </div>
-          <div className="text-4xl font-black text-slate-900 tracking-tighter leading-none mb-4">
+          <div className="text-2xl lg:text-4xl font-black text-slate-900 tracking-tighter leading-none mb-3 lg:mb-4">
             Rp {totalMasuk.toLocaleString('id-ID')}
           </div>
           <div className="flex items-center gap-2">
              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-             <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
+             <p className="text-[8px] lg:text-[9px] font-black text-slate-600 uppercase tracking-widest">
                Akumulasi Transaksi Lunas & Tempo
              </p>
           </div>
@@ -125,7 +125,7 @@ export default function ArusKasPage() {
 
         {/* Transaction History - High Contrast & Compact List */}
         <div className="bg-white">
-          <div className="text-[10px] font-black text-slate-800 uppercase tracking-[0.4em] px-6 py-5 border-b-2 border-slate-100 flex items-center gap-3 bg-slate-50/30">
+          <div className="text-[9px] lg:text-[10px] font-black text-slate-800 uppercase tracking-[0.3em] lg:tracking-[0.4em] px-4 py-4 lg:px-6 lg:py-5 border-b-2 border-slate-100 flex items-center gap-3 bg-slate-50/30">
             <div className="h-2 w-2 rounded-full bg-indigo-600" />
             Aktivitas Terkini
           </div>
