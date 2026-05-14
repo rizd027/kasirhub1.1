@@ -119,7 +119,7 @@ export default function TrashPage() {
       title="Tempat Sampah"
       rightAction={
         deletedProducts.length > 0 && (
-          <Button size="sm" variant="destructive" className="text-xs font-bold uppercase tracking-widest rounded-xl" onClick={handleEmptyTrash}>
+          <Button size="sm" variant="destructive" className="text-xs font-bold uppercase tracking-widest rounded-lg" onClick={handleEmptyTrash}>
             <Trash2 className="h-4 w-4 mr-2" />
             Kosongkan
           </Button>
@@ -139,7 +139,7 @@ export default function TrashPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 rounded-2xl border border-amber-500/20 bg-amber-500/5">
+            <div className="flex items-center gap-3 p-4 rounded-lg border border-amber-500/20 bg-amber-500/5">
               <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
               <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">
                 {deletedProducts.length} produk di tempat sampah. Pulihkan sebelum sinkronisasi permanen.
@@ -148,7 +148,7 @@ export default function TrashPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {deletedProducts.map(p => (
-                <div key={p.id} className="group relative flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:border-indigo-100 transition-all shadow-sm">
+                <div key={p.id} className="group relative flex items-center gap-4 p-4 rounded-lg border border-slate-100 bg-white hover:border-indigo-100 shadow-sm">
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-bold text-slate-900 truncate mb-0.5">{p.name}</h3>
                     <div className="flex items-center gap-2">
@@ -161,7 +161,7 @@ export default function TrashPage() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-9 w-9 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                      className="h-9 w-9 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
                       onClick={() => handleRestore(p)}
                       disabled={restoring === p.id}
                       title="Pulihkan"
@@ -171,7 +171,7 @@ export default function TrashPage() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-9 w-9 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                      className="h-9 w-9 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"
                       onClick={() => handlePermanentDelete(p)}
                       disabled={deleting === p.id}
                       title="Hapus Permanen"
@@ -188,3 +188,4 @@ export default function TrashPage() {
     </SettingsLayout>
   );
 }
+

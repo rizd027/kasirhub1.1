@@ -1,0 +1,36 @@
+
+tambahkan button  "analisa dengan AI" pada kalkulator HPP, secara otomatis akan mengisi estimasi produksi perbulan, bahan baku yang dibutuhkan, kapasitas dan efisiensi, biaya operasional, tanpa user mamasukkan data.
+DAFTAR JENIS BARCODE (POS & INVENTORY)
+=====================================
+
+1. BARCODE RETAIL UTAMA (IDENTIFIKASI PRODUK)
+--------------------------------------------
+Digunakan untuk pemindaian di kasir dan identifikasi produk standar global.
+
+*   EAN-13: Standar internasional paling umum (13 digit). Digunakan di hampir semua produk retail di luar Amerika Utara.
+*   EAN-8: Versi ringkas dari EAN-13 (8 digit). Digunakan untuk kemasan produk yang sangat kecil.
+*   UPC-A: Standar utama di Amerika Utara (12 digit). Mirip dengan EAN-13.
+*   UPC-E: Versi ringkas dari UPC-A (6 digit) untuk kemasan kecil.
+
+2. BARCODE INTERNAL & GUDANG (PELACAKAN DATA)
+--------------------------------------------
+Ideal untuk pelacakan internal, label rak, atau manajemen stok di gudang karena mendukung karakter alfanumerik.
+
+*   Code 128: Barcode 1D dengan kepadatan tinggi. Sangat serbaguna, dapat menyimpan huruf dan angka. Sering digunakan untuk nomor seri (serial number) dan batch produksi.
+*   Code 39: Barcode alfanumerik populer lainnya. Sering digunakan dalam aplikasi industri, otomotif, dan inventaris pertahanan.
+*   ITF-14: Digunakan pada kardus pengiriman atau kemasan luar untuk melacak jumlah barang dalam satu kotak besar.
+
+3. BARCODE 2D (DATA KAPASITAS TINGGI)
+------------------------------------
+Dapat menyimpan informasi jauh lebih banyak dalam ruang yang sangat kecil, termasuk URL atau deskripsi produk lengkap.
+
+*   QR Code: Sangat populer untuk engagement konsumen, pemasaran, dan link ke konten digital. Mulai banyak digunakan untuk transparansi supply chain.
+*   Data Matrix: Barcode kotak yang sangat kecil namun berkapasitas besar. Sangat tahan lama, sering digunakan untuk melacak komponen elektronik kecil atau aset berharga.
+*   PDF417: Barcode 2D yang dapat menyimpan data dalam jumlah besar (seperti dokumen atau tanda tangan). Umum ditemukan pada kartu identitas atau dokumen transportasi.
+
+RINGKASAN PEMILIHAN:
+-------------------
+*   Untuk Kasir/Retail Umum   : Gunakan EAN-13 atau EAN-8.
+*   Untuk Stok Gudang/Serial  : Gunakan Code 128.
+*   Untuk Link/Info Detail    : Gunakan QR Code.
+*   Untuk Barang Sangat Kecil : Gunakan Data Matrix.

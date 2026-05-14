@@ -169,7 +169,7 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
           </div>
           <button
             onClick={() => onOpenChange(false)}
-            className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-colors"
+            className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-colors"
           >
             <X className="size-5 text-slate-500" />
           </button>
@@ -199,7 +199,7 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
                     {/* Order Header */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center">
                           <Hash className="size-5 text-indigo-600" />
                         </div>
                         <div>
@@ -218,7 +218,7 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
                     </div>
 
                     {/* Items */}
-                    <div className="bg-slate-50 rounded-2xl border border-slate-100 divide-y divide-slate-100">
+                    <div className="bg-slate-50 rounded-lg border border-slate-100 divide-y divide-slate-100">
                       {order.items.map((item, i) => (
                         <div key={i} className="flex items-center justify-between px-4 py-3">
                           <div className="flex items-center gap-2">
@@ -243,7 +243,7 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
                       <button
                         onClick={() => handleReject(order)}
                         disabled={isLoading}
-                        className="flex-1 h-11 rounded-xl bg-red-50 text-red-500 font-black text-xs uppercase tracking-widest border border-red-100 flex items-center justify-center gap-2 hover:bg-red-100 transition-colors disabled:opacity-50"
+                        className="flex-1 h-11 rounded-lg bg-red-50 text-red-500 font-black text-xs uppercase tracking-widest border border-red-100 flex items-center justify-center gap-2 hover:bg-red-100 transition-colors disabled:opacity-50"
                       >
                         {isLoading ? <Loader2 className="size-4 animate-spin" /> : <XCircle className="size-4" />}
                         Tolak
@@ -251,7 +251,7 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
                       <button
                         onClick={() => handlePullToCart(order)}
                         disabled={isLoading}
-                        className="flex-[2] h-11 rounded-xl bg-indigo-600 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 disabled:opacity-50 active:scale-[0.98]"
+                        className="flex-[2] h-11 rounded-lg bg-indigo-600 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 disabled:opacity-50 active:scale-[0.98]"
                       >
                         {isLoading ? <Loader2 className="size-4 animate-spin" /> : <ShoppingCart className="size-4" />}
                         Tarik ke Keranjang
@@ -267,3 +267,4 @@ export function InboxOverlay({ open, onOpenChange, userId, onSetCustomerName }: 
     </div>
   );
 }
+

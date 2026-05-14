@@ -70,7 +70,7 @@ export default function SummaryPage() {
         {/* Key Metrics - High Contrast Grid */}
         <div className="bg-white px-6 py-8 border-b border-slate-200">
            <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-[0.3em] mb-8 border-l-4 border-indigo-600 pl-3">Metrik Utama</h3>
-           <div className="grid grid-cols-2 gap-px bg-slate-200 border-2 border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+           <div className="grid grid-cols-2 gap-px bg-slate-200 border-2 border-slate-200 rounded-lg overflow-hidden shadow-sm">
               {[
                 { label: 'Total Omzet', val: stats.totalOmzet, icon: TrendingUp, color: 'text-emerald-600' },
                 { label: 'Total Transaksi', val: stats.totalTx, icon: ShoppingBag, color: 'text-indigo-600', isQty: true },
@@ -160,7 +160,7 @@ export default function SummaryPage() {
                             </span>
                          </div>
                       </div>
-                      <div className="bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                      <div className="bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                          <span className="text-[10px] font-black text-slate-900 uppercase">{p.qty} UNIT</span>
                       </div>
                    </div>
@@ -183,3 +183,4 @@ export default function SummaryPage() {
     </ReportLayout>
   );
 }
+

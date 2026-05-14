@@ -82,7 +82,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
 
   return (
     <div className="flex flex-col items-center gap-4 w-full">
-      <div className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-white ring-2 ring-slate-200">
+      <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden shadow-2xl border-4 border-white ring-2 ring-slate-200">
         {!capturedImage ? (
           <>
             <video 
@@ -117,13 +117,13 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
               <div className="flex gap-4">
                 <Button 
                   variant="outline"
-                  className="h-14 px-6 rounded-xl bg-white/10 backdrop-blur-md border-2 border-white/30 text-white hover:bg-white/20 font-black text-[10px] uppercase tracking-widest gap-2"
+                  className="h-14 px-6 rounded-lg bg-white/10 backdrop-blur-md border-2 border-white/30 text-white hover:bg-white/20 font-black text-[10px] uppercase tracking-widest gap-2"
                   onClick={() => setCapturedImage(null)}
                 >
                   <X className="h-4 w-4" /> Ulangi
                 </Button>
                 <Button 
-                  className="h-14 px-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-widest gap-2 shadow-xl shadow-indigo-500/20"
+                  className="h-14 px-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-widest gap-2 shadow-xl shadow-indigo-500/20"
                   onClick={confirmCapture}
                 >
                   <Check className="h-4 w-4" /> Konfirmasi
@@ -143,3 +143,4 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-export const uploadImage = async (file: File) => {
+export const uploadImage = async (file: File | string) => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', 'kasirhub_preset'); // User needs to create this in Cloudinary

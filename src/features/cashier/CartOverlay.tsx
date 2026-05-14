@@ -143,7 +143,7 @@ export function CartOverlay({ open, onOpenChange, products, onProceedPay }: Cart
       <div className="p-4 bg-white border-t shrink-0">
         <div className="max-w-md mx-auto">
           <Button 
-            className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-base rounded-xl shadow-lg shadow-indigo-100 transition-all active:scale-95"
+            className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-base rounded-lg shadow-lg shadow-indigo-100 transition-all active:scale-95"
             disabled={items.length === 0}
             onClick={() => {
               onOpenChange(false);
@@ -180,3 +180,4 @@ export function CartOverlay({ open, onOpenChange, products, onProceedPay }: Cart
     </div>
   );
 }
+

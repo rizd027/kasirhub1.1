@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { useCartStore } from "@/store/useCartStore";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { LocalProduct } from "@/db/dexie";
-import { Plus, Check, ShoppingBag } from "lucide-react";
+import { Plus, Check, ShoppingBag, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
@@ -15,6 +15,7 @@ import { PinDialog } from "@/components/ui/PinDialog";
 import { toast } from 'sonner';
 import { LayoutGrid, List, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BundleImageCollage } from '@/components/master-data/BundleImageCollage';
 
 export function RestoMode({ 
   products, 
@@ -35,6 +36,33 @@ export function RestoMode({
   const [showPin, setShowPin] = useState(false);
   const [pinAction, setPinAction] = useState<{ id: string, next: number } | null>(null);
 
+  // Lazy Load State
+  const [visibleCount, setVisibleCount] = useState(20);
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  // Reset pagination when category changes
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [activeCategory]);
+
+  // Intersection Observer for Infinite Scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => prev + 20);
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [activeCategory, products]);
+
   const filteredProducts = activeCategory 
     ? products.filter(p => p.category_id === activeCategory)
     : products;
@@ -46,7 +74,7 @@ export function RestoMode({
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex gap-2 pb-1 items-center">
             {isFullscreen && setViewMode && toggleFullscreen && (
-              <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-100 shrink-0 mr-2">
+              <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-100 shrink-0 mr-2">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -109,9 +137,14 @@ export function RestoMode({
 
       {/* Product Grid */}
       <div className="flex-1 overflow-y-auto bg-slate-50/50">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4 pb-40 lg:pb-4">
-          {filteredProducts.map((product) => {
-            const isOutOfStock = product.stock_store <= 0;
+        <div className={cn(
+          "grid gap-4 p-4 pb-40 lg:pb-4",
+          isFullscreen 
+            ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5" 
+            : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-3"
+        )}>
+          {filteredProducts.slice(0, visibleCount).map((product) => {
+            const isOutOfStock = !(product as any).is_bundle && product.stock_store <= 0;
             const cartItem = items.find(i => i.id === product.id);
             const quantity = cartItem?.quantity || 0;
 
@@ -165,8 +198,15 @@ export function RestoMode({
                       sizes="(max-width: 768px) 50vw, 25vw"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-gray-200 bg-gray-50">
-                      <ShoppingBag className="h-10 w-10" />
+                    <div className="relative h-full w-full bg-gray-50 flex items-center justify-center overflow-hidden">
+                      {(product as any).is_bundle ? (
+                        <BundleImageCollage 
+                          productIds={(product as any).bundle_items?.map((bi: any) => bi.product_id) || []} 
+                          className="h-full w-full rounded-none border-none"
+                        />
+                      ) : (
+                        <ShoppingBag className="h-10 w-10 text-gray-200" />
+                      )}
                     </div>
                   )}
                   
@@ -175,7 +215,7 @@ export function RestoMode({
                     "absolute top-2 right-2 border-none text-[9px] font-black tracking-tighter px-1.5 py-0 z-10",
                     isOutOfStock ? "bg-red-500 text-white" : "bg-black/40 backdrop-blur-sm text-white"
                   )}>
-                    {isOutOfStock ? 'HABIS' : product.stock_store}
+                    {(product as any).is_bundle ? 'PAKET' : (isOutOfStock ? 'HABIS' : product.stock_store)}
                   </Badge>
 
                   {/* Quick Add Overlay (only if not in cart) */}
@@ -233,6 +273,16 @@ export function RestoMode({
             </div>
           )}
         </div>
+        
+        {/* Infinite Scroll Observer Target */}
+        {filteredProducts && visibleCount < filteredProducts.length && (
+          <div ref={observerTarget} className="py-8 flex justify-center items-center opacity-50">
+            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100">
+              <div className="h-4 w-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Memuat...</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <PinDialog 
@@ -259,4 +309,5 @@ export function RestoMode({
     </div>
   );
 }
+
 

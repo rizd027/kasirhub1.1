@@ -1,44 +1,40 @@
 import { db } from '@/db/dexie';
 import { supabase } from '../supabase';
+import { getLastSyncAt, setLastSyncAt } from './syncManager';
 
 export const syncAttendance = async (userId: string) => {
     try {
-        console.log('[Sync] Starting attendance sync...');
-        
-        // 1. Get remote attendance for this user
+        const since = getLastSyncAt('attendance');
+        const now = new Date().toISOString();
+
         const { data: remoteData, error } = await supabase
             .from('attendance')
             .select('*')
             .eq('user_id', userId)
+            .gt('created_at', since)
             .order('created_at', { ascending: false })
-            .limit(100);
+            .limit(50);
 
         if (error) throw error;
-        if (!remoteData) return;
+        if (!remoteData || remoteData.length === 0) return;
 
-        // 2. Sync to local Dexie
+        console.log(`[Sync↓] attendance: ${remoteData.length} record sejak ${since}`);
+
         for (const remote of remoteData) {
             const local = await db.attendance.get(remote.id);
-            
+
             if (!local) {
-                // Insert new remote record
-                await db.attendance.put({
-                    ...remote,
-                    synced: 1
-                });
+                await db.attendance.put({ ...remote, synced: 1 });
             } else if (local.synced === 0) {
-                // If local exists but not synced, it will be handled by sync_queue
-                // No action needed here to avoid conflicts
+                // Data lokal belum tersinkronisasi — jangan overwrite
+                // sync_queue akan menangani push ke server
             } else {
-                // Update existing record if needed (rare for attendance as it's mostly immutable)
-                await db.attendance.put({
-                    ...remote,
-                    synced: 1
-                });
+                await db.attendance.put({ ...remote, synced: 1 });
             }
         }
 
-        console.log(`[Sync] Attendance synced: ${remoteData.length} records processed.`);
+        setLastSyncAt('attendance', now);
+        console.log(`[Sync↓] Attendance synced: ${remoteData.length} records.`);
     } catch (err) {
         console.error('[Sync] Attendance sync failed:', err);
     }

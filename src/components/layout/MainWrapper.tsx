@@ -13,7 +13,7 @@ export function MainWrapper({ children }: { children: React.ReactNode }) {
   useOrientationClass();
   
   // Operational pages that should take full width
-  const isOperationalPage = pathname?.startsWith('/absensi') || pathname?.startsWith('/kasir') || pathname?.startsWith('/login') || pathname?.startsWith('/register') || pathname?.startsWith('/settings') || pathname?.startsWith('/laporan') || pathname?.startsWith('/riwayat') || pathname?.startsWith('/karyawan') || pathname?.startsWith('/toko') || pathname?.startsWith('/produk') || pathname?.startsWith('/stock');
+  const isOperationalPage = pathname?.startsWith('/absensi') || pathname?.startsWith('/kasir') || pathname?.startsWith('/login') || pathname?.startsWith('/register') || pathname?.startsWith('/pengaturan') || pathname?.startsWith('/laporan') || pathname?.startsWith('/riwayat') || pathname?.startsWith('/karyawan') || pathname?.startsWith('/toko') || pathname?.startsWith('/produk') || pathname?.startsWith('/stok') || pathname?.startsWith('/kalkulator-hpp') || pathname?.startsWith('/paket-bundling') || pathname?.startsWith('/bahan-baku') || pathname?.startsWith('/biaya-pengolahan') || pathname?.startsWith('/produk-turunan') || pathname?.startsWith('/kategori') || pathname?.startsWith('/qr-menu');
   
   // (auto logout removed — managed by user session persistence)
 

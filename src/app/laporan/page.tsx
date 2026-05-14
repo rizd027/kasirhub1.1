@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { 
   ChevronRight, TrendingUp, DollarSign, ShoppingBag, 
   Wallet, BarChart3, PackageSearch, AlertCircle, 
@@ -14,9 +15,10 @@ import { db } from '@/db/dexie';
 import { format, subDays, startOfDay, isAfter, isToday, startOfMonth } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { ReportStatCard } from '@/features/reports/ReportStatCard';
-import { SalesChart } from '@/features/reports/SalesChart';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+const SalesChart = dynamic(() => import('@/features/reports/SalesChart').then(mod => mod.SalesChart), { ssr: false });
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -199,7 +201,7 @@ export default function LaporanPage() {
           <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-900 hover:bg-slate-50 outline-none border border-slate-200">
             <MoreVertical className="h-4 w-4" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52 rounded-xl p-1 shadow-2xl border-2 border-slate-300 animate-none bg-white z-[100]">
+          <DropdownMenuContent align="end" className="w-52 rounded-lg p-1 shadow-2xl border-2 border-slate-300 animate-none bg-white z-[100]">
             <DropdownMenuGroup>
               <DropdownMenuLabel className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-3 py-2">Ekspor Laporan</DropdownMenuLabel>
               <DropdownMenuSeparator className="mx-1 bg-slate-100" />
@@ -296,7 +298,7 @@ export default function LaporanPage() {
                 href={menu.href}
                 className="group flex items-center gap-5 p-4 hover:bg-slate-50"
               >
-                <div className={cn("size-10 rounded-2xl flex items-center justify-center shrink-0 border-2 border-slate-100 shadow-sm", menu.bg, menu.color)}>
+                <div className={cn("size-10 rounded-lg flex items-center justify-center shrink-0 border-2 border-slate-100 shadow-sm", menu.bg, menu.color)}>
                   <menu.icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -317,3 +319,4 @@ export default function LaporanPage() {
   </div>
   );
 }
+

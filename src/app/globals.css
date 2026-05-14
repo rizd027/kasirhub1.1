@@ -200,9 +200,15 @@ html.landscape-desktop [data-mobile-cart-footer] {
   display: none !important;
 }
 
-/* Remove bottom padding used for bottom nav in landscape */
+/* Remove bottom padding used for bottom nav in landscape and force flex-row */
 html.landscape-desktop main {
   padding-bottom: 0 !important;
+  flex-direction: row !important;
+}
+
+/* Force kasir container to full height instead of leaving bottom space */
+html.landscape-desktop [data-kasir-root] {
+  height: 100dvh !important;
 }
 
 /* Apply desktop body background in landscape */

@@ -1,4 +1,10 @@
 'use client';
+import { useRouter } from 'next/navigation';
+import { useStaffStore } from '@/store/useStaffStore';
+import { db } from '@/db/dexie';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { addToSyncQueue, runSync } from '@/services/sync/syncManager';
+import { createId } from '@/utils/uuid';
 
 import { useState, useEffect } from 'react';
 import { SettingsLayout } from '@/features/settings/SettingsLayout';
@@ -35,8 +41,13 @@ const emptyForm = {
 };
 
 export default function KaryawanPage() {
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { session } = useStaffStore();
+  const userId = session?.role === 'admin' ? session.id : (session as any).adminId;
+
+  // Reaktif terhadap perubahan di Dexie
+  const employees = useLiveQuery(() => db.employees.toArray()) || [];
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [onlineStatus, setOnlineStatus] = useState<Record<string, boolean>>({});
   
@@ -57,21 +68,11 @@ export default function KaryawanPage() {
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [lastTouchDist, setLastTouchDist] = useState(0);
 
-  const fetchEmployees = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.from('employees').select('*').order('name');
-      if (error) throw error;
-      if (data) {
-        setEmployees(data);
-        fetchOnlineStatus(data);
-      }
-    } catch {
-      toast.error('Gagal memuat data karyawan');
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (employees.length > 0) {
+      fetchOnlineStatus(employees);
     }
-  };
+  }, [employees]);
 
   const fetchOnlineStatus = async (staffList: any[]) => {
     try {
@@ -104,18 +105,16 @@ export default function KaryawanPage() {
 
   const fetchAttendanceAndPerformance = async (empId: string) => {
     try {
-      const { data: attData } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('employee_id', empId)
-        .order('created_at', { ascending: false })
-        .limit(30);
+      const attData = await db.attendance
+        .where('employee_id').equals(empId)
+        .reverse()
+        .limit(30)
+        .toArray();
       setAttendance(attData || []);
 
-      const { data: txData } = await supabase
-        .from('transactions')
-        .select('total_amount, created_at')
-        .eq('employee_id', empId);
+      const txData = await db.transactions
+        .where('employee_id').equals(empId)
+        .toArray();
       
       const salesMap: Record<string, number> = {};
       txData?.forEach(tx => {
@@ -123,20 +122,28 @@ export default function KaryawanPage() {
         salesMap[date] = (salesMap[date] || 0) + Number(tx.total_amount);
       });
       setDailySales(salesMap);
-    } catch {}
+    } catch (err) {
+      console.error('Fetch performance error:', err);
+    }
   };
 
   const toggleVerify = async (record: any) => {
     try {
-      const { error } = await supabase
-        .from('attendance')
-        .update({ is_verified: !record.is_verified })
-        .eq('id', record.id);
+      const now = new Date().toISOString();
+      const updates = { 
+        is_verified: record.is_verified ? 0 : 1, 
+        updated_at: now, 
+        sync_status: 'pending' as const 
+      };
       
-      if (error) throw error;
+      await db.attendance.update(record.id, updates);
+      await addToSyncQueue('attendance', 'update', record.id, updates);
+      
       toast.success(record.is_verified ? 'Verifikasi dibatalkan' : 'Presensi diverifikasi');
       setAttendance(prev => prev.map(a => a.id === record.id ? { ...a, is_verified: !a.is_verified } : a));
-    } catch {
+      runSync();
+    } catch (err) {
+      console.error('Toggle verify error:', err);
       toast.error('Gagal memproses verifikasi');
     }
   };
@@ -185,35 +192,50 @@ export default function KaryawanPage() {
     toast.success('Laporan Excel berhasil diunduh');
   };
 
-  useEffect(() => { fetchEmployees(); }, []);
 
   const handleSaveEmployee = async () => {
     if (!form.name.trim()) return;
+    if (!userId) {
+        toast.error('Sesi tidak valid');
+        return;
+    }
+
     setLoading(true);
     try {
-      let dataToSave: any = { ...form };
+      const id = selectedEmp?.id || createId();
+      const now = new Date().toISOString();
       
-      // If we are editing and password is empty, don't update it
+      let dataToSave: any = { 
+        ...form,
+        id,
+        user_id: userId,
+        updated_at: now,
+        deleted_at: null,
+        sync_status: 'pending' as const
+      };
+      
       if (selectedEmp && !form.password) {
         delete dataToSave.password;
       } else if (form.password) {
-        // Only hash if password is provided
         const { hashPassword } = await import('@/utils/crypto');
         dataToSave.password = await hashPassword(form.password);
       }
 
-      const { error } = selectedEmp
-        ? await supabase.from('employees').update(dataToSave).eq('id', selectedEmp.id)
-        : await supabase.from('employees').insert([dataToSave]);
+      if (selectedEmp) {
+        await db.employees.update(id, dataToSave);
+        await addToSyncQueue('employees', 'update', id, dataToSave);
+      } else {
+        await db.employees.add(dataToSave);
+        await addToSyncQueue('employees', 'insert', id, dataToSave);
+      }
 
-      if (error) throw error;
-      
       toast.success(selectedEmp ? 'Karyawan diperbarui' : 'Karyawan ditambahkan');
       setIsAddOpen(false);
       setSelectedEmp(null);
       setForm(emptyForm);
-      fetchEmployees();
-    } catch {
+      runSync();
+    } catch (err) {
+      console.error('Save employee error:', err);
       toast.error('Gagal menyimpan data');
     } finally {
       setLoading(false);
@@ -222,10 +244,12 @@ export default function KaryawanPage() {
 
   const toggleStatus = async (emp: any) => {
     try {
-      const { error } = await supabase.from('employees').update({ is_active: !emp.is_active }).eq('id', emp.id);
-      if (error) throw error;
+      const now = new Date().toISOString();
+      const updates = { is_active: !emp.is_active, updated_at: now, sync_status: 'pending' as const };
+      await db.employees.update(emp.id, updates);
+      await addToSyncQueue('employees', 'update', emp.id, updates);
       toast.success(`Karyawan ${!emp.is_active ? 'diaktifkan' : 'dinonaktifkan'}`);
-      fetchEmployees();
+      runSync();
     } catch {
       toast.error('Gagal mengubah status');
     }
@@ -279,6 +303,7 @@ export default function KaryawanPage() {
   return (
     <SettingsLayout
       title="Manajemen Karyawan"
+      backUrl="/pengaturan"
       rightAction={
         <Button
           variant="ghost"
@@ -333,7 +358,7 @@ export default function KaryawanPage() {
               >
                 <div className="flex items-center gap-4 flex-1">
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-500 border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-500 border border-slate-200 shadow-sm overflow-hidden">
                       {emp.photo_url ? <img src={emp.photo_url} className="w-full h-full object-cover" /> : <UserCircle2 className="h-7 w-7" />}
                     </div>
                     {onlineStatus[emp.id] && (
@@ -356,7 +381,7 @@ export default function KaryawanPage() {
                     </div>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="text-slate-500 hover:text-indigo-600 rounded-xl">
+                <Button variant="ghost" size="icon" className="text-slate-500 hover:text-indigo-600 rounded-lg">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </div>
@@ -482,7 +507,7 @@ export default function KaryawanPage() {
                 </div>
 
                 {/* Attendance History Section */}
-                <div className="flex-1 bg-white lg:m-6 lg:rounded-2xl lg:border lg:border-slate-200 lg:shadow-sm overflow-hidden flex flex-col min-h-0">
+                <div className="flex-1 bg-white lg:m-6 lg:rounded-lg lg:border lg:border-slate-200 lg:shadow-sm overflow-hidden flex flex-col min-h-0">
                   <div className="px-6 py-5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between shrink-0">
                     <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Riwayat Presensi Terbaru</h4>
                     <Clock className="h-4 w-4 text-slate-300" />
@@ -509,7 +534,7 @@ export default function KaryawanPage() {
                               >
                                 <div 
                                   className={cn(
-                                    "w-14 h-14 rounded-xl flex items-center justify-center relative overflow-hidden border-2 border-slate-100 shadow-sm",
+                                    "w-14 h-14 rounded-lg flex items-center justify-center relative overflow-hidden border-2 border-slate-100 shadow-sm",
                                     item.type === 'in' ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
                                   )}
                                 >
@@ -549,7 +574,7 @@ export default function KaryawanPage() {
                             
                             <div className="flex items-center gap-4">
                               {salesOnThatDay > 0 && (
-                                <div className="text-right bg-indigo-50/50 px-4 py-2 rounded-xl border border-indigo-100 hidden sm:block">
+                                <div className="text-right bg-indigo-50/50 px-4 py-2 rounded-lg border border-indigo-100 hidden sm:block">
                                   <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-0.5">Omzet Hari Ini</p>
                                   <p className="text-xs font-black text-indigo-600">Rp {salesOnThatDay.toLocaleString('id-ID')}</p>
                                 </div>
@@ -598,7 +623,7 @@ export default function KaryawanPage() {
             <button
               onClick={handleSaveEmployee}
               disabled={loading || !form.name.trim()}
-              className="flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-30 shadow-lg shadow-indigo-100"
+              className="flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-30 shadow-lg shadow-indigo-100"
             >
               <Save className="size-4" />
               Simpan Perubahan
@@ -631,7 +656,7 @@ export default function KaryawanPage() {
                     <Input
                       autoFocus
                       placeholder="Masukkan nama lengkap"
-                      className="h-12 bg-white border-2 border-slate-200 rounded-2xl px-5 focus-visible:ring-0 focus-visible:border-indigo-600 text-sm font-bold transition-all shadow-sm"
+                      className="h-12 bg-white border-2 border-slate-200 rounded-lg px-5 focus-visible:ring-0 focus-visible:border-indigo-600 text-sm font-bold transition-all shadow-sm"
                       value={form.name}
                       onChange={e => setForm({ ...form, name: e.target.value })}
                     />
@@ -640,14 +665,14 @@ export default function KaryawanPage() {
                     <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Jabatan / Role</Label>
                     <Input
                       placeholder="Contoh: Senior Kasir"
-                      className="h-12 bg-white border-2 border-slate-200 rounded-2xl px-5 focus-visible:ring-0 focus-visible:border-indigo-600 text-sm font-bold transition-all shadow-sm"
+                      className="h-12 bg-white border-2 border-slate-200 rounded-lg px-5 focus-visible:ring-0 focus-visible:border-indigo-600 text-sm font-bold transition-all shadow-sm"
                       value={form.role}
                       onChange={e => setForm({ ...form, role: e.target.value })}
                     />
                   </div>
                 </div>
 
-                <div className="mt-12 p-6 rounded-3xl bg-indigo-50 border border-indigo-100 w-full">
+                <div className="mt-12 p-6 rounded-lg bg-indigo-50 border border-indigo-100 w-full">
                   <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-4">Pengaturan Akses</p>
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col">
@@ -680,7 +705,7 @@ export default function KaryawanPage() {
                               key={g}
                               onClick={() => setForm({ ...form, gender: g })}
                               className={cn(
-                                "flex-1 h-12 rounded-2xl text-[10px] font-black transition-all border-2",
+                                "flex-1 h-12 rounded-lg text-[10px] font-black transition-all border-2",
                                 form.gender === g 
                                   ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100" 
                                   : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"
@@ -922,3 +947,4 @@ export default function KaryawanPage() {
     </SettingsLayout>
   );
 }
+

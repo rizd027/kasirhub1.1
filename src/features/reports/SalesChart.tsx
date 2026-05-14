@@ -23,7 +23,7 @@ export function SalesChart({ data }: SalesChartProps) {
     setIsClient(true);
   }, []);
 
-  if (!isClient) return <div className="h-[220px] w-full bg-slate-50 animate-pulse rounded-xl" />;
+  if (!isClient) return <div className="h-[220px] w-full bg-slate-50 animate-pulse rounded-lg" />;
 
   return (
     <div className="h-[220px] w-full mt-4">
@@ -70,3 +70,4 @@ export function SalesChart({ data }: SalesChartProps) {
     </div>
   );
 }
+

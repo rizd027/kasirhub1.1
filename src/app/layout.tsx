@@ -31,6 +31,7 @@ import { MainWrapper } from "@/components/layout/MainWrapper";
 import { AuthCheck } from "@/features/auth/AuthCheck";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { AppEventsHandler } from "@/components/layout/AppEventsHandler";
+import { BusinessAssistant } from "@/components/intelligence/BusinessAssistant";
 
 export default function RootLayout({
   children,
@@ -50,6 +51,7 @@ export default function RootLayout({
                 {children}
               </MainWrapper>
               <BottomNav />
+              <BusinessAssistant />
             </div>
           </div>
         </AuthCheck>
@@ -59,7 +61,7 @@ export default function RootLayout({
           expand={false}
           richColors
           toastOptions={{
-            className: 'rounded-2xl border-slate-100 shadow-2xl font-sans font-bold',
+            className: 'rounded-lg border-slate-100 shadow-2xl font-sans font-bold',
           }}
         />
         {/* Service Worker Management - Unregister for Native to prevent update bugs */}
@@ -80,3 +82,4 @@ export default function RootLayout({
     </html>
   );
 }
+

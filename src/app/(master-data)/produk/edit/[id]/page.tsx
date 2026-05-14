@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { db, LocalProduct } from '@/db/dexie';
-import { ProductForm } from '../../ProductForm';
+import { ProductForm } from '@/features/produk/ProductForm';
 
 export default function EditProductPage() {
   const params = useParams();
@@ -23,7 +23,7 @@ export default function EditProductPage() {
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-white">
       <div className="animate-pulse flex flex-col items-center gap-4">
-        <div className="size-12 rounded-2xl bg-slate-50 border border-slate-100" />
+        <div className="size-12 rounded-lg bg-slate-50 border border-slate-100" />
         <div className="h-4 w-32 bg-slate-50 rounded" />
       </div>
     </div>

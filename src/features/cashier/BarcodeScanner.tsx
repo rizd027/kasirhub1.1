@@ -108,7 +108,7 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="sm:max-w-[360px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-xl duration-0 animate-none data-[open]:animate-none data-[closed]:animate-none data-[state=open]:animate-none data-[state=closed]:animate-none">
+      <DialogContent showCloseButton={false} className="sm:max-w-[360px] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-lg duration-0 animate-none data-[open]:animate-none data-[closed]:animate-none data-[state=open]:animate-none data-[state=closed]:animate-none">
         {/* Style to hide library UI elements and fix video fit */}
         <style dangerouslySetInnerHTML={{ __html: `
           #reader video { 
@@ -175,7 +175,7 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
                     <Info className="h-8 w-8" />
                   </div>
                   <p className="text-sm font-bold text-gray-900 mb-6">{hasError}</p>
-                  <Button onClick={() => onOpenChange(false)} variant="outline" className="rounded-2xl border-2 px-8">
+                  <Button onClick={() => onOpenChange(false)} variant="outline" className="rounded-lg border-2 px-8">
                     Tutup
                   </Button>
                 </>
@@ -232,3 +232,4 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
     </Dialog>
   );
 }
+

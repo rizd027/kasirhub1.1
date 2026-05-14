@@ -196,7 +196,7 @@ export default function ImportPage() {
       title="Impor Produk"
       rightAction={
         rows.length > 0 && (
-          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest px-6" onClick={handleImport} disabled={importing}>
+          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[10px] uppercase tracking-widest px-6" onClick={handleImport} disabled={importing}>
             {importing ? 'Memproses...' : `Impor ${rows.length} Produk`}
           </Button>
         )
@@ -206,7 +206,7 @@ export default function ImportPage() {
         {/* Upload area */}
         <div className="relative">
           <div
-            className={`border-2 border-dashed rounded-3xl p-12 text-center transition-all ${
+            className={`border-2 border-dashed rounded-lg p-12 text-center transition-all ${
               fileName
                 ? 'border-indigo-400/40 bg-indigo-500/5 cursor-default'
                 : 'border-slate-200 cursor-pointer hover:border-indigo-400 hover:bg-slate-50'
@@ -216,7 +216,7 @@ export default function ImportPage() {
             onClick={() => !fileName && inputRef.current?.click()}
           >
             <div className="flex flex-col items-center gap-4">
-              <div className={`p-6 rounded-[2rem] ${fileName ? 'bg-indigo-600 shadow-xl shadow-indigo-100' : 'bg-slate-100'}`}>
+              <div className={`p-6 rounded-lg ${fileName ? 'bg-indigo-600 shadow-xl shadow-indigo-100' : 'bg-slate-100'}`}>
                 <FileSpreadsheet className={`h-10 w-10 ${fileName ? 'text-white' : 'text-slate-400'}`} />
               </div>
               <div>
@@ -254,7 +254,7 @@ export default function ImportPage() {
 
         {/* Format guide */}
         {rows.length === 0 && !error && (
-          <div className="rounded-2xl border border-slate-100 bg-white p-6 space-y-4">
+          <div className="rounded-lg border border-slate-100 bg-white p-6 space-y-4">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Aturan Kolom Header</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
@@ -266,7 +266,7 @@ export default function ImportPage() {
                 { h: 'Kategori', r: 'Opsional', d: 'Nama kategori produk' },
                 { h: 'Foto', r: 'Opsional', d: 'Link Cloudinary / URL foto' },
               ].map((item) => (
-                <div key={item.h} className="flex flex-col gap-1 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <div key={item.h} className="flex flex-col gap-1 p-3 rounded-lg bg-slate-50 border border-slate-100">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-black text-slate-700">{item.h}</span>
                     <span className={item.r === 'Wajib' ? 'text-[9px] font-black text-red-500 uppercase tracking-widest' : 'text-[9px] font-black text-slate-300 uppercase tracking-widest'}>{item.r}</span>
@@ -280,7 +280,7 @@ export default function ImportPage() {
 
         {/* Error */}
         {error && (
-          <div className="flex gap-4 items-start rounded-2xl border border-red-500/20 bg-red-500/5 p-5">
+          <div className="flex gap-4 items-start rounded-lg border border-red-500/20 bg-red-500/5 p-5">
             <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
             <div className="flex flex-col">
               <p className="text-xs font-black text-red-600 uppercase tracking-widest">Gagal Membaca File</p>
@@ -294,15 +294,15 @@ export default function ImportPage() {
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm">
+              <div className="rounded-lg border border-slate-100 bg-white p-4 text-center shadow-sm">
                 <p className="text-2xl font-black text-slate-800">{rows.length}</p>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Total Item</p>
               </div>
-              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-center">
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 text-center">
                 <p className="text-2xl font-black text-emerald-600">{valid}</p>
                 <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mt-1">Baris Baru</p>
               </div>
-              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-center">
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 text-center">
                 <p className="text-2xl font-black text-amber-600">{conflicts}</p>
                 <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mt-1">Konflik SKU</p>
               </div>
@@ -310,7 +310,7 @@ export default function ImportPage() {
 
             {/* Conflict mode */}
             {conflicts > 0 && (
-              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 space-y-4">
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-5 space-y-4">
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="h-5 w-5 text-amber-500" />
                   <div>
@@ -323,7 +323,7 @@ export default function ImportPage() {
                     size="sm" 
                     variant={conflictMode === 'skip' ? 'default' : 'outline'} 
                     onClick={() => setConflictMode('skip')} 
-                    className={conflictMode === 'skip' ? "bg-amber-600 hover:bg-amber-700 border-transparent rounded-xl" : "border-amber-200 text-amber-600 hover:bg-amber-100 rounded-xl"}
+                    className={conflictMode === 'skip' ? "bg-amber-600 hover:bg-amber-700 border-transparent rounded-lg" : "border-amber-200 text-amber-600 hover:bg-amber-100 rounded-lg"}
                   >
                     <SkipForward className="h-3.5 w-3.5 mr-2" />
                     Lewati (Aman)
@@ -332,7 +332,7 @@ export default function ImportPage() {
                     size="sm" 
                     variant={conflictMode === 'overwrite' ? 'default' : 'outline'} 
                     onClick={() => setConflictMode('overwrite')} 
-                    className={conflictMode === 'overwrite' ? "bg-indigo-600 hover:bg-indigo-700 border-transparent rounded-xl" : "border-indigo-200 text-indigo-600 hover:bg-indigo-50 rounded-xl"}
+                    className={conflictMode === 'overwrite' ? "bg-indigo-600 hover:bg-indigo-700 border-transparent rounded-lg" : "border-indigo-200 text-indigo-600 hover:bg-indigo-50 rounded-lg"}
                   >
                     <RefreshCw className="h-3.5 w-3.5 mr-2" />
                     Timpa Data Lama
@@ -342,7 +342,7 @@ export default function ImportPage() {
             )}
 
             {/* Table preview */}
-            <div className="rounded-2xl border border-slate-100 bg-white overflow-hidden shadow-sm">
+            <div className="rounded-lg border border-slate-100 bg-white overflow-hidden shadow-sm">
               <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Preview Data</p>
                 <span className="text-[10px] font-bold text-slate-300">Hanya menampilkan 20 baris pertama</span>
@@ -383,3 +383,4 @@ export default function ImportPage() {
     </SettingsLayout>
   );
 }
+

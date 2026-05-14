@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { anonSupabase } from '@/services/supabase';
 import { ShoppingCart, Plus, Minus, Trash2, Send, CheckCircle2, ChevronLeft, Package, HelpCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { aiToast } from '@/services/aiService';
 
 interface PublicProduct {
   id: string;
@@ -114,7 +115,7 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
             .from('profiles')
             .select('full_name, store_name')
             .eq('id', activeUid)
-            .single();
+            .maybeSingle();
           
           setShopName(profileData?.store_name || profileData?.full_name || 'Menu Digital');
         }
@@ -193,7 +194,11 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
       setCart([]);
       setCartOpen(false);
     } catch (err: any) {
+      console.error('Order submission error:', err);
       setOrderStatus('error');
+      // If error is 403/401, it's likely RLS. If 400, it's payload or schema.
+      const errorMsg = err.message || 'Gagal mengirim pesanan. Silakan coba lagi.';
+      aiToast.error('Gagal: ' + errorMsg);
       setTimeout(() => setOrderStatus('idle'), 3000);
     }
   };
@@ -208,7 +213,7 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
         <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-8">
           Mohon tunggu, staf kami sedang memproses
         </p>
-        <div className="w-full max-w-xs bg-slate-50 rounded-3xl border border-slate-100 p-6 text-left space-y-3">
+        <div className="w-full max-w-xs bg-slate-50 rounded-lg border border-slate-100 p-6 text-left space-y-3">
           {tableInput && (
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nomor Meja</span>
@@ -228,7 +233,7 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
         </div>
         <button
           onClick={() => { setOrderStatus('idle'); setTableInput(''); setCustomerName(''); }}
-          className="mt-8 px-8 py-3 rounded-2xl bg-slate-100 text-slate-600 font-black text-sm uppercase tracking-widest hover:bg-slate-200 transition-colors"
+          className="mt-8 px-8 py-3 rounded-lg bg-slate-100 text-slate-600 font-black text-sm uppercase tracking-widest hover:bg-slate-200 transition-colors"
         >
           Pesan Lagi
         </button>
@@ -257,11 +262,11 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
           <h1 className="text-base font-black text-slate-800 leading-tight">{shopName}</h1>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => setShowHelp(true)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors">
+          <button onClick={() => setShowHelp(true)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors">
             <HelpCircle className="size-5" />
           </button>
           {totalItems > 0 && (
-            <button onClick={() => setCartOpen(true)} className="relative flex items-center gap-2 bg-indigo-600 text-white font-black text-xs px-4 py-2.5 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all">
+            <button onClick={() => setCartOpen(true)} className="relative flex items-center gap-2 bg-indigo-600 text-white font-black text-xs px-4 py-2.5 rounded-lg shadow-lg shadow-indigo-200 active:scale-95 transition-all">
               <ShoppingCart className="size-4" />
               <span>{totalItems}</span>
             </button>
@@ -275,11 +280,11 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
           <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm sticky top-24">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6">Navigasi</h3>
             <div className="space-y-2">
-              <button onClick={() => setShowHelp(true)} className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-bold text-xs">
+              <button onClick={() => setShowHelp(true)} className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-bold text-xs">
                 <HelpCircle className="size-4" /> Bantuan Pesan
               </button>
               {totalItems > 0 && (
-                <button onClick={() => setCartOpen(true)} className="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-100 font-bold text-xs">
+                <button onClick={() => setCartOpen(true)} className="w-full flex items-center justify-between p-3 rounded-lg bg-indigo-600 text-white shadow-lg shadow-indigo-100 font-bold text-xs">
                   <div className="flex items-center gap-3">
                     <ShoppingCart className="size-4" /> Keranjang
                   </div>
@@ -301,7 +306,7 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[1,2,3,4,5,6].map(i => (
-                <div key={i} className="h-28 bg-white rounded-2xl border border-slate-100 animate-pulse" />
+                <div key={i} className="h-28 bg-white rounded-lg border border-slate-100 animate-pulse" />
               ))}
             </div>
           ) : products.length === 0 ? (
@@ -314,8 +319,8 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
               {products.map(product => {
                 const inCart = cart.find(c => c.product.id === product.id);
                 return (
-                  <div key={product.id} className="bg-white rounded-2xl border border-slate-100 flex items-center gap-4 p-4 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all group">
-                    <div className="w-20 h-20 rounded-2xl bg-slate-50 border border-slate-100 flex-shrink-0 overflow-hidden">
+                  <div key={product.id} className="bg-white rounded-lg border border-slate-100 flex items-center gap-4 p-4 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all group">
+                    <div className="w-20 h-20 rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0 overflow-hidden">
                       {product.image_url ? (
                         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       ) : (
@@ -332,16 +337,16 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
                     </div>
                     {inCart ? (
                       <div className="flex flex-col items-center gap-1">
-                        <button onClick={() => updateQty(product.id, 1)} disabled={inCart.quantity >= product.stock_store} className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center active:scale-90 transition-all disabled:opacity-40">
+                        <button onClick={() => updateQty(product.id, 1)} disabled={inCart.quantity >= product.stock_store} className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center active:scale-90 transition-all disabled:opacity-40">
                           <Plus className="size-4" />
                         </button>
                         <span className="text-xs font-black text-slate-800">{inCart.quantity}</span>
-                        <button onClick={() => updateQty(product.id, -1)} className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 active:scale-90 transition-all">
+                        <button onClick={() => updateQty(product.id, -1)} className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 active:scale-90 transition-all">
                           <Minus className="size-4" />
                         </button>
                       </div>
                     ) : (
-                      <button onClick={() => addToCart(product)} className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center active:scale-90 transition-all hover:bg-indigo-600 hover:text-white hover:border-indigo-600 shadow-sm">
+                      <button onClick={() => addToCart(product)} className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center active:scale-90 transition-all hover:bg-indigo-600 hover:text-white hover:border-indigo-600 shadow-sm">
                         <Plus className="size-5" />
                       </button>
                     )}
@@ -357,10 +362,10 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
       {showHelp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowHelp(false)} />
-          <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+          <div className="relative w-full max-w-sm bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-indigo-50/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
                   <HelpCircle className="size-5" />
                 </div>
                 <div>
@@ -397,7 +402,7 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
       {cartOpen && (
         <div className="fixed inset-0 z-50 flex flex-col bg-white">
           <div className="flex items-center gap-4 px-5 py-4 border-b border-slate-100">
-            <button onClick={() => setCartOpen(false)} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center">
+            <button onClick={() => setCartOpen(false)} className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center">
               <ChevronLeft className="size-5 text-slate-600" />
             </button>
             <div>
@@ -408,27 +413,49 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
 
           <div className="flex-1 overflow-y-auto p-5 space-y-3">
             {cart.map(c => (
-              <div key={c.product.id} className="flex items-center gap-4 bg-slate-50 rounded-2xl p-4 border border-slate-100">
+              <div key={c.product.id} className="flex items-center gap-4 bg-slate-50 rounded-lg p-4 border border-slate-100">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-black text-slate-800 truncate">{c.product.name}</p>
                   <p className="text-xs font-black text-indigo-600">Rp {c.product.price_sell.toLocaleString('id-ID')} × {c.quantity}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => updateQty(c.product.id, -1)} className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center active:scale-90">
+                  <button onClick={() => updateQty(c.product.id, -1)} className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center active:scale-90">
                     {c.quantity === 1 ? <Trash2 className="size-3.5 text-red-400" /> : <Minus className="size-3.5 text-slate-600" />}
                   </button>
                   <span className="text-sm font-black w-5 text-center">{c.quantity}</span>
-                  <button onClick={() => updateQty(c.product.id, 1)} className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center active:scale-90">
+                  <button onClick={() => updateQty(c.product.id, 1)} className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center active:scale-90">
                     <Plus className="size-3.5" />
                   </button>
                 </div>
               </div>
             ))}
 
-            <div className="bg-white border border-slate-100 rounded-2xl p-5 space-y-4">
+            <div className="bg-white border border-slate-100 rounded-lg p-5 space-y-4">
               <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-500">Info Pemesan</h3>
-              <input type="text" value={tableInput} onChange={e => setTableInput(e.target.value)} placeholder="Nomor Meja" className="w-full h-11 border-b border-slate-200 font-bold text-sm outline-none" />
-              <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Nama Anda" className="w-full h-11 border-b border-slate-200 font-bold text-sm outline-none" />
+              <div className="space-y-1">
+                <label htmlFor="table-number" className="sr-only">Nomor Meja</label>
+                <input 
+                  id="table-number"
+                  name="table-number"
+                  type="text" 
+                  value={tableInput} 
+                  onChange={e => setTableInput(e.target.value)} 
+                  placeholder="Nomor Meja" 
+                  className="w-full h-11 border-b border-slate-200 font-bold text-sm outline-none" 
+                />
+              </div>
+              <div className="space-y-1">
+                <label htmlFor="customer-name" className="sr-only">Nama Anda</label>
+                <input 
+                  id="customer-name"
+                  name="customer-name"
+                  type="text" 
+                  value={customerName} 
+                  onChange={e => setCustomerName(e.target.value)} 
+                  placeholder="Nama Anda" 
+                  className="w-full h-11 border-b border-slate-200 font-bold text-sm outline-none" 
+                />
+              </div>
             </div>
           </div>
 
@@ -437,7 +464,7 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
               <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Total Pesanan</span>
               <span className="text-xl font-black text-indigo-600">Rp {totalPrice.toLocaleString('id-ID')}</span>
             </div>
-            <button onClick={handleSubmitOrder} disabled={orderStatus === 'submitting' || (!tableInput.trim() && !customerName.trim())} className="w-full h-14 rounded-2xl bg-indigo-600 text-white font-black text-sm uppercase tracking-widest active:scale-[0.98]">
+            <button onClick={handleSubmitOrder} disabled={orderStatus === 'submitting' || (!tableInput.trim() && !customerName.trim())} className="w-full h-14 rounded-lg bg-indigo-600 text-white font-black text-sm uppercase tracking-widest active:scale-[0.98]">
               {orderStatus === 'submitting' ? 'Mengirim...' : 'Kirim Pesanan'}
             </button>
           </div>
@@ -446,3 +473,4 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
     </div>
   );
 }
+

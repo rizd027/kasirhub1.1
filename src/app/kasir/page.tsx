@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { MinimarketMode } from '@/features/cashier/MinimarketMode';
 import { RestoMode } from '@/features/cashier/RestoMode';
 import { Button } from '@/components/ui/button';
@@ -15,10 +16,13 @@ import { db, LocalProduct, LocalTransaction } from '@/db/dexie';
 import { useRouter } from 'next/navigation';
 import { Receipt } from '@/features/cashier/Receipt';
 import { generateReceiptPDF, shareReceipt, printReceipt } from '@/utils/receipt';
-import { PaymentOverlay } from '@/features/cashier/PaymentOverlay';
-import { CartOverlay } from '@/features/cashier/CartOverlay';
-import { SuccessOverlay } from '@/features/cashier/SuccessOverlay';
-import { InboxOverlay } from '@/features/cashier/InboxOverlay';
+import dynamic from 'next/dynamic';
+
+const PaymentOverlay = dynamic(() => import('@/features/cashier/PaymentOverlay').then(mod => mod.PaymentOverlay), { ssr: false });
+const CartOverlay = dynamic(() => import('@/features/cashier/CartOverlay').then(mod => mod.CartOverlay), { ssr: false });
+const SuccessOverlay = dynamic(() => import('@/features/cashier/SuccessOverlay').then(mod => mod.SuccessOverlay), { ssr: false });
+const InboxOverlay = dynamic(() => import('@/features/cashier/InboxOverlay').then(mod => mod.InboxOverlay), { ssr: false });
+
 import { HoldOrderBar } from '@/features/cashier/HoldOrderBar';
 import { PinDialog } from '@/components/ui/PinDialog';
 import { AlertConfirm } from '@/components/ui/alert-confirm';
@@ -26,6 +30,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useStaffStore } from '@/store/useStaffStore';
 import { supabase } from '@/services/supabase';
+import { clearAllLocalData } from '@/utils/auth';
 import { UserCircle2, ArrowRight } from 'lucide-react';
 import { SyncIndicator } from '@/components/layout/SyncIndicator';
 
@@ -41,8 +46,31 @@ export default function KasirPage() {
   const [pendingOrderCount, setPendingOrderCount] = useState(0);
   const [kasirUserId, setKasirUserId] = useState<string | null>(null);
   const [lastTx, setLastTx] = useState<LocalTransaction | null>(null);
-  const [products, setProducts] = useState<LocalProduct[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  
+  // Reactive data fetching with useLiveQuery
+  const rawProducts = useLiveQuery(() => db.products.toArray()) || [];
+  const rawCategories = useLiveQuery(() => db.categories.toArray()) || [];
+  const rawBundles = useLiveQuery(() => db.bundling.toArray()) || [];
+
+  const products = useMemo(() => {
+    const activeBundles = rawBundles.filter(bundle => bundle.is_active);
+    const bundlesAsProducts = activeBundles.map(bundle => ({
+      id: `bundle-${bundle.id}`,
+      name: bundle.name,
+      price_sell: bundle.price_sell,
+      price_cost: bundle.products.reduce((sum, item) => sum + (item.hpp * item.qty), 0),
+      category_id: 'bundling',
+      image_url: '',
+      is_bundle: true,
+      bundle_items: bundle.products
+    }));
+    return [...rawProducts.filter(prod => !prod.deleted_at), ...bundlesAsProducts as any];
+  }, [rawProducts, rawBundles]);
+
+  const categories = useMemo(() => {
+    return [...rawCategories, { id: 'bundling', name: 'Bundling Cerdas' }];
+  }, [rawCategories]);
+
   const { items, getTotal, getSubtotal, getOrderDiscountAmount, clearCart, customerName, setCustomerName } = useCartStore();
   const { checkout } = useCheckout();
   const [showVoidPin, setShowVoidPin] = useState(false);
@@ -103,14 +131,7 @@ export default function KasirPage() {
   }, [session, isCheckedIn, router]);
 
   useEffect(() => {
-    router.prefetch('/settings');
-    Promise.all([
-      db.products.toArray(),
-      db.categories.toArray()
-    ]).then(([p, c]) => {
-      setProducts(p.filter(prod => !prod.deleted_at));
-      setCategories(c);
-    });
+    router.prefetch('/pengaturan');
   }, []);
 
   // Keyboard Shortcuts
@@ -200,87 +221,95 @@ export default function KasirPage() {
   };
 
   return (
-    <div className={cn("flex flex-col bg-background select-none overflow-hidden", isFullscreen ? "h-screen" : "h-[calc(100dvh-4rem)] lg:h-screen")}>
+    <div data-kasir-root className={cn("flex flex-col bg-background select-none overflow-hidden", isFullscreen ? "h-screen" : "h-[calc(100dvh-4rem)] lg:h-screen")}>
       {/* Header */}
       {!isFullscreen && (
-        <header className="flex items-center justify-between px-4 h-14 border-b bg-white shrink-0 no-print sticky top-0 z-50">
-        <div className="flex items-center gap-4">
+        <header className="flex items-center justify-between px-3 h-14 border-b bg-white shrink-0 no-print sticky top-0 z-50">
           {/* Session Profile */}
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-3 hover:bg-slate-50 p-1.5 px-2 rounded-xl transition-all border border-transparent hover:border-slate-100 group outline-none">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black border border-primary/10 text-xs shadow-sm group-hover:scale-105 transition-transform">
+            <DropdownMenuTrigger className="flex items-center gap-2 hover:bg-slate-50 p-1.5 rounded-lg transition-all border border-transparent hover:border-slate-100 group outline-none">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black border border-primary/10 text-xs shadow-sm group-hover:scale-105 transition-transform shrink-0">
                 {session ? session.name.charAt(0) : <UserCircle2 className="h-4 w-4" />}
               </div>
               <div className="flex flex-col items-start">
                 <span className="text-[8px] font-black uppercase text-primary/60 tracking-widest leading-none mb-0.5">
                   {session?.role === 'admin' ? 'Bos Toko' : 'Kasir Aktif'}
                 </span>
-                <span className="text-xs font-black text-slate-800 leading-tight">
+                <span className="text-xs font-black text-slate-800 leading-tight max-w-[100px] truncate">
                   {session?.name || 'User'}
                 </span>
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48 rounded-2xl p-1 shadow-2xl border-slate-100">
+            <DropdownMenuContent align="start" className="w-48 rounded-lg p-1 shadow-2xl border-slate-100">
               <div className="px-3 py-2 border-b border-slate-50 mb-1">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sesi Aktif</p>
                 <p className="text-sm font-bold text-slate-700">{session?.name}</p>
               </div>
-              <DropdownMenuItem onClick={() => router.push('/settings')} className="rounded-xl h-10">
+              <DropdownMenuItem onClick={() => router.push('/pengaturan')} className="rounded-lg h-10">
                 <Settings className="size-4 mr-2" /> Pengaturan
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={() => setShowLogoutConfirm(true)} 
-                className="rounded-xl h-10 text-red-600 focus:text-red-600 focus:bg-red-50"
+                className="rounded-lg h-10 text-red-600 focus:text-red-600 focus:bg-red-50"
               >
                 <Lock className="size-4 mr-2" /> Keluar Aplikasi
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-        <div className="flex items-center gap-2">
-          <SyncIndicator />
 
-          <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-100">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setViewMode('minimarket')}
-              className={cn(
-                "h-8 w-8 rounded-lg transition-all",
-                viewMode === 'minimarket' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400"
-              )}
-              title="Mode Minimarket"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setViewMode('resto')}
-              className={cn(
-                "h-8 w-8 rounded-lg transition-all",
-                viewMode === 'resto' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400"
-              )}
-              title="Mode Resto"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <div className="w-px h-4 bg-slate-200 mx-0.5" />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleFullscreen}
-              className={cn(
-                "h-8 w-8 rounded-lg transition-all",
-                isFullscreen ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400"
-              )}
-              title="Layar Penuh"
-            >
-              <Maximize2 className="h-4 w-4" />
-            </Button>
+          {/* Right Controls */}
+          <div className="flex items-center gap-1.5">
+            <SyncIndicator />
+            <div className="flex items-center gap-0.5 bg-slate-50 p-1 rounded-lg border border-slate-100">
+              <DropdownMenu>
+                <DropdownMenuTrigger 
+                  className="h-8 w-8 rounded-lg bg-white text-indigo-600 shadow-sm hover:bg-slate-50 transition-all border border-slate-100 flex items-center justify-center"
+                  title="Pilih Mode Kasir"
+                >
+                  {viewMode === 'minimarket' ? (
+                    <List className="h-4 w-4" />
+                  ) : (
+                    <LayoutGrid className="h-4 w-4" />
+                  )}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44 rounded-xl p-1 shadow-2xl border-slate-100">
+                  <div className="px-3 py-2 border-b border-slate-50 mb-1">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Pilih Mode Tampilan</p>
+                  </div>
+                  <DropdownMenuItem 
+                    onClick={() => setViewMode('minimarket')}
+                    className={cn("rounded-lg h-10 gap-3", viewMode === 'minimarket' && "bg-indigo-50 text-indigo-600")}
+                  >
+                    <List className="size-4" /> 
+                    <span className="font-bold text-xs uppercase tracking-tight">Minimarket</span>
+                    {viewMode === 'minimarket' && <Check className="size-3 ml-auto" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setViewMode('resto')}
+                    className={cn("rounded-lg h-10 gap-3", viewMode === 'resto' && "bg-indigo-50 text-indigo-600")}
+                  >
+                    <LayoutGrid className="size-4" /> 
+                    <span className="font-bold text-xs uppercase tracking-tight">Resto & Cafe</span>
+                    {viewMode === 'resto' && <Check className="size-3 ml-auto" />}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <div className="w-px h-4 bg-slate-200 mx-0.5" />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleFullscreen}
+                className={cn(
+                  "h-8 w-8 rounded-lg transition-all",
+                  isFullscreen ? "bg-white text-indigo-600 shadow-sm border border-slate-100" : "text-slate-400 hover:bg-slate-100"
+                )}
+                title="Layar Penuh"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
       )}
 
       {/* Main Content Area - Responsive Split Layout */}
@@ -314,7 +343,7 @@ export default function KasirPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setInboxOpen(true)}
-                className="relative inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50 transition-all"
+                className="relative inline-flex size-10 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50 transition-all"
                 title="Inbox Pesanan"
               >
                 <Inbox className="size-4" />
@@ -330,7 +359,7 @@ export default function KasirPage() {
               <Button 
                 variant="outline" 
                 size="icon"
-                className="size-10 rounded-xl border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-100 hover:bg-red-50 transition-all"
+                className="size-10 rounded-lg border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-100 hover:bg-red-50 transition-all"
                 onClick={() => {
                   const savedPin = localStorage.getItem('kasirhub_app_password');
                   if (savedPin) setShowVoidPin(true);
@@ -393,7 +422,7 @@ export default function KasirPage() {
             </div>
 
             <Button 
-              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm rounded-xl shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm rounded-lg shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
               disabled={items.length === 0}
               onClick={() => setPayDialogOpen(true)}
             >
@@ -405,37 +434,45 @@ export default function KasirPage() {
       </main>
 
       {/* Footer / Mobile Summary Bar - Hidden on lg+ Desktop Sidebar */}
+      {/* Mobile Summary Bar - Fixed at bottom, above nav bar */}
       <div 
         data-mobile-cart-footer
         className={cn(
-          "lg:hidden fixed left-0 right-0 p-4 border-t bg-white no-print shadow-[0_-8px_15px_rgba(0,0,0,0.05)] transition-all z-40",
-          isFullscreen ? "bottom-0 rounded-t-3xl" : "bottom-16"
+          "lg:hidden fixed left-0 right-0 border-t bg-white/95 backdrop-blur-sm no-print shadow-[0_-6px_20px_rgba(0,0,0,0.07)] z-40",
+          isFullscreen ? "bottom-0 pb-safe" : "bottom-16"
         )}
       >
-        <div className="flex items-end justify-between mb-4">
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{totalQty} Item Tersimpan</span>
+        {/* Total Row */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-2">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+              {totalQty} Item Tersimpan
+            </span>
             {getOrderDiscountAmount() > 0 && (
-              <div className="flex items-center gap-1 text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 w-fit">
+              <div className="flex items-center gap-1 text-[10px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-100 w-fit">
                 <Tag className="h-2.5 w-2.5" />
-                Diskon: Rp {getOrderDiscountAmount().toLocaleString('id-ID')}
+                -Rp {getOrderDiscountAmount().toLocaleString('id-ID')}
               </div>
             )}
           </div>
           <div className="flex flex-col items-end">
             {getOrderDiscountAmount() > 0 && (
-              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest line-through decoration-gray-300 mb-0.5">
+              <span className="text-[10px] font-bold text-slate-300 line-through leading-none mb-0.5">
                 Rp {getSubtotal().toLocaleString('id-ID')}
               </span>
             )}
-            <span className="text-xl font-black text-primary leading-none">Rp {getTotal().toLocaleString('id-ID')}</span>
+            <span className="text-lg font-black text-primary leading-none tracking-tight">
+              Rp {getTotal().toLocaleString('id-ID')}
+            </span>
           </div>
         </div>
-        
-        <div className="flex gap-2">
+
+        {/* Action Buttons Row */}
+        <div className="flex items-center gap-2 px-4 pb-3">
+          {/* Inbox */}
           <button
             onClick={() => setInboxOpen(true)}
-            className="relative inline-flex size-10 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50 transition-all"
+            className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all active:scale-95"
             title="Inbox Pesanan"
           >
             <Inbox className="h-4 w-4" />
@@ -448,21 +485,24 @@ export default function KasirPage() {
               </span>
             )}
           </button>
-          <Button 
-            variant="outline" 
-            className="w-10 h-10 flex-shrink-0 text-gray-400 rounded-lg border-gray-200" 
+
+          {/* Void / Clear */}
+          <button
             onClick={() => {
               const savedPin = localStorage.getItem('kasirhub_app_password');
               if (savedPin) setShowVoidPin(true);
               else setShowClearConfirm(true);
-            }} 
+            }}
             disabled={items.length === 0}
             title="Reset Keranjang"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Trash2 className="h-4 w-4" />
-          </Button>
+          </button>
+
+          {/* Pay Button */}
           <Button 
-            className="flex-1 h-10 bg-primary hover:bg-primary/90 text-white font-black text-sm shadow-lg shadow-primary/10 rounded-lg transition-all active:scale-95" 
+            className="flex-1 h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm shadow-lg shadow-indigo-200 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2" 
             disabled={items.length === 0}
             onClick={() => {
               if (viewMode === 'resto') {
@@ -472,9 +512,8 @@ export default function KasirPage() {
               }
             }}
           >
-            <ShoppingCart className="h-3.5 w-3.5 mr-2" />
+            <ShoppingCart className="h-4 w-4" />
             BAYAR
-            <span className="ml-2 opacity-50 text-[8px] font-medium hidden xs:inline">[Ctrl+Enter]</span>
           </Button>
         </div>
       </div>
@@ -542,10 +581,7 @@ export default function KasirPage() {
         cancelText="Batal"
         variant="destructive"
         onConfirm={async () => {
-          await supabase.auth.signOut();
-          logout();
-          localStorage.clear();
-          sessionStorage.clear();
+          await clearAllLocalData();
           router.replace('/login');
         }}
       />
@@ -565,3 +601,4 @@ export default function KasirPage() {
     </div>
   );
 }
+

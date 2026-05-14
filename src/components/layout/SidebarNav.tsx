@@ -10,19 +10,22 @@ import {
   ChevronLeft, 
   ChevronRight,
   LogOut,
-  UserCircle2
+  UserCircle2,
+  Package
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLayoutStore } from '@/store/useLayoutStore';
 import { useStaffStore } from '@/store/useStaffStore';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/services/supabase';
+import { clearAllLocalData } from '@/utils/auth';
 
 const navItems = [
   { label: 'Kasir', href: '/kasir', icon: ReceiptText },
+  { label: 'Produk', href: '/produk', icon: Package },
   { label: 'Riwayat', href: '/riwayat', icon: History },
   { label: 'Laporan', href: '/laporan', icon: BarChart3 },
-  { label: 'Setting', href: '/settings', icon: Settings },
+  { label: 'Pengaturan', href: '/pengaturan', icon: Settings },
 ];
 
 export function SidebarNav() {
@@ -86,7 +89,7 @@ export function SidebarNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-4 h-12 rounded-2xl transition-all duration-300 group relative",
+                "flex items-center gap-4 h-12 rounded-lg transition-all duration-300 group relative",
                 isActive 
                   ? "bg-white text-indigo-600 shadow-sm border border-slate-200/50" 
                   : "text-slate-500 hover:text-slate-900 hover:bg-white/50",
@@ -111,8 +114,8 @@ export function SidebarNav() {
       {/* Bottom Section: Profile & Collapse */}
       <div className="p-4 border-t border-slate-200/40 bg-white/20 space-y-2">
         {!isSidebarCollapsed && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 flex items-center gap-3 mb-2 border border-slate-200/50 shadow-sm">
-             <div className="size-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-black text-sm shrink-0">
+          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 flex items-center gap-3 mb-2 border border-slate-200/50 shadow-sm">
+             <div className="size-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-black text-sm shrink-0">
                {session.name.charAt(0)}
              </div>
              <div className="flex-1 min-w-0">
@@ -129,7 +132,7 @@ export function SidebarNav() {
             variant="ghost"
             onClick={toggleSidebar}
             className={cn(
-              "h-11 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-white transition-all border border-transparent hover:border-slate-200/50",
+              "h-11 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-white transition-all border border-transparent hover:border-slate-200/50",
               isSidebarCollapsed ? "justify-center w-full" : "justify-start px-4 w-full"
             )}
           >
@@ -148,13 +151,11 @@ export function SidebarNav() {
                 router.push('/absensi');
                 return;
               }
-              await supabase.auth.signOut();
-              logout();
-              localStorage.removeItem('supabase.auth.token');
+              await clearAllLocalData();
               router.replace('/login');
             }}
             className={cn(
-              "h-11 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50/50 transition-all border border-transparent hover:border-red-100/50",
+              "h-11 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50/50 transition-all border border-transparent hover:border-red-100/50",
               isSidebarCollapsed ? "justify-center w-full" : "justify-start px-4 w-full"
             )}
           >
@@ -170,3 +171,4 @@ export function SidebarNav() {
     </aside>
   );
 }
+

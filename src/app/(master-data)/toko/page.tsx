@@ -198,6 +198,7 @@ export default function TokoSayaPage() {
   return (
     <SettingsLayout
       title="Toko Saya"
+      backUrl="/pengaturan"
       rightAction={
         <Button
           onClick={handleSave}
@@ -238,14 +239,22 @@ export default function TokoSayaPage() {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] font-black text-slate-700 uppercase tracking-widest">URL Menu Digital</Label>
-                    <div className="relative">
+                    <div className="relative group/slug">
                       <span className="absolute left-0 top-1/2 -translate-y-1/2 text-[10px] text-slate-300 font-medium">kasirhub.com/menu/</span>
                       <Input
-                        className="h-10 pl-[95px] pr-0 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200 lowercase"
+                        className="h-10 pl-[95px] pr-8 bg-transparent border-0 border-b border-slate-100 rounded-none focus-visible:ring-0 focus-visible:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-200 lowercase"
                         placeholder="nama-toko-anda"
                         value={form.slug}
                         onChange={e => setForm({ ...form, slug: e.target.value.replace(/[^a-z0-9-]/g, '-') })}
                       />
+                      {form.slug && (
+                        <button 
+                          onClick={() => setForm({ ...form, slug: '' })}
+                          className="absolute right-0 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300 hover:text-red-500 opacity-0 group-hover/slug:opacity-100 transition-all uppercase tracking-widest"
+                        >
+                          Hapus
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-1 md:col-span-2">
@@ -355,12 +364,12 @@ export default function TokoSayaPage() {
                 )}
               </div>
               <div className="relative group">
-                <label className="flex flex-col items-center justify-center h-56 w-full cursor-pointer rounded-[2rem] border-2 border-dashed border-slate-100 bg-slate-50/50 transition-all hover:bg-white hover:border-indigo-200 overflow-hidden shadow-sm">
+                <label className="flex flex-col items-center justify-center h-56 w-full cursor-pointer rounded-lg border-2 border-dashed border-slate-100 bg-slate-50/50 transition-all hover:bg-white hover:border-indigo-200 overflow-hidden shadow-sm">
                   {form.logo_url ? (
                     <div className="relative h-full w-full flex items-center justify-center p-8">
                       <img src={form.logo_url} alt="Logo preview" className="max-h-full max-w-full object-contain drop-shadow-xl" />
                       <div className="absolute inset-0 bg-indigo-600/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
-                        <span className="text-white text-[10px] font-black px-5 py-2 bg-indigo-600 rounded-xl shadow-lg uppercase tracking-widest">Ganti Logo</span>
+                        <span className="text-white text-[10px] font-black px-5 py-2 bg-indigo-600 rounded-lg shadow-lg uppercase tracking-widest">Ganti Logo</span>
                       </div>
                     </div>
                   ) : (
@@ -382,7 +391,7 @@ export default function TokoSayaPage() {
                   <div className="size-1.5 rounded-full bg-indigo-600" />
                   Tanda Tangan
                 </h3>
-                <div className="flex p-1 bg-slate-100/50 rounded-xl border border-slate-200/60">
+                <div className="flex p-1 bg-slate-100/50 rounded-lg border border-slate-200/60">
                   <button
                     type="button"
                     onClick={() => setSignatureMode('draw')}
@@ -408,12 +417,12 @@ export default function TokoSayaPage() {
 
               <div className="h-56 flex flex-col">
                 {signatureMode === 'upload' ? (
-                  <label className="flex flex-col items-center justify-center flex-1 cursor-pointer rounded-[2rem] border-2 border-dashed border-slate-100 bg-slate-50/50 transition-all hover:bg-white hover:border-indigo-200 overflow-hidden shadow-sm">
+                  <label className="flex flex-col items-center justify-center flex-1 cursor-pointer rounded-lg border-2 border-dashed border-slate-100 bg-slate-50/50 transition-all hover:bg-white hover:border-indigo-200 overflow-hidden shadow-sm">
                     {form.signature_url && signatureMode === 'upload' ? (
                       <div className="relative h-full w-full flex items-center justify-center p-8">
                         <img src={form.signature_url} alt="Signature preview" className="max-h-full max-w-full object-contain grayscale opacity-80" />
                         <div className="absolute inset-0 bg-indigo-600/10 opacity-0 hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
-                          <span className="text-white text-[10px] font-black px-5 py-2 bg-indigo-600 rounded-xl shadow-lg uppercase tracking-widest">Ganti File</span>
+                          <span className="text-white text-[10px] font-black px-5 py-2 bg-indigo-600 rounded-lg shadow-lg uppercase tracking-widest">Ganti File</span>
                         </div>
                       </div>
                     ) : (
@@ -428,7 +437,7 @@ export default function TokoSayaPage() {
                   </label>
                 ) : (
                   <div className="flex-1 flex flex-col gap-4">
-                    <div className="flex-1 relative rounded-[2rem] border border-slate-100 bg-white overflow-hidden shadow-inner ring-1 ring-black/5">
+                    <div className="flex-1 relative rounded-lg border border-slate-100 bg-white overflow-hidden shadow-inner ring-1 ring-black/5">
                       <canvas
                         ref={signatureCanvasRef}
                         width={600}
@@ -454,7 +463,7 @@ export default function TokoSayaPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-10 px-5 bg-white border-slate-200 text-[10px] font-black tracking-[0.2em] shadow-xl shadow-black/5 rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all uppercase"
+                            className="h-10 px-5 bg-white border-slate-200 text-[10px] font-black tracking-[0.2em] shadow-xl shadow-black/5 rounded-lg hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all uppercase"
                             onClick={() => setIsCanvasLocked(false)}
                           >
                             Edit Signature
@@ -480,3 +489,4 @@ export default function TokoSayaPage() {
     </SettingsLayout>
   );
 }
+

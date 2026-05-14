@@ -292,7 +292,7 @@ export default function BarcodePage() {
         <div className="flex items-center gap-2 md:gap-4">
           <div className="hidden md:flex items-center gap-4">
             <Select value={labelSize} onValueChange={(v) => setLabelSize(v as LabelSizeKey)}>
-              <SelectTrigger className="w-[140px] h-9 text-xs bg-white rounded-xl">
+              <SelectTrigger className="w-[140px] h-9 text-xs bg-white rounded-lg">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -302,7 +302,7 @@ export default function BarcodePage() {
               </SelectContent>
             </Select>
             <Select value={barcodeType} onValueChange={(v) => v && setBarcodeType(v)}>
-              <SelectTrigger className="w-[120px] h-9 text-xs bg-white rounded-xl">
+              <SelectTrigger className="w-[120px] h-9 text-xs bg-white rounded-lg">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -312,7 +312,7 @@ export default function BarcodePage() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={handlePrint} className="h-9 px-4 md:px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg flex items-center gap-2">
+          <Button onClick={handlePrint} className="h-9 px-4 md:px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-lg flex items-center gap-2">
             <Printer className="size-4" /> <span className="font-bold text-xs">CETAK</span>
           </Button>
         </div>
@@ -357,7 +357,7 @@ export default function BarcodePage() {
         <div className="flex gap-2">
           <div className="flex-1">
             <Select value={labelSize} onValueChange={(v) => setLabelSize(v as LabelSizeKey)}>
-              <SelectTrigger className="w-full h-10 text-xs bg-slate-50 border-none rounded-xl">
+              <SelectTrigger className="w-full h-10 text-xs bg-slate-50 border-none rounded-lg">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -369,7 +369,7 @@ export default function BarcodePage() {
           </div>
           <div className="flex-1">
             <Select value={barcodeType} onValueChange={(v) => v && setBarcodeType(v)}>
-              <SelectTrigger className="w-full h-10 text-xs bg-slate-50 border-none rounded-xl">
+              <SelectTrigger className="w-full h-10 text-xs bg-slate-50 border-none rounded-lg">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -384,3 +384,4 @@ export default function BarcodePage() {
     </SettingsLayout>
   );
 }
+

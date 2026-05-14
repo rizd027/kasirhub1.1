@@ -11,7 +11,7 @@ const navItems = [
   { label: 'Absen', href: '/absensi', icon: Fingerprint },
   { label: 'Riwayat', href: '/riwayat', icon: History },
   { label: 'Laporan', href: '/laporan', icon: BarChart3 },
-  { label: 'Setting', href: '/settings', icon: Settings },
+  { label: 'Pengaturan', href: '/pengaturan', icon: Settings },
 ];
 
 import { useLayoutStore } from '@/store/useLayoutStore';

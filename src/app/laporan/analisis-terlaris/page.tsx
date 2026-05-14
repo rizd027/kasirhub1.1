@@ -83,7 +83,7 @@ export default function AnalisisTerlarisPage() {
   const headerActions = (
     <div className="flex items-center gap-2">
       <Select value={filterDate} onValueChange={(v: any) => setFilterDate(v)}>
-        <SelectTrigger className="w-[130px] h-9 rounded-xl bg-slate-50 border-2 border-slate-300 text-[9px] font-black uppercase tracking-widest focus:ring-0 shadow-sm flex items-center px-3">
+        <SelectTrigger className="w-[130px] h-9 rounded-lg bg-slate-50 border-2 border-slate-300 text-[9px] font-black uppercase tracking-widest focus:ring-0 shadow-sm flex items-center px-3">
           <div className="flex items-center gap-2 truncate">
             {filterDate === 'today' && <Clock className="h-3 w-3 text-indigo-600" />}
             {filterDate === 'this_month' && <Calendar className="h-3 w-3 text-indigo-600" />}
@@ -93,7 +93,7 @@ export default function AnalisisTerlarisPage() {
             </span>
           </div>
         </SelectTrigger>
-        <SelectContent align="end" className="w-[160px] rounded-xl border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
+        <SelectContent align="end" className="w-[160px] rounded-lg border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
           <SelectItem value="today" className="text-[10px] font-black uppercase tracking-widest py-2.5 px-3 focus:bg-indigo-50 focus:text-indigo-700 rounded-lg cursor-pointer outline-none">
             <div className="flex items-center gap-3"><Clock className="h-3.5 w-3.5 opacity-70" /><span>Hari Ini</span></div>
           </SelectItem>
@@ -107,10 +107,10 @@ export default function AnalisisTerlarisPage() {
       </Select>
 
       <DropdownMenu>
-        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline", size: "icon" }), "h-9 w-9 rounded-xl border-2 border-slate-300 bg-white text-slate-900 shadow-sm")}>
+        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline", size: "icon" }), "h-9 w-9 rounded-lg border-2 border-slate-300 bg-white text-slate-900 shadow-sm")}>
           <Download className="h-4 w-4" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48 rounded-xl border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
+        <DropdownMenuContent align="end" className="w-48 rounded-lg border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
           <DropdownMenuItem onClick={exportReportPDF} className="flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer focus:bg-red-50 focus:text-red-700 outline-none">
             <FileText className="h-4 w-4 text-red-500" /><span className="text-[10px] font-black uppercase tracking-wider">Ekspor PDF</span>
           </DropdownMenuItem>
@@ -139,11 +139,11 @@ export default function AnalisisTerlarisPage() {
               {data.products[0]?.name || 'Belum Ada Data'}
             </div>
             <div className="flex flex-wrap gap-2">
-              <div className="flex flex-col px-3 py-2 bg-white rounded-xl border-2 border-amber-200 shadow-sm">
+              <div className="flex flex-col px-3 py-2 bg-white rounded-lg border-2 border-amber-200 shadow-sm">
                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Terjual</span>
                  <span className="text-sm font-black text-amber-700 uppercase">{data.products[0]?.count || 0} Unit</span>
               </div>
-              <div className="flex flex-col px-3 py-2 bg-white rounded-xl border-2 border-emerald-200 shadow-sm">
+              <div className="flex flex-col px-3 py-2 bg-white rounded-lg border-2 border-emerald-200 shadow-sm">
                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Omzet</span>
                  <span className="text-sm font-black text-emerald-700 uppercase">Rp {(data.products[0]?.revenue || 0).toLocaleString('id-ID')}</span>
               </div>
@@ -180,7 +180,7 @@ export default function AnalisisTerlarisPage() {
                 {data.products.map((item, idx) => (
                   <div key={item.name} className="px-4 py-5 hover:bg-slate-50 transition-colors flex items-center gap-5">
                     <div className={cn(
-                      "h-11 w-11 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 border-2 shadow-sm",
+                      "h-11 w-11 rounded-lg flex items-center justify-center font-black text-xs shrink-0 border-2 shadow-sm",
                       idx === 0 ? "bg-amber-50 text-amber-600 border-amber-200" : "bg-slate-50 text-slate-400 border-slate-200"
                     )}>
                       {idx === 0 ? <Trophy className="h-5 w-5" /> : idx + 1}
@@ -212,7 +212,7 @@ export default function AnalisisTerlarisPage() {
                 {[...data.products].sort((a, b) => b.revenue - a.revenue).map((item, idx) => (
                   <div key={item.name} className="px-4 py-5 hover:bg-slate-50 transition-colors flex items-center gap-5">
                     <div className={cn(
-                      "h-11 w-11 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 border-2 shadow-sm",
+                      "h-11 w-11 rounded-lg flex items-center justify-center font-black text-xs shrink-0 border-2 shadow-sm",
                       idx === 0 ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-slate-50 text-slate-400 border-slate-200"
                     )}>
                       {idx === 0 ? <Trophy className="h-5 w-5" /> : idx + 1}
@@ -234,7 +234,7 @@ export default function AnalisisTerlarisPage() {
 
         {/* Insight Box - High Contrast */}
         <div className="p-6">
-          <div className="p-6 bg-slate-50 rounded-3xl border-2 border-slate-300 flex items-start gap-4 shadow-sm">
+          <div className="p-6 bg-slate-50 rounded-lg border-2 border-slate-300 flex items-start gap-4 shadow-sm">
             <Info className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
             <p className="text-[10px] font-black text-slate-700 uppercase leading-relaxed tracking-wide">
               Data ranking membantu Anda menentukan <span className="text-slate-900 underline decoration-indigo-400 decoration-2 underline-offset-4">Produk Champion</span> untuk strategi promosi yang lebih efisien.
@@ -245,3 +245,4 @@ export default function AnalisisTerlarisPage() {
     </ReportLayout>
   );
 }
+

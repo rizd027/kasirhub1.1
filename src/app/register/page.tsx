@@ -51,15 +51,14 @@ export default function RegisterPage() {
       if (error) throw error;
 
       if (data?.user) {
-        localStorage.setItem('kasirhub_pending_admin_id', data.user.id);
-        await supabase
-          .from('profiles')
-          .upsert({ id: data.user.id, role: 'admin', full_name: fullName })
-          .eq('id', data.user.id);
+        if (data.session) {
+          router.push('/kasir');
+          toast.success(`Selamat datang, ${fullName}! Akun Anda sudah siap.`);
+        } else {
+          toast.success('Pendaftaran berhasil! Silakan cek email Anda untuk verifikasi.');
+          router.push('/login');
+        }
       }
-
-      toast.success('Pendaftaran berhasil! Silakan cek kotak masuk email Anda.');
-      router.push('/login');
     } catch (err: any) {
       toast.error(err.message || 'Gagal mendaftar');
     } finally {
@@ -78,7 +77,7 @@ export default function RegisterPage() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-10 landscape:mb-6">
-            <div className="size-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-2xl font-black shadow-2xl shadow-indigo-500/20">
+            <div className="size-12 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-2xl font-black shadow-2xl shadow-indigo-500/20">
               K
             </div>
             <div>
@@ -128,7 +127,7 @@ export default function RegisterPage() {
 
         {/* Mobile Logo */}
         <div className="lg:hidden flex flex-col items-center gap-3 mb-6 pt-4">
-          <div className="size-16 rounded-[2rem] bg-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-2xl shadow-indigo-200 active:scale-95 transition-transform">
+          <div className="size-16 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-2xl shadow-indigo-200 active:scale-95 transition-transform">
             K
           </div>
           <div className="text-center">
@@ -152,6 +151,7 @@ export default function RegisterPage() {
                 </div>
                 <Input 
                   required
+                  autoComplete="name"
                   placeholder="Nama Lengkap"
                   className="h-14 pl-8 bg-transparent border-0 border-b-2 border-slate-100 rounded-none text-base font-bold focus-visible:ring-0 focus-visible:border-indigo-600 transition-all placeholder:text-slate-300"
                   value={fullName}
@@ -169,6 +169,7 @@ export default function RegisterPage() {
                 <Input 
                   required
                   type="email"
+                  autoComplete="email"
                   placeholder="email@bisnis.com"
                   className="h-14 pl-8 bg-transparent border-0 border-b-2 border-slate-100 rounded-none text-base font-bold focus-visible:ring-0 focus-visible:border-indigo-600 transition-all placeholder:text-slate-300"
                   value={email}
@@ -177,7 +178,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-0.5">Kata Sandi</Label>
                 <div className="relative group">
@@ -230,7 +231,7 @@ export default function RegisterPage() {
             <Button 
               type="submit"
               disabled={loading}
-              className="w-full h-16 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl shadow-indigo-200 group mt-4 overflow-hidden active:scale-[0.98] transition-all"
+              className="w-full h-16 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-sm uppercase tracking-widest shadow-2xl shadow-indigo-200 group mt-4 overflow-hidden active:scale-[0.98] transition-all"
             >
               {loading ? (
                 <Loader2 className="size-6 animate-spin" />
@@ -270,3 +271,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+

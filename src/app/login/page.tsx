@@ -97,7 +97,7 @@ export default function LoginPage() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-10 landscape:mb-6">
-            <div className="size-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-2xl font-black shadow-2xl shadow-indigo-500/20">
+            <div className="size-12 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-2xl font-black shadow-2xl shadow-indigo-500/20">
               K
             </div>
             <div>
@@ -147,7 +147,7 @@ export default function LoginPage() {
 
         {/* Mobile Logo */}
         <div className="lg:hidden flex flex-col items-center gap-3 mb-10 pt-4">
-          <div className="size-16 rounded-[2rem] bg-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-2xl shadow-indigo-200 active:scale-95 transition-transform">
+          <div className="size-16 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-2xl shadow-indigo-200 active:scale-95 transition-transform">
             K
           </div>
           <div className="text-center">
@@ -163,11 +163,11 @@ export default function LoginPage() {
           </div>
 
           {/* Role Switcher */}
-          <div className="flex p-1.5 bg-slate-50/80 rounded-2xl mb-8 border border-slate-100 shadow-sm">
+          <div className="flex p-1.5 bg-slate-50/80 rounded-lg mb-8 border border-slate-100 shadow-sm">
             <button 
               onClick={() => setRole('admin')}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                "flex-1 flex items-center justify-center gap-2 py-3.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
                 role === 'admin' ? "bg-white text-indigo-600 shadow-md border border-slate-100" : "text-slate-400 hover:text-slate-600"
               )}
             >
@@ -177,7 +177,7 @@ export default function LoginPage() {
             <button 
               onClick={() => setRole('staff')}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                "flex-1 flex items-center justify-center gap-2 py-3.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
                 role === 'staff' ? "bg-white text-indigo-600 shadow-md border border-slate-100" : "text-slate-400 hover:text-slate-600"
               )}
             >
@@ -188,7 +188,10 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-10">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-0.5">
+              <Label 
+                htmlFor="username"
+                className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-0.5"
+              >
                 {role === 'admin' ? 'Email Address' : 'Username Karyawan'}
               </Label>
               <div className="relative group">
@@ -197,6 +200,8 @@ export default function LoginPage() {
                 </div>
                 <Input 
                   required
+                  id="username"
+                  name="username"
                   type={role === 'admin' ? 'email' : 'text'}
                   placeholder={role === 'admin' ? 'nama@bisnis.com' : 'username'}
                   className="h-14 pl-8 bg-transparent border-0 border-b-2 border-slate-100 rounded-none text-base font-bold focus-visible:ring-0 focus-visible:border-indigo-600 transition-all placeholder:text-slate-300"
@@ -208,7 +213,7 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between px-0">
-                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kata Sandi</Label>
+                <Label htmlFor="password" className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kata Sandi</Label>
                 {role === 'admin' && (
                   <Link href="#" className="text-[10px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest">Lupa?</Link>
                 )}
@@ -219,6 +224,8 @@ export default function LoginPage() {
                 </div>
                 <Input 
                   required
+                  id="password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   className="h-14 pl-8 pr-10 bg-transparent border-0 border-b-2 border-slate-100 rounded-none text-base font-bold focus-visible:ring-0 focus-visible:border-indigo-600 transition-all placeholder:text-slate-300"
@@ -238,7 +245,7 @@ export default function LoginPage() {
             <Button 
               type="submit"
               disabled={loading}
-              className="w-full h-16 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl shadow-indigo-200 group mt-4 overflow-hidden active:scale-[0.98] transition-all"
+              className="w-full h-16 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-sm uppercase tracking-widest shadow-2xl shadow-indigo-200 group mt-4 overflow-hidden active:scale-[0.98] transition-all"
             >
               {loading ? (
                 <Loader2 className="size-6 animate-spin" />
@@ -269,3 +276,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

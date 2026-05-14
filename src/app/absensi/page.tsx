@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/services/supabase';
+import { clearAllLocalData } from '@/utils/auth';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { 
@@ -172,6 +173,9 @@ export default function AbsensiPage() {
         longitude,
         is_verified: 0,
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        deleted_at: null,
+        sync_status: 'pending',
         synced: 0
       };
 
@@ -222,9 +226,7 @@ export default function AbsensiPage() {
     try {
       // Jika shift sudah selesai (absen masuk & pulang), logout langsung tanpa absensi lagi
       setCheckedIn(false);
-      await supabase.auth.signOut();
-      logout();
-      localStorage.removeItem('supabase.auth.token');
+      await clearAllLocalData();
       router.replace('/login');
       toast.success('Berhasil keluar', { id: toastId });
     } catch (err) {
@@ -277,10 +279,10 @@ export default function AbsensiPage() {
               {/* PANEL KIRI: PREMIUM MINIMALIST */}
               <div className="lg:col-span-7 flex flex-col min-h-0">
                 {selectedEmp ? (
-                  <div className="bg-white border border-slate-400 rounded-2xl p-8 space-y-8">
+                  <div className="bg-white border border-slate-400 rounded-lg p-8 space-y-8">
                       {/* Header Identitas */}
                       <div className="flex items-center gap-6">
-                        <div className="size-16 rounded-xl bg-[#151B3F] flex items-center justify-center text-2xl font-bold text-white">
+                        <div className="size-16 rounded-lg bg-[#151B3F] flex items-center justify-center text-2xl font-bold text-white">
                           {selectedEmp.name.charAt(0)}
                         </div>
                         <div className="flex flex-col">
@@ -300,7 +302,7 @@ export default function AbsensiPage() {
                           onClick={() => setAbsenType('in')}
                           disabled={hasCheckedInToday}
                           className={cn(
-                            "h-16 rounded-xl font-black text-[11px] uppercase tracking-[0.2em] border-2",
+                            "h-16 rounded-lg font-black text-[11px] uppercase tracking-[0.2em] border-2",
                             absenType === 'in' ? "bg-[#4F39F6] border-[#4F39F6] text-white" : "bg-slate-50 border-slate-400 text-slate-600 hover:border-slate-500 hover:text-slate-800",
                             hasCheckedInToday && "opacity-20 cursor-not-allowed"
                           )}
@@ -311,7 +313,7 @@ export default function AbsensiPage() {
                           onClick={() => setAbsenType('out')}
                           disabled={!hasCheckedInToday || hasCheckedOutToday}
                           className={cn(
-                            "h-16 rounded-xl font-black text-[11px] uppercase tracking-[0.2em] border-2",
+                            "h-16 rounded-lg font-black text-[11px] uppercase tracking-[0.2em] border-2",
                             absenType === 'out' ? "bg-[#00BC7D] border-[#00BC7D] text-white" : "bg-slate-50 border-slate-400 text-slate-600 hover:border-slate-500 hover:text-slate-800",
                             (!hasCheckedInToday || hasCheckedOutToday) && "opacity-20 cursor-not-allowed"
                           )}
@@ -339,7 +341,7 @@ export default function AbsensiPage() {
                           }
                         }}
                         className={cn(
-                          "w-full h-16 rounded-xl flex items-center justify-center font-black text-[11px] uppercase tracking-[0.3em] border-2",
+                          "w-full h-16 rounded-lg flex items-center justify-center font-black text-[11px] uppercase tracking-[0.3em] border-2",
                           hasCheckedInToday && hasCheckedOutToday 
                             ? "bg-[#00BC7D] text-white border-[#00BC7D]" 
                             : !absenType ? "bg-slate-100 text-slate-400 border-slate-400 cursor-not-allowed opacity-50" 
@@ -353,12 +355,12 @@ export default function AbsensiPage() {
                       </button>
                     </div>
                 ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center border-2 border-slate-400 rounded-2xl p-12 text-center bg-slate-50">
+                  <div className="flex-1 flex flex-col items-center justify-center border-2 border-slate-400 rounded-lg p-12 text-center bg-slate-50">
                     <UserCircle2 className="size-16 text-slate-500" />
                     <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mt-6">Pilih Identitas</h3>
                     <div className="grid grid-cols-2 gap-4 w-full max-w-sm mt-8">
                       {employees.map(emp => (
-                        <button key={emp.id} onClick={() => setSelectedEmp(emp)} className="p-5 rounded-xl bg-white border-2 border-slate-400 font-bold text-[11px] uppercase tracking-wider text-slate-700 hover:border-[#4F39F6] hover:text-[#4F39F6]">
+                        <button key={emp.id} onClick={() => setSelectedEmp(emp)} className="p-5 rounded-lg bg-white border-2 border-slate-400 font-bold text-[11px] uppercase tracking-wider text-slate-700 hover:border-[#4F39F6] hover:text-[#4F39F6]">
                           {emp.name}
                         </button>
                       ))}
@@ -368,7 +370,7 @@ export default function AbsensiPage() {
               </div>
 
               {/* PANEL KANAN: LOG AKTIVITAS */}
-              <div className="lg:col-span-5 flex flex-col min-h-0 bg-white border border-slate-400 rounded-2xl p-8">
+              <div className="lg:col-span-5 flex flex-col min-h-0 bg-white border border-slate-400 rounded-lg p-8">
                 <div className="flex items-center gap-3 mb-8 shrink-0">
                   <div className="size-8 rounded-md bg-slate-100 flex items-center justify-center border border-slate-400">
                     <Clock className="size-4 text-slate-900" />
@@ -389,7 +391,7 @@ export default function AbsensiPage() {
                           </div>
                           <p className="text-[10px] font-black text-slate-600 uppercase tracking-tight mb-4">{format(new Date(item.created_at), 'dd MMM yyyy', { locale: localeId })}</p>
                           {item.photo_url && (
-                            <div className="relative aspect-square w-28 rounded-xl overflow-hidden border-2 border-slate-400">
+                            <div className="relative aspect-square w-28 rounded-lg overflow-hidden border-2 border-slate-400">
                               <img src={item.photo_url} alt="Selfie" className="w-full h-full object-cover grayscale" />
                             </div>
                           )}
@@ -410,7 +412,7 @@ export default function AbsensiPage() {
       {/* CAMERA OVERLAY */}
       {cameraActive && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-sm">
-          <div className="relative w-full max-w-2xl bg-white rounded-2xl overflow-hidden border-2 border-slate-900">
+          <div className="relative w-full max-w-2xl bg-white rounded-lg overflow-hidden border-2 border-slate-900">
             <div className="aspect-[4/3] bg-slate-100">
               <CameraCapture onCapture={onCapture} onClose={() => setCameraActive(false)} />
             </div>
@@ -441,30 +443,29 @@ export default function AbsensiPage() {
              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-2 mb-8 text-center">Laporan Kerja Hari Ini</p>
              
              <div className="w-full space-y-4 mb-10">
-                <div className="bg-slate-50 p-6 rounded-2xl border-2 border-slate-100 flex flex-col items-center">
+                <div className="bg-slate-50 p-6 rounded-lg border-2 border-slate-100 flex flex-col items-center">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Omzet</p>
                   <p className="text-xl font-black text-slate-900">Rp {summaryData.sales.toLocaleString('id-ID')}</p>
                 </div>
-                <div className="bg-slate-50 p-6 rounded-2xl border-2 border-slate-100 flex flex-col items-center">
+                <div className="bg-slate-50 p-6 rounded-lg border-2 border-slate-100 flex flex-col items-center">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Transaksi</p>
                   <p className="text-xl font-black text-slate-900">{summaryData.count} Nota</p>
                 </div>
              </div>
 
-             <button
-               onClick={async () => {
-                 await supabase.auth.signOut();
-                 logout();
-                 localStorage.removeItem('supabase.auth.token');
-                 router.replace('/login');
-               }}
-               className="w-full h-14 bg-emerald-600 text-white rounded-xl font-black text-[11px] uppercase tracking-[0.3em] shadow-lg shadow-emerald-200"
-             >
-               Selesai & Keluar
-             </button>
+              <button
+                onClick={async () => {
+                  await clearAllLocalData();
+                  router.replace('/login');
+                }}
+                className="w-full h-14 bg-emerald-600 text-white rounded-lg font-black text-[11px] uppercase tracking-[0.3em] shadow-lg shadow-emerald-200"
+              >
+                Selesai & Keluar
+              </button>
           </div>
         </div>
       )}
     </SettingsLayout>
   );
 }
+

@@ -20,24 +20,26 @@ export function SettingsLayout({
   rightAction,
   leftAction,
   backUrl,
+  subtitle,
 }: {
   title: string;
   children: React.ReactNode;
   rightAction?: React.ReactNode;
   leftAction?: React.ReactNode;
   backUrl?: string;
+  subtitle?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const { session } = useStaffStore();
   const [pendingSync, setPendingSync] = useState(0);
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isAccountLinked, setIsAccountLinked] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     if (session?.role === 'staff') {
-      const allowedPaths = ['/absensi', '/settings/account', '/settings/bantuan'];
+      const allowedPaths = ['/absensi', '/pengaturan/account', '/pengaturan/bantuan'];
       const isAllowed = allowedPaths.some(path => pathname.includes(path));
       if (!isAllowed) {
         router.push('/kasir');
@@ -101,14 +103,25 @@ export function SettingsLayout({
           <Button 
             variant="ghost" 
             size="icon" 
-            className="size-9 rounded-xl hover:bg-slate-50 transition-all active:scale-90" 
+            className="size-9 rounded-lg hover:bg-slate-50 transition-all active:scale-90 shrink-0" 
             onClick={() => backUrl ? router.push(backUrl) : router.back()}
           >
             <ChevronLeft className="h-5 w-5 text-slate-600" />
           </Button>
         )}
-        <h1 className="text-sm font-black ml-2 min-w-0 truncate text-slate-800 uppercase tracking-widest">{title}</h1>
-        <div className="ml-auto flex min-w-0 shrink items-center gap-3">
+        
+        <div className="flex flex-col min-w-0 overflow-hidden ml-1 sm:ml-2">
+          {subtitle && (
+            <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-indigo-600 opacity-70 mb-0.5 truncate">
+              {subtitle}
+            </span>
+          )}
+          <h1 className="text-[11px] sm:text-sm font-black text-slate-800 uppercase tracking-widest truncate whitespace-nowrap">
+            {title}
+          </h1>
+        </div>
+
+        <div className="ml-auto flex min-w-0 shrink items-center gap-2 sm:gap-3">
           <SyncIndicator />
           {rightAction}
         </div>
@@ -119,3 +132,4 @@ export function SettingsLayout({
     </div>
   );
 }
+

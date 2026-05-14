@@ -2,94 +2,88 @@
 
 import { useState, useEffect } from 'react';
 import { Cloud, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
-import { triggerSync } from '@/hooks/useSync';
+import { useSync } from '@/hooks/useSync';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export function SyncIndicator() {
-  const [status, setStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('synced');
+  const { isSyncing: isGlobalSyncing, pendingCount, failedCount, performSync } = useSync();
   const [lastSync, setLastSync] = useState<Date | null>(null);
 
   useEffect(() => {
-    const updateStatus = () => {
-      if (!navigator.onLine) {
-        setStatus('offline');
-      } else {
-        setStatus('synced');
-      }
+    const handleOnline = () => {
+      toast.success('Koneksi tersambung. Menyinkronkan...');
+      performSync().catch(console.error);
     };
 
-    updateStatus();
-
-    window.addEventListener('online', () => {
-      setStatus('synced');
-      toast.success('Koneksi tersambung. Menyinkronkan...');
-      handleSync();
-    });
-
-    window.addEventListener('offline', () => {
-      setStatus('offline');
+    const handleOffline = () => {
       toast.error('Koneksi terputus. Mode Offline aktif.');
-    });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
-      window.removeEventListener('online', updateStatus);
-      window.removeEventListener('offline', updateStatus);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
-  const handleSync = async () => {
-    if (!navigator.onLine) {
-      toast.error('Tidak ada koneksi internet');
-      return;
-    }
-
-    setStatus('syncing');
-    try {
-      await triggerSync(true);
-      const now = new Date();
-      setStatus('synced');
-      setLastSync(now);
-      localStorage.setItem('kasirhub_last_sync', now.toISOString());
-      toast.success('Data tersinkronisasi');
-    } catch (err: any) {
-      console.error('Sync error:', err);
-      setStatus('error');
-      toast.error(err.message || 'Sinkronisasi gagal. Periksa koneksi internet.');
-    }
-  };
+  const isSyncing = isGlobalSyncing || pendingCount > 0;
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 
   const timeLabel = lastSync ? lastSync.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
 
   return (
-    <button
-      onClick={handleSync}
-      disabled={status === 'syncing'}
+    <div
       className={cn(
-        "relative size-9 flex items-center justify-center rounded-xl border transition-all active:scale-95",
-        status === 'synced' ? "bg-white border-slate-100 text-slate-400 hover:border-emerald-100 hover:text-emerald-500" :
-        status === 'syncing' ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
-        status === 'offline' ? "bg-slate-50 border-slate-200 text-slate-300" :
-        "bg-red-50 border-red-100 text-red-600"
+        "relative size-9 flex items-center justify-center rounded-lg border transition-all duration-300",
+        isSyncing ? "bg-indigo-50 border-indigo-100 text-indigo-600 shadow-sm" :
+        failedCount > 0 ? "bg-rose-50 border-rose-100 text-rose-600" :
+        isOffline ? "bg-slate-50 border-slate-200 text-slate-300" :
+        "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
       )}
-      title={status === 'synced' ? `Terakhir sinkron: ${timeLabel}` : status}
+      title={
+        isOffline ? 'Mode Offline' : 
+        failedCount > 0 ? `${failedCount} item gagal sinkron` :
+        isSyncing ? `Sinkronisasi... (${pendingCount} item)` : 
+        `Terakhir sinkron: ${timeLabel || 'Baru saja'}`
+      }
     >
-      <div className="relative">
-        {status === 'syncing' ? (
-          <RefreshCw className="size-4 animate-spin" />
+      <div className="relative flex items-center justify-center">
+        {failedCount > 0 ? (
+          <AlertCircle className="size-5 text-rose-500 animate-pulse" />
+        ) : isSyncing ? (
+          <RefreshCw className="size-4 animate-spin text-indigo-600" />
         ) : (
-          <Cloud className="size-5" />
+          <Cloud className="size-5 transition-transform hover:scale-110" />
         )}
         
+        {/* Status Dot */}
         <span className={cn(
-          "absolute -top-1 -right-1 flex h-2.5 w-2.5 rounded-full border-2 border-white",
-          (status === 'synced' || status === 'syncing') ? "bg-emerald-500" : "bg-red-500"
+          "absolute -top-2.5 -right-2.5 flex h-2 w-2 rounded-full border border-white",
+          isOffline ? "bg-rose-500" : "bg-emerald-500"
         )}>
-          {(status === 'synced' || status === 'syncing') && (
-             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          {!isOffline && (
+             <span className={cn("absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75", (isSyncing || pendingCount > 0) && "animate-ping")}></span>
           )}
         </span>
+
+        {/* Queue Count Badge */}
+        {pendingCount > 0 && !isOffline && (
+          <div className="absolute -bottom-3 -right-3 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-indigo-600 text-[9px] font-black text-white border-2 border-white shadow-sm">
+            {pendingCount > 99 ? '99+' : pendingCount}
+          </div>
+        )}
+
+        {/* Failed Count Badge */}
+        {failedCount > 0 && (
+          <div className="absolute -top-3 -left-3 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-rose-600 text-[9px] font-black text-white border-2 border-white shadow-sm">
+            {failedCount}
+          </div>
+        )}
       </div>
-    </button>
+    </div>
   );
 }
+

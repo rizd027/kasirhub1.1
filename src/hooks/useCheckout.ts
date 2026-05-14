@@ -31,14 +31,15 @@ export const useCheckout = () => {
                 employee_id: session.role === 'staff' ? session.id : undefined,
                 total_amount: totalAmount,
                 subtotal: subtotal,
-                tax_amount: 0, // Implement if needed
-                service_charge_amount: 0, // Implement if needed
+                tax_amount: 0, 
+                service_charge_amount: 0, 
                 discount_total: discountTotal,
                 payment_method: method,
                 status: (method === 'tempo' ? 'unpaid' : 'paid') as 'paid' | 'unpaid',
                 customer_name: customerNameOverride,
                 created_at: now,
                 updated_at: now,
+                deleted_at: null,
                 sync_status: 'pending' as const,
                 items: items.map(i => ({
                     id: createId(),
@@ -47,11 +48,16 @@ export const useCheckout = () => {
                     quantity: i.quantity,
                     price_at_time: i.price,
                     cost_at_time: i.cost,
-                    name_at_time: i.name
+                    name_at_time: i.name,
+                    user_id: userId,
+                    created_at: now,
+                    updated_at: now,
+                    deleted_at: null,
+                    sync_status: 'synced' as const 
                 }))
             };
 
-            await db.transaction('rw', [db.transactions, db.transaction_items, db.products, db.sync_queue, db.stock_logs], async () => {
+            await db.transaction('rw', [db.transactions, db.transaction_items, db.products, db.ingredients, db.product_ingredients, db.sync_queue, db.stock_logs], async () => {
                 // 1. Create Transaction
                 await db.transactions.add(transaction);
 
@@ -65,10 +71,14 @@ export const useCheckout = () => {
                         quantity: item.quantity,
                         price_at_time: item.price,
                         cost_at_time: item.cost,
-                        name_at_time: item.name
+                        name_at_time: item.name,
+                        user_id: userId,
+                        created_at: now,
+                        updated_at: now,
+                        sync_status: 'synced' // Will be pushed as part of the transaction payload or separately
                     });
 
-                    // Update local stock
+                    // A. Update local product stock
                     const product = await db.products.get(item.id);
                     if (product) {
                         const newStock = product.stock_store - item.quantity;
@@ -78,7 +88,7 @@ export const useCheckout = () => {
                             sync_status: 'pending'
                         });
 
-                        // Log stock change locally
+                        // Log product stock change locally
                         await db.stock_logs.add({
                             id: createId(),
                             user_id: userId,
@@ -87,13 +97,60 @@ export const useCheckout = () => {
                             type: 'sale',
                             location: 'store',
                             reference_id: transactionId,
-                            created_at: now
+                            created_at: now,
+                            updated_at: now,
+                            deleted_at: null,
+                            sync_status: 'synced' // Sales logs usually don't need independent sync if transaction syncs them, but we follow the schema
                         });
                         
                         // Note: We DO NOT add product stock update to sync_queue here.
                         // Supabase has a trigger `on_transaction_item_added` that will 
                         // automatically deduct the stock when the transaction_item is inserted.
                         // Adding it to sync_queue would cause a double deduction!
+                    }
+
+                    // B. Update Ingredient Stocks (BOM)
+                    const boms = await db.product_ingredients.where('product_id').equals(item.id).toArray();
+                    for (const bom of boms) {
+                        const ingredient = await db.ingredients.get(bom.ingredient_id);
+                        if (ingredient) {
+                            const usedQty = bom.quantity * item.quantity;
+                            const newIngStock = (ingredient.stock_current || 0) - usedQty;
+                            
+                            await db.ingredients.update(bom.ingredient_id, {
+                                stock_current: newIngStock,
+                                updated_at: now,
+                                sync_status: 'pending'
+                            });
+
+                            // Log ingredient stock change
+                            await db.stock_logs.add({
+                                id: createId(),
+                                user_id: userId,
+                                product_id: bom.ingredient_id,
+                                change_amount: -usedQty,
+                                type: 'sale_bom',
+                                location: 'store',
+                                reference_id: transactionId,
+                                created_at: now,
+                                updated_at: now,
+                                deleted_at: null,
+                                sync_status: 'synced'
+                            });
+
+                            // Add ingredient update to sync queue
+                            await db.sync_queue.add({
+                                table_name: 'ingredients',
+                                operation: 'update',
+                                record_id: bom.ingredient_id,
+                                payload: { 
+                                    stock_current: newIngStock, 
+                                    updated_at: now 
+                                },
+                                created_at: now,
+                                retry_count: 0
+                            });
+                        }
                     }
                 }
 
@@ -124,6 +181,9 @@ export const useCheckout = () => {
                             price_at_time: item.price,
                             cost_at_time: item.cost,
                             name_at_time: item.name,
+                            user_id: userId,
+                            created_at: now,
+                            updated_at: now,
                             discount_details: {
                                 disc1: item.disc1,
                                 disc2: item.disc2,

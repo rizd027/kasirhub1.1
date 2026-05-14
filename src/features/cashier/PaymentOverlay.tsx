@@ -92,7 +92,7 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
 
           <div className="hidden md:flex mt-12 pt-8 border-t border-white/10 space-y-6 relative z-10">
             <div className="flex items-center gap-4">
-              <div className="size-10 rounded-xl bg-white/10 flex items-center justify-center text-indigo-100">
+              <div className="size-10 rounded-lg bg-white/10 flex items-center justify-center text-indigo-100">
                 <Calculator className="size-5" />
               </div>
               <div className="space-y-0.5">
@@ -205,7 +205,7 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
                       <Button 
                         key={amt} 
                         variant="outline" 
-                        className="h-11 px-5 text-xs font-black text-slate-700 hover:border-indigo-500 hover:text-indigo-600 rounded-xl transition-all border-slate-200 bg-white shadow-sm"
+                        className="h-11 px-5 text-xs font-black text-slate-700 hover:border-indigo-500 hover:text-indigo-600 rounded-lg transition-all border-slate-200 bg-white shadow-sm"
                         onClick={() => setPaidAmount(amt.toString())}
                       >
                         {amt.toLocaleString('id-ID')}
@@ -213,7 +213,7 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
                     ))}
                     <Button 
                       variant="outline" 
-                      className="h-11 px-5 text-xs font-black text-indigo-700 border-indigo-200 bg-indigo-50 rounded-xl shadow-sm"
+                      className="h-11 px-5 text-xs font-black text-indigo-700 border-indigo-200 bg-indigo-50 rounded-lg shadow-sm"
                       onClick={() => setPaidAmount(total.toString())}
                     >
                       Uang Pas
@@ -222,7 +222,7 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
                 </div>
               ) : method === 'qris' ? (
                 <div className="flex items-center gap-8 animate-in fade-in slide-in-from-left-4 duration-300">
-                  <div className="bg-white p-3 shadow-xl rounded-2xl border border-slate-200">
+                  <div className="bg-white p-3 shadow-xl rounded-lg border border-slate-200">
                     <QrCode className="size-24 text-indigo-600" />
                   </div>
                   <div className="space-y-1">
@@ -233,7 +233,7 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
                 </div>
               ) : method === 'transfer' ? (
                 <div className="flex items-center gap-8 animate-in fade-in slide-in-from-left-4 duration-300">
-                  <div className="size-16 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-100">
+                  <div className="size-16 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-100">
                     <CreditCard className="size-8" />
                   </div>
                   <div className="space-y-1">
@@ -244,7 +244,7 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
                 </div>
               ) : (
                 <div className="flex items-center gap-8 animate-in fade-in slide-in-from-left-4 duration-300">
-                  <div className="size-16 rounded-2xl bg-amber-500 flex items-center justify-center text-white shadow-xl shadow-amber-100">
+                  <div className="size-16 rounded-lg bg-amber-500 flex items-center justify-center text-white shadow-xl shadow-amber-100">
                     <History className="size-8" />
                   </div>
                   <div className="space-y-1">
@@ -264,14 +264,14 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
             <div className="max-w-2xl mx-auto flex gap-4 items-center">
               <Button 
                 variant="ghost" 
-                className="h-14 px-8 text-[11px] font-black text-slate-500 hover:bg-slate-50 rounded-2xl tracking-widest"
+                className="h-14 px-8 text-[11px] font-black text-slate-500 hover:bg-slate-50 rounded-lg tracking-widest"
                 onClick={() => onOpenChange(false)}
               >
                 BATAL
               </Button>
               <Button 
                 className={cn(
-                  "flex-1 h-14 text-base font-black text-white shadow-2xl transition-all rounded-2xl active:scale-95",
+                  "flex-1 h-14 text-base font-black text-white shadow-2xl transition-all rounded-lg active:scale-95",
                   method === 'tempo' 
                     ? "bg-amber-500 hover:bg-amber-600 shadow-amber-200" 
                     : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200"
@@ -295,7 +295,7 @@ function PaymentMethodButton({ active, onClick, icon, label, variant = 'primary'
     <button
       onClick={onClick}
       className={cn(
-        "flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all h-20",
+        "flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all h-20",
         active 
           ? (variant === 'warning' ? "bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-200" : "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200")
           : "border-slate-200 bg-white hover:border-indigo-200 text-slate-600 shadow-sm font-bold"
@@ -311,4 +311,5 @@ function PaymentMethodButton({ active, onClick, icon, label, variant = 'primary'
     </button>
   );
 }
+
 

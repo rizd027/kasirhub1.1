@@ -50,7 +50,7 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
               </button>
 
               <div className="flex flex-col items-center gap-3">
-                <div className="size-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                <div className="size-12 rounded-lg bg-white/20 flex items-center justify-center">
                   <CheckCircle2 className="size-6" />
                 </div>
                 <div className="space-y-1">
@@ -86,10 +86,10 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Ukuran Kertas</label>
               <Select value={paperSize} onValueChange={(val) => setPaperSize(val || '80mm')}>
-                <SelectTrigger className="w-full h-12 bg-slate-50 border-slate-200 rounded-xl px-4 text-xs font-bold text-slate-700">
+                <SelectTrigger className="w-full h-12 bg-slate-50 border-slate-200 rounded-lg px-4 text-xs font-bold text-slate-700">
                   <SelectValue placeholder="Pilih Ukuran" />
                 </SelectTrigger>
-                <SelectContent alignItemWithTrigger={false} side="top" sideOffset={10} className="bg-white border-slate-200 rounded-xl shadow-2xl z-[500] p-1">
+                <SelectContent alignItemWithTrigger={false} side="top" sideOffset={10} className="bg-white border-slate-200 rounded-lg shadow-2xl z-[500] p-1">
                   <SelectItem value="58mm" className="text-xs font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-lg transition-colors cursor-pointer outline-none">58 mm (Kasir Mini / EDC)</SelectItem>
                   <SelectItem value="80mm" className="text-xs font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-lg transition-colors cursor-pointer outline-none">80 mm (Kasir Standar)</SelectItem>
                   <SelectItem value="1/8 Folio" className="text-xs font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-lg transition-colors cursor-pointer outline-none">1/8 Folio (Nota Mini / Olshop)</SelectItem>
@@ -104,7 +104,7 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
 
             <Button 
               onClick={() => onPrint(paperSize)}
-              className="w-full h-14 bg-indigo-600 text-white hover:bg-indigo-700 rounded-2xl font-black text-sm gap-2 shadow-lg shadow-indigo-100"
+              className="w-full h-14 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg font-black text-sm gap-2 shadow-lg shadow-indigo-100"
             >
               <Printer className="size-4" />
               CETAK STRUK SEKARANG
@@ -113,7 +113,7 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
               <Button 
                 variant="outline"
                 onClick={() => onShare(paperSize)}
-                className="h-12 border-slate-200 text-slate-600 rounded-xl font-bold text-xs gap-2"
+                className="h-12 border-slate-200 text-slate-600 rounded-lg font-bold text-xs gap-2"
               >
                 <Share2 className="size-3.5" />
                 BAGI
@@ -121,7 +121,7 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
               <Button 
                 variant="ghost"
                 onClick={() => onOpenChange(false)}
-                className="h-12 bg-slate-50 text-slate-500 rounded-xl font-bold text-xs gap-2"
+                className="h-12 bg-slate-50 text-slate-500 rounded-lg font-bold text-xs gap-2"
               >
                 SELESAI
                 <ChevronRight className="size-3.5" />
@@ -186,7 +186,7 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
                   <SelectTrigger className="w-full h-12 bg-white/10 border-white/20 rounded-[0.75rem] px-5 text-sm font-black text-white hover:bg-white/20 transition-all backdrop-blur-md">
                     <SelectValue placeholder="Pilih Ukuran" />
                   </SelectTrigger>
-                  <SelectContent alignItemWithTrigger={false} side="top" sideOffset={12} className="bg-indigo-900/95 border-white/10 text-white rounded-xl shadow-2xl backdrop-blur-2xl z-[500] p-1.5">
+                  <SelectContent alignItemWithTrigger={false} side="top" sideOffset={12} className="bg-indigo-900/95 border-white/10 text-white rounded-lg shadow-2xl backdrop-blur-2xl z-[500] p-1.5">
                     <SelectItem value="58mm" className="font-bold data-[highlighted]:bg-white/15 data-[highlighted]:text-white data-[selected]:bg-white/25 data-[selected]:text-white rounded-lg transition-colors cursor-pointer outline-none">58 mm (Kasir Mini / EDC)</SelectItem>
                     <SelectItem value="80mm" className="font-bold data-[highlighted]:bg-white/15 data-[highlighted]:text-white data-[selected]:bg-white/25 data-[selected]:text-white rounded-lg transition-colors cursor-pointer outline-none">80 mm (Kasir Standar)</SelectItem>
                     <SelectItem value="1/8 Folio" className="font-bold data-[highlighted]:bg-white/15 data-[highlighted]:text-white data-[selected]:bg-white/25 data-[selected]:text-white rounded-lg transition-colors cursor-pointer outline-none">1/8 Folio (Nota Mini / Olshop)</SelectItem>
@@ -223,3 +223,4 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
     </div>
   );
 }
+

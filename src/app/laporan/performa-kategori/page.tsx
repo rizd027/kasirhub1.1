@@ -95,7 +95,7 @@ export default function PerformaKategoriPage() {
   const headerActions = (
     <div className="flex items-center gap-2">
       <Select value={filterDate} onValueChange={(v: any) => setFilterDate(v)}>
-        <SelectTrigger className="w-[130px] h-9 rounded-xl bg-slate-50 border-2 border-slate-300 text-[9px] font-black uppercase tracking-widest focus:ring-0 shadow-sm flex items-center px-3">
+        <SelectTrigger className="w-[130px] h-9 rounded-lg bg-slate-50 border-2 border-slate-300 text-[9px] font-black uppercase tracking-widest focus:ring-0 shadow-sm flex items-center px-3">
           <div className="flex items-center gap-2 truncate">
             {filterDate === 'today' && <Clock className="h-3 w-3 text-indigo-600" />}
             {filterDate === 'this_month' && <Calendar className="h-3 w-3 text-indigo-600" />}
@@ -105,7 +105,7 @@ export default function PerformaKategoriPage() {
             </span>
           </div>
         </SelectTrigger>
-        <SelectContent align="end" className="w-[160px] rounded-xl border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
+        <SelectContent align="end" className="w-[160px] rounded-lg border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
           <SelectItem value="today" className="text-[10px] font-black uppercase tracking-widest py-2.5 px-3 focus:bg-indigo-50 focus:text-indigo-700 rounded-lg cursor-pointer outline-none">
             <div className="flex items-center gap-3"><Clock className="h-3.5 w-3.5 opacity-70" /><span>Hari Ini</span></div>
           </SelectItem>
@@ -119,10 +119,10 @@ export default function PerformaKategoriPage() {
       </Select>
 
       <DropdownMenu>
-        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline", size: "icon" }), "h-9 w-9 rounded-xl border-2 border-slate-300 bg-white text-slate-900 shadow-sm")}>
+        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline", size: "icon" }), "h-9 w-9 rounded-lg border-2 border-slate-300 bg-white text-slate-900 shadow-sm")}>
           <Download className="h-4 w-4" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48 rounded-xl border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
+        <DropdownMenuContent align="end" className="w-48 rounded-lg border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
           <DropdownMenuItem onClick={exportReportPDF} className="flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer focus:bg-red-50 focus:text-red-700 outline-none">
             <FileText className="h-4 w-4 text-red-500" /><span className="text-[10px] font-black uppercase tracking-wider">Ekspor PDF</span>
           </DropdownMenuItem>
@@ -193,7 +193,7 @@ export default function PerformaKategoriPage() {
           <div className="divide-y-2 divide-slate-50 px-2">
             {data.map((cat, idx) => (
               <div key={cat.name} className="px-4 py-5 hover:bg-slate-50 flex items-center gap-5">
-                <div className="h-11 w-11 rounded-2xl flex items-center justify-center border-2 shadow-sm shrink-0" style={{ borderColor: `${COLORS[idx % COLORS.length]}40`, backgroundColor: `${COLORS[idx % COLORS.length]}10` }}>
+                <div className="h-11 w-11 rounded-lg flex items-center justify-center border-2 shadow-sm shrink-0" style={{ borderColor: `${COLORS[idx % COLORS.length]}40`, backgroundColor: `${COLORS[idx % COLORS.length]}10` }}>
                    <div className="h-4 w-4 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -213,7 +213,7 @@ export default function PerformaKategoriPage() {
 
         {!loading && data.length > 0 && (
           <div className="p-6">
-            <div className="p-6 bg-slate-50 rounded-3xl border-2 border-slate-200 flex items-start gap-4 shadow-sm">
+            <div className="p-6 bg-slate-50 rounded-lg border-2 border-slate-200 flex items-start gap-4 shadow-sm">
               <Info className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
               <p className="text-[10px] font-black text-slate-700 uppercase leading-relaxed tracking-wide">
                 Kategori <span className="text-slate-900 underline decoration-indigo-400 decoration-2 underline-offset-4">{data[0].name}</span> merupakan penyumbang omzet terbesar. Pertimbangkan untuk memperbanyak variasi produk di kategori ini.
@@ -225,3 +225,4 @@ export default function PerformaKategoriPage() {
     </ReportLayout>
   );
 }
+

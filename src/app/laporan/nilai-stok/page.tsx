@@ -50,17 +50,17 @@ export default function NilaiStokPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
         <Input 
           placeholder="CARI SKU..."
-          className="pl-8 h-9 bg-slate-50 border-2 border-slate-300 rounded-xl text-[9px] font-black placeholder:text-slate-400 uppercase tracking-widest text-slate-900 focus-visible:ring-1 focus-visible:ring-indigo-500 focus-visible:border-indigo-500 transition-all shadow-sm"
+          className="pl-8 h-9 bg-slate-50 border-2 border-slate-300 rounded-lg text-[9px] font-black placeholder:text-slate-400 uppercase tracking-widest text-slate-900 focus-visible:ring-1 focus-visible:ring-indigo-500 focus-visible:border-indigo-500 transition-all shadow-sm"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
       <DropdownMenu>
-        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline", size: "icon" }), "h-9 w-9 rounded-xl border-2 border-slate-300 bg-white text-slate-900 shadow-sm")}>
+        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline", size: "icon" }), "h-9 w-9 rounded-lg border-2 border-slate-300 bg-white text-slate-900 shadow-sm")}>
           <Download className="h-4 w-4" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48 rounded-xl border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
+        <DropdownMenuContent align="end" className="w-48 rounded-lg border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
           <DropdownMenuItem onClick={exportReportPDF} className="flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer focus:bg-red-50 focus:text-red-700 outline-none">
             <FileText className="h-4 w-4 text-red-500" /><span className="text-[10px] font-black uppercase tracking-wider">Ekspor PDF</span>
           </DropdownMenuItem>
@@ -142,7 +142,7 @@ export default function NilaiStokPage() {
                       </div>
                       <div className="ml-auto flex flex-col items-end">
                         <span className="text-[8px] font-black text-slate-400 uppercase leading-none mb-1.5 tracking-[0.2em]">TOTAL</span>
-                        <div className="text-xs font-black text-indigo-700 uppercase tracking-[0.1em] py-1 px-3 bg-indigo-50 rounded-xl border border-indigo-100 leading-none flex items-center gap-1.5">
+                        <div className="text-xs font-black text-indigo-700 uppercase tracking-[0.1em] py-1 px-3 bg-indigo-50 rounded-lg border border-indigo-100 leading-none flex items-center gap-1.5">
                           <Boxes className="h-3 w-3" />
                           {totalStok} UNIT
                         </div>
@@ -157,7 +157,7 @@ export default function NilaiStokPage() {
 
         {/* Information Note */}
         <div className="p-6">
-          <div className="p-6 bg-slate-50 rounded-3xl border-2 border-slate-300 flex items-start gap-4 shadow-sm">
+          <div className="p-6 bg-slate-50 rounded-lg border-2 border-slate-300 flex items-start gap-4 shadow-sm">
             <Info className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
             <p className="text-[10px] font-black text-slate-700 uppercase leading-relaxed tracking-wide">
               Informasi: Nilai aset adalah <span className="text-slate-900 underline decoration-indigo-400 decoration-2 underline-offset-4">Harga Modal</span> x <span className="text-slate-900 underline decoration-indigo-400 decoration-2 underline-offset-4">Sisa Stok</span> saat ini.
@@ -168,3 +168,4 @@ export default function NilaiStokPage() {
     </ReportLayout>
   );
 }
+

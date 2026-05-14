@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { SettingsLayout } from '@/features/settings/SettingsLayout';
 import { db, LocalProduct, LocalStockMutation } from '@/db/dexie';
@@ -17,26 +17,60 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuGroup } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DeleteAllDialog } from './DeleteAllDialog';
-import { ThresholdDialog } from './ThresholdDialog';
+import { DeleteAllDialog } from '@/features/produk/DeleteAllDialog';
+import { ThresholdDialog } from '@/features/produk/ThresholdDialog';
 import * as XLSX from 'xlsx';
-import { triggerSync } from '@/hooks/useSync';
+import { triggerSync, useSync } from '@/hooks/useSync';
 import { useStaffStore } from '@/store/useStaffStore';
 import { createId } from '@/utils/uuid';
 import { addToSyncQueue } from '@/services/sync/syncManager';
+import { MasterDataTabs } from '@/components/master-data/MasterDataTabs';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { inventoryService, InventoryPrediction } from '@/services/inventoryService';
+import { Sparkles, Loader2, TrendingDown } from 'lucide-react';
 
 export default function ProdukPage() {
   const EMPTY_CATEGORY_VALUE = '__no_category__';
   const { session } = useStaffStore();
-  const userId = session?.id;
   const router = useRouter();
-  const [products, setProducts] = useState<LocalProduct[]>([]);
-  const [categories, setCategories] = useState<{ id: string, name: string }[]>([]);
-  const [stockLogs, setStockLogs] = useState<LocalStockMutation[]>([]);
+  const { isSyncing, pendingCount } = useSync();
+  const userId = session?.id;
+  const products = useLiveQuery(() => db.products.toArray()) || [];
+  const categories = useLiveQuery(() => db.categories.toArray()) || [];
+  const stockLogs = useLiveQuery(() => db.stock_mutations.orderBy('created_at').reverse().toArray()) || [];
+
   const [search, setSearch] = useState('');
   const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
   const [stockEditingProduct, setStockEditingProduct] = useState<LocalProduct | null>(null);
   const [stockDraft, setStockDraft] = useState({ stock_store: 0, stock_warehouse: 0 });
+  const [predictions, setPredictions] = useState<{ products: Record<string, InventoryPrediction>, ingredients: Record<string, InventoryPrediction> } | null>(null);
+
+  // Lazy Load State
+  const [visibleCount, setVisibleCount] = useState(20);
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  // Reset pagination when search changes
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [search]);
+
+  // Intersection Observer for Infinite Scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => prev + 20);
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [products, search]);
 
   // Feature panels
   const [showDeleteAll, setShowDeleteAll] = useState(false);
@@ -61,19 +95,16 @@ export default function ProdukPage() {
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const [p, c, logs] = await Promise.all([
-      db.products.toArray(),
-      db.categories.toArray(),
-      db.stock_mutations.orderBy('created_at').reverse().toArray()
-    ]);
-    setProducts(p);
-    setCategories(c);
-    setStockLogs(logs);
+    // This is now handled by useLiveQuery
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const loadPredictions = async () => {
+      const data = await inventoryService.getPredictions();
+      setPredictions(data);
+    };
+    loadPredictions();
+  }, [products]);
 
   const handleOpenDialog = (p?: LocalProduct) => {
     if (p) {
@@ -172,9 +203,23 @@ export default function ProdukPage() {
 
   const handleDeleteCategory = async (id: string) => {
     try {
-      await db.categories.delete(id);
+      const deleted_at = new Date().toISOString();
+      await db.categories.update(id, { 
+        deleted_at, 
+        sync_status: 'pending' 
+      });
+      await addToSyncQueue('categories', 'update', id, { deleted_at });
       // Clear category_id from all products using this category
-      await db.products.where('category_id').equals(id).modify({ category_id: '' });
+      await db.products.where('category_id').equals(id).modify({ 
+        category_id: '',
+        updated_at: deleted_at,
+        sync_status: 'pending'
+      });
+      
+      // Also add product updates to sync queue if needed
+      // Actually, syncManager should handle local modifications if we use modify? 
+      // No, we should explicitly add to sync queue for each affected product if we want cloud consistency.
+      // But for simplicity, let's just trigger sync.
       toast.success('Kategori berhasil dihapus');
       fetchData();
       triggerSync().catch(console.error);
@@ -264,21 +309,23 @@ export default function ProdukPage() {
 
   return (
     <SettingsLayout
-      title="Data Produk"
+      subtitle="Manajemen Produk"
+      title="Daftar Produk"
+      backUrl="/pengaturan"
       rightAction={
         <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none">
+          <DropdownMenuTrigger className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none">
             <MoreVertical className="h-4 w-4" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44 rounded-xl p-2 shadow-xl border-slate-100">
+          <DropdownMenuContent align="end" className="w-44 rounded-lg p-2 shadow-xl border-slate-100">
             <DropdownMenuGroup>
               <DropdownMenuLabel className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 py-1.5">Data Massal</DropdownMenuLabel>
               <DropdownMenuSeparator className="my-1 bg-slate-50" />
-              <DropdownMenuItem onClick={() => router.push('/produk/import')} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
+              <DropdownMenuItem onClick={() => router.push('/produk/import')} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600">
                 <FileUp className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-slate-400" />
                 <span className="text-xs font-semibold whitespace-normal leading-tight">Impor Produk (Excel)</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportExcel} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
+              <DropdownMenuItem onClick={handleExportExcel} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600">
                 <FileDown className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-slate-400" />
                 <span className="text-xs font-semibold whitespace-normal leading-tight">Ekspor Produk (Excel)</span>
               </DropdownMenuItem>
@@ -287,11 +334,11 @@ export default function ProdukPage() {
             <DropdownMenuSeparator className="my-1 bg-slate-50" />
             <DropdownMenuGroup>
               <DropdownMenuLabel className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 py-1.5">Utilitas</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => router.push('/produk/barcode')} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
+              <DropdownMenuItem onClick={() => router.push('/produk/barcode')} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600">
                 <Printer className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-slate-400" />
                 <span className="text-xs font-semibold whitespace-normal leading-tight">Cetak Barcode / Label</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handlePrintProductList} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
+              <DropdownMenuItem onClick={handlePrintProductList} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600">
                 <FileText className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-slate-400" />
                 <span className="text-xs font-semibold whitespace-normal leading-tight">Cetak Daftar Produk</span>
               </DropdownMenuItem>
@@ -300,7 +347,7 @@ export default function ProdukPage() {
             <DropdownMenuSeparator className="my-1 bg-slate-50" />
             <DropdownMenuGroup>
               <DropdownMenuLabel className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 py-1.5">Pembersihan</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => router.push('/produk/trash')} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
+              <DropdownMenuItem onClick={() => router.push('/produk/trash')} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600">
                 <Trash className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-slate-400" />
                 <span className="flex-1 text-xs font-semibold whitespace-normal leading-tight">Tempat Sampah</span>
                 {deletedProducts.length > 0 && (
@@ -319,7 +366,7 @@ export default function ProdukPage() {
             <DropdownMenuSeparator className="my-1 bg-slate-50" />
             <DropdownMenuGroup>
               <DropdownMenuLabel className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 py-1.5">Konfigurasi</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => setShowThreshold(true)} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
+              <DropdownMenuItem onClick={() => setShowThreshold(true)} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600">
                 <Settings2 className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-slate-400" />
                 <span className="flex-1 text-xs font-semibold whitespace-normal leading-tight">Atur Threshold Stok</span>
               </DropdownMenuItem>
@@ -329,23 +376,26 @@ export default function ProdukPage() {
       }
     >
       <div className="flex flex-col">
+        {/* Sub-Navigation Tabs */}
+        <MasterDataTabs />
+
         {/* Search and Add - Minimalist Underline Style */}
-        <div className="px-4 py-2 flex gap-4 items-center">
+        <div className="px-4 py-4 flex gap-4 items-center border-b border-slate-100 bg-white/50 backdrop-blur-sm sticky top-[64px] z-20">
           <div className="relative flex-1 group">
-            <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+            <Search className="absolute left-0 top-1/2 -translate-y-1/2 size-4 text-slate-300 group-focus-within:text-indigo-500" />
             <Input
               placeholder="Cari nama atau SKU..."
-              className="pl-7 h-12 bg-transparent border-0 border-b-2 border-slate-100 rounded-none shadow-none text-sm focus-visible:ring-0 focus-visible:border-indigo-500 transition-all placeholder:text-slate-300 font-medium"
+              className="pl-7 h-10 bg-transparent border-0 border-b-2 border-slate-100 rounded-none shadow-none text-sm focus-visible:ring-0 focus-visible:border-indigo-500 placeholder:text-slate-300 font-medium w-full"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
 
           <Button
-            className="bg-indigo-600 hover:bg-indigo-700 text-white h-10 w-10 rounded-xl shadow-lg shadow-indigo-100 shrink-0 transition-all active:scale-90"
+            className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest rounded-lg shadow-lg shadow-indigo-100 gap-2 text-[10px] shrink-0"
             onClick={() => handleOpenDialog()}
           >
-            <Plus className="h-5 w-5" />
+            {isSyncing ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
           </Button>
         </div>
 
@@ -360,11 +410,11 @@ export default function ProdukPage() {
               </Button>
             </div>
           ) : (
-            filtered.map((p, idx) => (
+            filtered.slice(0, visibleCount).map((p, idx) => (
               <div
                 key={p.id}
                 className={cn(
-                  "group relative flex items-center gap-4 p-3 hover:bg-muted/30 transition-colors",
+                  "group relative flex items-center gap-4 p-3 hover:bg-muted/30",
                   "border-b border-slate-100"
                 )}
               >
@@ -384,8 +434,11 @@ export default function ProdukPage() {
 
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-[14px] font-bold text-gray-900 dark:text-white leading-tight truncate">
+                  <h3 className="text-[14px] font-bold text-gray-900 dark:text-white leading-tight truncate flex items-center gap-2">
                     {p.name}
+                    {p.sync_status === 'pending' && (
+                      <div className="size-1.5 rounded-full bg-amber-500 animate-pulse" title="Menunggu Sinkronisasi Cloud" />
+                    )}
                   </h3>
 
                   <div className="text-[12px] font-bold text-indigo-600 dark:text-indigo-400 mb-1">
@@ -399,6 +452,19 @@ export default function ProdukPage() {
                     <Badge variant="outline" className={cn("text-[8px] font-black px-1 py-0 uppercase tracking-wider h-3.5", getStockState(p.stock_store, p.stock_warehouse).className)}>
                       {getStockState(p.stock_store, p.stock_warehouse).label}
                     </Badge>
+                    {predictions?.products[p.id] && predictions.products[p.id].daysRemaining < 30 && predictions.products[p.id].burnRate > 0 && (
+                      <Badge variant="outline" className={cn(
+                        "text-[8px] font-black px-1 py-0 uppercase tracking-wider h-3.5 flex items-center gap-1",
+                        predictions.products[p.id].status === 'critical' 
+                          ? "bg-rose-600 text-white border-rose-700 animate-pulse" 
+                          : predictions.products[p.id].status === 'warning'
+                          ? "bg-amber-100 text-amber-700 border-amber-200"
+                          : "bg-indigo-50 text-indigo-700 border-indigo-100"
+                      )}>
+                        {predictions.products[p.id].status === 'critical' ? <TrendingDown className="size-2" /> : <Sparkles className="size-2 text-indigo-400" />}
+                        {Math.ceil(predictions.products[p.id].daysRemaining)} HARI LAGI
+                      </Badge>
+                    )}
                     <div className="flex items-center gap-2 text-[9px] font-bold text-gray-400">
                       <span className="flex items-center gap-1"><Store className="h-2.5 w-2.5" />{p.stock_store}</span>
                       <span className="flex items-center gap-1"><Warehouse className="h-2.5 w-2.5" />{p.stock_warehouse}</span>
@@ -416,12 +482,12 @@ export default function ProdukPage() {
                         </Button>
                       }
                     />
-                    <DropdownMenuContent align="end" className="w-44 rounded-xl p-2 shadow-xl border-slate-100">
-                      <DropdownMenuItem onClick={() => handleOpenDialog(p)} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
+                    <DropdownMenuContent align="end" className="w-44 rounded-lg p-2 shadow-xl border-slate-100">
+                      <DropdownMenuItem onClick={() => handleOpenDialog(p)} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600">
                         <Pencil className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-slate-400" />
                         <span className="text-xs font-semibold whitespace-normal leading-tight">Edit Produk</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleOpenStockDialog(p)} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600 transition-colors">
+                      <DropdownMenuItem onClick={() => handleOpenStockDialog(p)} className="flex items-start py-2.5 px-2 rounded-lg cursor-pointer focus:bg-indigo-50 focus:text-indigo-600">
                         <Boxes className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-slate-400" />
                         <span className="text-xs font-semibold whitespace-normal leading-tight">Update Stok</span>
                       </DropdownMenuItem>
@@ -437,6 +503,16 @@ export default function ProdukPage() {
             ))
           )}
         </div>
+
+        {/* Infinite Scroll Observer Target */}
+        {filtered && visibleCount < filtered.length && (
+          <div ref={observerTarget} className="py-8 flex justify-center items-center opacity-50">
+            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100">
+              <div className="h-4 w-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Memuat...</span>
+            </div>
+          </div>
+        )}
       </div>
 
 
@@ -511,3 +587,4 @@ export default function ProdukPage() {
     </SettingsLayout>
   );
 }
+

@@ -26,7 +26,7 @@ export function ReportStatCard({
   iconClassName
 }: ReportStatCardProps) {
   return (
-    <div className={cn("bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-1", className)}>
+    <div className={cn("bg-white p-4 rounded-lg shadow-sm border border-slate-100 flex flex-col gap-1", className)}>
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{title}</span>
         <div className={cn("p-1.5 rounded-lg bg-slate-50", iconClassName)}>
@@ -53,3 +53,4 @@ export function ReportStatCard({
     </div>
   );
 }
+

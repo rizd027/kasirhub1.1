@@ -59,7 +59,7 @@ export default function LabaBersihPage() {
               {/* Gross Sales */}
               <div className="py-6 flex justify-between items-center group">
                 <div className="flex items-center gap-4">
-                  <div className="p-2.5 bg-slate-50 text-slate-900 group-hover:text-indigo-600 transition-colors rounded-xl border-2 border-slate-200">
+                  <div className="p-2.5 bg-slate-50 text-slate-900 group-hover:text-indigo-600 transition-colors rounded-lg border-2 border-slate-200">
                     <DollarSign className="h-4 w-4" />
                   </div>
                   <div className="flex flex-col">
@@ -73,7 +73,7 @@ export default function LabaBersihPage() {
               {/* COGS */}
               <div className="py-6 flex justify-between items-center group">
                 <div className="flex items-center gap-4">
-                  <div className="p-2.5 bg-slate-50 text-slate-900 group-hover:text-amber-600 transition-colors rounded-xl border-2 border-slate-200">
+                  <div className="p-2.5 bg-slate-50 text-slate-900 group-hover:text-amber-600 transition-colors rounded-lg border-2 border-slate-200">
                     <Calculator className="h-4 w-4" />
                   </div>
                   <div className="flex flex-col">
@@ -87,7 +87,7 @@ export default function LabaBersihPage() {
               {/* Discounts */}
               <div className="py-6 flex justify-between items-center group">
                 <div className="flex items-center gap-4">
-                  <div className="p-2.5 bg-slate-50 text-slate-900 group-hover:text-red-600 transition-colors rounded-xl border-2 border-slate-200">
+                  <div className="p-2.5 bg-slate-50 text-slate-900 group-hover:text-red-600 transition-colors rounded-lg border-2 border-slate-200">
                     <Receipt className="h-4 w-4" />
                   </div>
                   <div className="flex flex-col">
@@ -121,7 +121,7 @@ export default function LabaBersihPage() {
 
         {/* Insight Section */}
         <div className="p-6">
-          <div className="p-8 bg-white rounded-3xl border-2 border-slate-300 shadow-xl relative overflow-hidden">
+          <div className="p-8 bg-white rounded-lg border-2 border-slate-300 shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-[0.08]">
               <Info className="h-28 w-28 -rotate-12 text-slate-900" />
             </div>
@@ -142,3 +142,4 @@ export default function LabaBersihPage() {
     </ReportLayout>
   );
 }
+

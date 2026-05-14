@@ -98,7 +98,7 @@ export function ReprintModal({ open, onOpenChange, transaction }: ReprintModalPr
             <h2 className="text-xl font-black text-slate-800">Cetak Ulang</h2>
             <p className="text-xs text-slate-400 font-medium mt-1 uppercase tracking-wider">Atur & Bagikan Nota</p>
           </div>
-          <button onClick={() => onOpenChange(false)} className="size-10 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors">
+          <button onClick={() => onOpenChange(false)} className="size-10 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors">
             <X className="h-5 w-5 text-slate-400" />
           </button>
         </div>
@@ -108,18 +108,18 @@ export function ReprintModal({ open, onOpenChange, transaction }: ReprintModalPr
           <div className="space-y-3">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Pilih Ukuran Kertas</label>
             <Select value={paperSize} onValueChange={(val) => setPaperSize(val || '80mm')}>
-              <SelectTrigger className="w-full h-14 bg-slate-50 border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-700 hover:bg-slate-100 transition-all">
+              <SelectTrigger className="w-full h-14 bg-slate-50 border-slate-200 rounded-lg px-5 text-sm font-bold text-slate-700 hover:bg-slate-100 transition-all">
                 <SelectValue placeholder="Ukuran Kertas" />
               </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false} side="top" sideOffset={8} className="bg-white border-slate-200 rounded-2xl shadow-2xl z-[1100] p-1.5">
-                <SelectItem value="58mm" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-xl transition-colors cursor-pointer p-3 text-xs outline-none">58 mm (Kasir Mini / EDC)</SelectItem>
-                <SelectItem value="80mm" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-xl transition-colors cursor-pointer p-3 text-xs outline-none">80 mm (Kasir Standar)</SelectItem>
-                <SelectItem value="1/8 Folio" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-xl transition-colors cursor-pointer p-3 text-xs outline-none">1/8 Folio (Nota Mini / Olshop)</SelectItem>
-                <SelectItem value="1/4 Folio" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-xl transition-colors cursor-pointer p-3 text-xs outline-none">1/4 Folio (Nota Kecil / Bon)</SelectItem>
-                <SelectItem value="1/2 A5" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-xl transition-colors cursor-pointer p-3 text-xs outline-none">1/2 A5 (Struk Sedang)</SelectItem>
-                <SelectItem value="A5" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-xl transition-colors cursor-pointer p-3 text-xs outline-none">A5 (Nota Standar)</SelectItem>
-                <SelectItem value="1/2 Folio" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-xl transition-colors cursor-pointer p-3 text-xs outline-none">1/2 Folio (Nota Besar / Kontan)</SelectItem>
-                <SelectItem value="A4" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-xl transition-colors cursor-pointer p-3 text-xs outline-none">A4 / F4 (Nota Full / Invoice)</SelectItem>
+              <SelectContent alignItemWithTrigger={false} side="top" sideOffset={8} className="bg-white border-slate-200 rounded-lg shadow-2xl z-[1100] p-1.5">
+                <SelectItem value="58mm" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-lg transition-colors cursor-pointer p-3 text-xs outline-none">58 mm (Kasir Mini / EDC)</SelectItem>
+                <SelectItem value="80mm" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-lg transition-colors cursor-pointer p-3 text-xs outline-none">80 mm (Kasir Standar)</SelectItem>
+                <SelectItem value="1/8 Folio" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-lg transition-colors cursor-pointer p-3 text-xs outline-none">1/8 Folio (Nota Mini / Olshop)</SelectItem>
+                <SelectItem value="1/4 Folio" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-lg transition-colors cursor-pointer p-3 text-xs outline-none">1/4 Folio (Nota Kecil / Bon)</SelectItem>
+                <SelectItem value="1/2 A5" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-lg transition-colors cursor-pointer p-3 text-xs outline-none">1/2 A5 (Struk Sedang)</SelectItem>
+                <SelectItem value="A5" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-lg transition-colors cursor-pointer p-3 text-xs outline-none">A5 (Nota Standar)</SelectItem>
+                <SelectItem value="1/2 Folio" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-lg transition-colors cursor-pointer p-3 text-xs outline-none">1/2 Folio (Nota Besar / Kontan)</SelectItem>
+                <SelectItem value="A4" className="font-bold data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-600 data-[selected]:bg-indigo-600 data-[selected]:text-white rounded-lg transition-colors cursor-pointer p-3 text-xs outline-none">A4 / F4 (Nota Full / Invoice)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -129,7 +129,7 @@ export function ReprintModal({ open, onOpenChange, transaction }: ReprintModalPr
               onClick={handleShare}
               disabled={isGenerating}
               variant="outline"
-              className="h-16 rounded-2xl border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50 font-black text-sm gap-3 transition-all"
+              className="h-16 rounded-lg border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50 font-black text-sm gap-3 transition-all"
             >
               <Share2 className={cn("size-5", isGenerating && "animate-pulse")} />
               {isGenerating ? 'MENGOLAH...' : 'BAGIKAN'}
@@ -137,7 +137,7 @@ export function ReprintModal({ open, onOpenChange, transaction }: ReprintModalPr
 
             <Button
               onClick={handlePrint}
-              className="h-16 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700 font-black text-sm gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95"
+              className="h-16 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 font-black text-sm gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95"
             >
               <Printer className="size-5" />
               CETAK NOTA
@@ -152,3 +152,4 @@ export function ReprintModal({ open, onOpenChange, transaction }: ReprintModalPr
     </div>
   );
 }
+

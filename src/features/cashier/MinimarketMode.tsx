@@ -11,12 +11,14 @@ import { calculateTieredDiscount } from "@/utils/calculations";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { BarcodeScanner } from "./BarcodeScanner";
+import dynamic from 'next/dynamic';
+const BarcodeScanner = dynamic(() => import('./BarcodeScanner').then(mod => mod.BarcodeScanner), { ssr: false });
 import { Badge } from "@/components/ui/badge";
 import { PinDialog } from "@/components/ui/PinDialog";
 
 import { useStaffStore } from '@/store/useStaffStore';
-import { List, LayoutGrid, Maximize2 } from "lucide-react";
+import { List, LayoutGrid, Maximize2, Package, Boxes } from "lucide-react";
+import { BundleImageCollage } from '@/components/master-data/BundleImageCollage';
 
 export function MinimarketMode({ 
   products, 
@@ -200,7 +202,7 @@ export function MinimarketMode({
           <DialogTrigger render={
             <Button 
               variant="outline" 
-              className="h-11 w-11 sm:w-auto sm:px-4 rounded-xl border-indigo-100 bg-indigo-50/30 text-indigo-600 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm active:scale-90 flex items-center justify-center gap-2 group"
+              className="h-11 w-11 sm:w-auto sm:px-4 rounded-lg border-indigo-100 bg-indigo-50/30 text-indigo-600 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm active:scale-90 flex items-center justify-center gap-2 group"
             >
               <div className="relative">
                 <Plus className="h-4 w-4 stroke-[3px]" />
@@ -246,7 +248,7 @@ export function MinimarketMode({
         
         {/* Fullscreen View Menu - Integrated into search row */}
         {isFullscreen && setViewMode && toggleFullscreen && (
-          <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-100 shrink-0">
+          <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-100 shrink-0">
             <Button
               variant="ghost"
               size="icon"
@@ -282,20 +284,39 @@ export function MinimarketMode({
       {/* Suggestions dropdown - Absolute positioned to not push content */}
       <div className="relative">
         {filtered.length > 0 && (
-          <div className="absolute top-0 left-0 right-0 border rounded-xl overflow-hidden shadow-lg bg-white z-50 mt-1 max-h-60 overflow-y-auto">
+          <div className="absolute top-0 left-0 right-0 border rounded-lg overflow-hidden shadow-lg bg-white z-50 mt-1 max-h-60 overflow-y-auto">
             {filtered.slice(0, 10).map(p => (
               <button
                 key={p.id}
-                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-indigo-50 transition-colors border-b last:border-b-0"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-indigo-50 transition-colors border-b last:border-b-0 group"
                 onClick={() => { addItem(p); setQuery(''); }}
               >
-                <div className="flex flex-col">
-                  <span className="font-bold text-gray-800">{p.name}</span>
-                  <span className="text-muted-foreground text-xs font-mono">{p.sku}</span>
+                <div className="size-10 shrink-0">
+                  {(p as any).is_bundle ? (
+                    <BundleImageCollage 
+                      productIds={(p as any).bundle_items?.map((bi: any) => bi.product_id) || []} 
+                      className="size-10"
+                    />
+                  ) : p.image_url ? (
+                    <img src={p.image_url} alt="" className="size-10 object-cover rounded-lg border border-slate-100" />
+                  ) : (
+                    <div className="size-10 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-center">
+                       <Package className="size-5 text-slate-300" />
+                    </div>
+                  )}
                 </div>
-                <div className="text-right">
-                  <div className="text-indigo-600 font-bold">Rp {p.price_sell.toLocaleString('id-ID')}</div>
-                  <div className="text-[10px] text-gray-400">Stok: {p.stock_store}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-gray-800 truncate">{p.name}</span>
+                    {(p as any).is_bundle && <Badge className="bg-indigo-600 text-[8px] h-3.5 px-1 uppercase tracking-widest font-black border-none">Paket</Badge>}
+                  </div>
+                  <span className="text-muted-foreground text-[10px] font-mono tracking-tighter">{p.sku || 'BUNDLING-CERDAS'}</span>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-indigo-600 font-black text-xs">Rp {p.price_sell.toLocaleString('id-ID')}</div>
+                  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    {(p as any).is_bundle ? 'Smart Bundle' : `Stok: ${p.stock_store}`}
+                  </div>
                 </div>
               </button>
             ))}
@@ -305,7 +326,7 @@ export function MinimarketMode({
 
       {/* Cart Table - Edge to Edge */}
       <div className="flex-1 bg-white flex flex-col min-h-0">
-        <div className="overflow-y-auto flex-1 scrollbar-hide pb-40 lg:pb-0">
+        <div className="overflow-y-auto flex-1 scrollbar-hide pb-48 lg:pb-0">
           <Table>
             <TableHeader className="bg-slate-50/80 sticky top-0 z-20 border-b border-slate-100">
               <TableRow className="h-10 border-none">
@@ -316,7 +337,7 @@ export function MinimarketMode({
             <TableBody>
               {items.map((item) => {
                 const product = products.find(p => p.id === item.id);
-                const isOverStock = product && !item.isCustom && item.quantity > product.stock_store;
+                const isOverStock = product && !item.isCustom && !(product as any).is_bundle && item.quantity > product.stock_store;
                 const finalPrice = calculateTieredDiscount(item.price, item.disc1, item.disc2, item.nominalDisc);
 
                 return (
@@ -372,7 +393,7 @@ export function MinimarketMode({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-10 w-10 rounded-xl border-slate-200 shadow-sm text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50"
+                  className="h-10 w-10 rounded-lg border-slate-200 shadow-sm text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50"
                   onClick={() => setDiscountForm(prev => ({ ...prev, quantity: Math.max(1, prev.quantity - 1) }))}
                 >
                   <Minus className="h-4 w-4" />
@@ -392,7 +413,7 @@ export function MinimarketMode({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-10 w-10 rounded-xl border-slate-200 shadow-sm text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50"
+                  className="h-10 w-10 rounded-lg border-slate-200 shadow-sm text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50"
                   onClick={() => setDiscountForm(prev => ({ ...prev, quantity: prev.quantity + 1 }))}
                 >
                   <Plus className="h-4 w-4" />
@@ -434,12 +455,12 @@ export function MinimarketMode({
             </div>
           </div>
           <DialogFooter className="flex flex-col gap-2 pt-2 rounded-b-lg">
-            <Button className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-black text-sm rounded-xl shadow-lg shadow-primary/10" onClick={handleSaveDiscount}>
+            <Button className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-black text-sm rounded-lg shadow-lg shadow-primary/10" onClick={handleSaveDiscount}>
               Simpan Perubahan
             </Button>
             <Button
               variant="outline"
-              className="w-full h-11 border-red-100 bg-red-50/50 text-red-600 hover:bg-red-100 hover:text-red-700 font-bold text-sm rounded-xl transition-colors"
+              className="w-full h-11 border-red-100 bg-red-50/50 text-red-600 hover:bg-red-100 hover:text-red-700 font-bold text-sm rounded-lg transition-colors"
               onClick={handleRemoveItemFromConfig}
             >
               Hapus dari Keranjang
@@ -486,5 +507,6 @@ export function MinimarketMode({
     </div>
   );
 }
+
 
 

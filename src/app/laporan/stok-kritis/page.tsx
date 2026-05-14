@@ -45,10 +45,10 @@ export default function StokKritisPage() {
   const headerActions = (
     <div className="flex items-center gap-2">
       <DropdownMenu>
-        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline", size: "icon" }), "h-9 w-9 rounded-xl border-2 border-slate-300 bg-white text-slate-900 shadow-sm")}>
+        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline", size: "icon" }), "h-9 w-9 rounded-lg border-2 border-slate-300 bg-white text-slate-900 shadow-sm")}>
           <Download className="h-4 w-4" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48 rounded-xl border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
+        <DropdownMenuContent align="end" className="w-48 rounded-lg border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
           <DropdownMenuItem onClick={exportReportPDF} className="flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer focus:bg-red-50 focus:text-red-700 outline-none">
             <FileText className="h-4 w-4 text-red-500" /><span className="text-[10px] font-black uppercase tracking-wider">Ekspor PDF</span>
           </DropdownMenuItem>
@@ -65,7 +65,7 @@ export default function StokKritisPage() {
       <div className="space-y-0 pb-20">
         {/* Urgent Alert Banner - Sharp & Aggressive */}
         <div className="bg-red-600 px-6 py-6 flex items-start gap-5 shadow-inner">
-          <div className="h-11 w-11 rounded-2xl bg-white text-red-600 flex items-center justify-center shrink-0 shadow-xl border-2 border-red-400">
+          <div className="h-11 w-11 rounded-lg bg-white text-red-600 flex items-center justify-center shrink-0 shadow-xl border-2 border-red-400">
             <AlertCircle className="h-7 w-7" />
           </div>
           <div className="flex flex-col gap-0.5">
@@ -84,7 +84,7 @@ export default function StokKritisPage() {
               {criticalProducts.length} PRODUK
             </span>
           </div>
-          <div className="h-12 w-12 bg-white rounded-2xl border-2 border-slate-200 flex items-center justify-center shadow-sm">
+          <div className="h-12 w-12 bg-white rounded-lg border-2 border-slate-200 flex items-center justify-center shadow-sm">
              <Package className="h-6 w-6 text-slate-400" />
           </div>
         </div>
@@ -112,10 +112,10 @@ export default function StokKritisPage() {
                 return (
                   <Link 
                     key={p.id} 
-                    href={`/stock?sku=${p.sku}`}
+                    href={`/stok?sku=${p.sku}`}
                     className="px-4 py-5 hover:bg-red-50 flex items-center gap-5"
                   >
-                    <div className="h-11 w-11 rounded-2xl bg-white text-red-600 flex items-center justify-center shrink-0 border-2 border-red-100 shadow-sm">
+                    <div className="h-11 w-11 rounded-lg bg-white text-red-600 flex items-center justify-center shrink-0 border-2 border-red-100 shadow-sm">
                       <AlertCircle className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -138,3 +138,4 @@ export default function StokKritisPage() {
     </ReportLayout>
   );
 }
+

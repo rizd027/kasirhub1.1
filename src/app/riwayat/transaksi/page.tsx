@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { db, LocalTransaction } from '@/db/dexie';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,12 +8,14 @@ import { Input } from '@/components/ui/input';
 import { 
   ReceiptText, CloudOff, CloudCheck, RefreshCw, Trash2, 
   MoreVertical, Download, Printer, ChevronDown, ChevronUp,
-  Search, Filter, Calendar, Info
+  Search, Filter, Calendar, Info, Loader2, Sparkles
 } from 'lucide-react';
 import { format, isToday, subDays, startOfDay, isAfter } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { uploadImage } from '@/services/cloudinary';
+import { analyzeImage } from '@/services/aiService';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +49,58 @@ export default function RiwayatTransaksiPage() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [reprintData, setReprintData] = useState<LocalTransaction | null>(null);
   const [pinTargetId, setPinTargetId] = useState<string | null>(null);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+
+  // Lazy Load (Progressive Rendering) State
+  const [visibleCount, setVisibleCount] = useState(20);
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [searchQuery, filterStatus, filterDate]);
+
+  // Intersection Observer for Infinite Scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => prev + 20);
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [transactions, searchQuery, filterStatus, filterDate]);
+
+  const handleVerifyPayment = async (tx: LocalTransaction, file: File) => {
+    setVerifyingId(tx.id!);
+    try {
+      const url = await uploadImage(file);
+      const result = await analyzeImage(url, 'verification');
+      
+      const isMatch = Math.abs(result.amount_detected - tx.total_amount) < 100; // Allow small rounding diff
+      
+      if (isMatch) {
+        toast.success(`VERIFIKASI BERHASIL: Nominal Rp ${result.amount_detected.toLocaleString('id-ID')} sesuai! (Bank: ${result.bank_name})`, {
+          duration: 5000
+        });
+      } else {
+        toast.error(`VERIFIKASI GAGAL: Nominal di struk (Rp ${result.amount_detected.toLocaleString('id-ID')}) TIDAK SESUAI dengan tagihan (Rp ${tx.total_amount.toLocaleString('id-ID')}).`, {
+          duration: 8000
+        });
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal memverifikasi bukti bayar');
+    } finally {
+      setVerifyingId(null);
+    }
+  };
 
   const fetchTransactions = useCallback(async () => {
     let query = db.transactions.where('deleted_at').equals('').or('deleted_at').notEqual('').toArray();
@@ -214,7 +268,7 @@ export default function RiwayatTransaksiPage() {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="size-9 rounded-xl hover:bg-emerald-50 text-emerald-600" 
+                className="size-9 rounded-lg hover:bg-emerald-50 text-emerald-600" 
                 onClick={handleExport}
                 title="Ekspor Excel"
               >
@@ -224,7 +278,7 @@ export default function RiwayatTransaksiPage() {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="size-9 rounded-xl hover:bg-red-50 text-red-500" 
+                className="size-9 rounded-lg hover:bg-red-50 text-red-500" 
                 onClick={handleClearOld}
                 title="Bersihkan Data Lama"
               >
@@ -239,7 +293,10 @@ export default function RiwayatTransaksiPage() {
       <div className="bg-white border-b px-4 pt-1 pb-4 space-y-4 shadow-sm">
         <div className="relative">
           <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <label htmlFor="tx-search" className="sr-only">Cari Transaksi</label>
           <Input 
+            id="tx-search"
+            name="tx-search"
             placeholder="Cari ID, pelanggan, atau produk..."
             className="pl-7 h-12 bg-transparent border-0 border-b-2 border-slate-100 rounded-none shadow-none text-sm focus-visible:ring-0 focus-visible:border-indigo-500 transition-all placeholder:text-slate-300 font-medium"
             value={searchQuery}
@@ -320,7 +377,7 @@ export default function RiwayatTransaksiPage() {
             <span className="text-sm font-semibold">Memuat riwayat...</span>
           </div>
         ) : filteredTransactions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-slate-400 gap-3 bg-white mx-4 mt-4 rounded-2xl border border-dashed border-slate-200">
+          <div className="flex flex-col items-center justify-center h-64 text-slate-400 gap-3 bg-white mx-4 mt-4 rounded-lg border border-dashed border-slate-200">
             <ReceiptText className="h-12 w-12 opacity-20" />
             <div className="text-center">
               <p className="text-sm font-semibold">Tidak ada data</p>
@@ -341,7 +398,7 @@ export default function RiwayatTransaksiPage() {
             )}
           </div>
         ) : (
-          filteredTransactions.map((tx) => {
+          filteredTransactions.slice(0, visibleCount).map((tx) => {
             const isExpanded = expandedIds.has(tx.id!);
             return (
               <div 
@@ -443,6 +500,38 @@ export default function RiwayatTransaksiPage() {
                           <Printer className="h-3.5 w-3.5" />
                           Cetak Ulang
                         </Button>
+                        <div className="flex-1 relative">
+                          <label htmlFor={`verify-ai-${tx.id}`} className="sr-only">Upload bukti bayar untuk verifikasi AI</label>
+                          <input 
+                            type="file" 
+                            id={`verify-ai-${tx.id}`}
+                            name={`verify-ai-${tx.id}`}
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleVerifyPayment(tx, file);
+                            }}
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className={cn(
+                              "w-full h-9 rounded-lg font-bold gap-2 text-[10px] uppercase tracking-wider",
+                              verifyingId === tx.id
+                                ? "bg-indigo-50 border-indigo-200 text-indigo-600 animate-pulse"
+                                : "border-emerald-100 text-emerald-600 hover:bg-emerald-50"
+                            )}
+                            disabled={verifyingId === tx.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              document.getElementById(`verify-ai-${tx.id}`)?.click();
+                            }}
+                          >
+                            {verifyingId === tx.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                            {verifyingId === tx.id ? 'Memverifikasi...' : 'Verifikasi AI'}
+                          </Button>
+                        </div>
                         <Button 
                           variant="ghost" 
                           size="sm" 
@@ -458,6 +547,13 @@ export default function RiwayatTransaksiPage() {
               </div>
             );
           })
+        )}
+
+        {filteredTransactions && visibleCount < filteredTransactions.length && (
+          <div ref={observerTarget} className="py-6 flex justify-center items-center opacity-50">
+            <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
+            <span className="ml-2 text-xs font-semibold text-slate-500 uppercase tracking-widest">Memuat...</span>
+          </div>
         )}
       </div>
 
@@ -482,3 +578,4 @@ export default function RiwayatTransaksiPage() {
     </div>
   );
 }
+

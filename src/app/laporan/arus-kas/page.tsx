@@ -62,7 +62,7 @@ export default function ArusKasPage() {
   const headerActions = (
     <div className="flex items-center gap-2">
       <Select value={filterDate} onValueChange={(v: any) => setFilterDate(v)}>
-        <SelectTrigger className="w-[130px] h-9 rounded-xl bg-slate-50 border-2 border-slate-300 text-[9px] font-black uppercase tracking-widest focus:ring-0 shadow-sm flex items-center px-3">
+        <SelectTrigger className="w-[130px] h-9 rounded-lg bg-slate-50 border-2 border-slate-300 text-[9px] font-black uppercase tracking-widest focus:ring-0 shadow-sm flex items-center px-3">
           <div className="flex items-center gap-2 truncate">
             {filterDate === 'today' && <Clock className="h-3 w-3 text-indigo-600" />}
             {filterDate === 'this_month' && <Calendar className="h-3 w-3 text-indigo-600" />}
@@ -72,7 +72,7 @@ export default function ArusKasPage() {
             </span>
           </div>
         </SelectTrigger>
-        <SelectContent align="end" className="w-[160px] rounded-xl border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
+        <SelectContent align="end" className="w-[160px] rounded-lg border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
           <SelectItem value="today" className="text-[10px] font-black uppercase tracking-widest py-2.5 px-3 focus:bg-indigo-50 focus:text-indigo-700 rounded-lg cursor-pointer outline-none">
             <div className="flex items-center gap-3"><Clock className="h-3.5 w-3.5 opacity-70" /><span>Hari Ini</span></div>
           </SelectItem>
@@ -86,10 +86,10 @@ export default function ArusKasPage() {
       </Select>
 
       <DropdownMenu>
-        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline", size: "icon" }), "h-9 w-9 rounded-xl border-2 border-slate-300 bg-white text-slate-900 shadow-sm")}>
+        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline", size: "icon" }), "h-9 w-9 rounded-lg border-2 border-slate-300 bg-white text-slate-900 shadow-sm")}>
           <Download className="h-4 w-4" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48 rounded-xl border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
+        <DropdownMenuContent align="end" className="w-48 rounded-lg border-2 border-slate-300 shadow-2xl p-1 animate-none bg-white z-[100]">
           <DropdownMenuItem onClick={exportReportPDF} className="flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer focus:bg-red-50 focus:text-red-700 outline-none">
             <FileText className="h-4 w-4 text-red-500" /><span className="text-[10px] font-black uppercase tracking-wider">Ekspor PDF</span>
           </DropdownMenuItem>
@@ -108,7 +108,7 @@ export default function ArusKasPage() {
         <div className="px-6 py-6 bg-slate-50/50 border-b-2 border-slate-300 flex flex-col gap-1">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Total Saldo Masuk</span>
-            <div className="h-10 w-10 bg-emerald-600 text-white rounded-2xl shadow-lg border-2 border-emerald-400 flex items-center justify-center">
+            <div className="h-10 w-10 bg-emerald-600 text-white rounded-lg shadow-lg border-2 border-emerald-400 flex items-center justify-center">
               <ArrowDownLeft className="h-5 w-5" />
             </div>
           </div>
@@ -142,7 +142,7 @@ export default function ArusKasPage() {
               {transactions.map((tx) => (
                 <div key={tx.id} className="px-4 py-6 hover:bg-slate-50 flex items-center gap-5">
                   <div className={cn(
-                    "h-12 w-12 rounded-2xl flex items-center justify-center border-2 shadow-sm shrink-0",
+                    "h-12 w-12 rounded-lg flex items-center justify-center border-2 shadow-sm shrink-0",
                     tx.status === 'paid' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100"
                   )}>
                     {tx.status === 'paid' ? <ArrowDownRight className="h-6 w-6" /> : <ArrowUpRight className="h-6 w-6" />}
@@ -184,3 +184,4 @@ export default function ArusKasPage() {
     </ReportLayout>
   );
 }
+

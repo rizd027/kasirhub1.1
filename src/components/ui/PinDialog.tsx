@@ -124,7 +124,7 @@ export function PinDialog({
 
           {/* PIN Indicator Dots */}
           <div className={cn(
-            "flex gap-4 p-6 rounded-3xl bg-white/5 border border-white/5",
+            "flex gap-4 p-6 rounded-lg bg-white/5 border border-white/5",
             isShaking && "border-red-500/50 bg-red-500/5"
           )}>
             {Array.from({ length: PIN_LENGTH }).map((_, i) => (
@@ -166,7 +166,7 @@ export function PinDialog({
                       key={`${ri}-${ki}`}
                       onClick={() => handleKey(key)}
                       className={cn(
-                        "aspect-square rounded-2xl flex items-center justify-center text-2xl font-medium transition-colors",
+                        "aspect-square rounded-lg flex items-center justify-center text-2xl font-medium transition-colors",
                         isDel 
                           ? "bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white" 
                           : "bg-white/5 border border-white/5 hover:bg-white/10 active:bg-indigo-600 active:text-white"
@@ -195,3 +195,4 @@ export function PinDialog({
     </div>
   );
 }
+
