@@ -51,9 +51,11 @@ export function MinimarketMode({
       addItem(product);
     } else {
       setQuery(decodedText);
+      // Optional: sonner notification could be added here
     }
   };
 
+  // Keyboard shortcut F2 to focus
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F2') {
@@ -154,7 +156,9 @@ export function MinimarketMode({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* Search / Scan Input - Fixed at top */}
       <div className="h-16 px-6 border-b flex items-center gap-4 shrink-0 bg-white">
+        {/* ... existing search input ... */}
         <div className="relative flex-1 group">
           <button
             type="button"
@@ -242,6 +246,7 @@ export function MinimarketMode({
           </DialogContent>
         </Dialog>
         
+        {/* Fullscreen View Menu - Integrated into search row */}
         {isFullscreen && setViewMode && toggleFullscreen && (
           <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-100 shrink-0">
             <Button
@@ -276,6 +281,7 @@ export function MinimarketMode({
         )}
       </div>
 
+      {/* Suggestions dropdown - Absolute positioned to not push content */}
       <div className="relative">
         {filtered.length > 0 && (
           <div className="absolute top-0 left-0 right-0 border rounded-lg overflow-hidden shadow-lg bg-white z-50 mt-1 max-h-60 overflow-y-auto">
@@ -318,6 +324,7 @@ export function MinimarketMode({
         )}
       </div>
 
+      {/* Cart Table - Edge to Edge */}
       <div className="flex-1 bg-white flex flex-col min-h-0">
         <div className="overflow-y-auto flex-1 scrollbar-hide pb-48 lg:pb-0">
           <Table>
@@ -372,12 +379,14 @@ export function MinimarketMode({
         </div>
       </div>
 
+      {/* Item Configuration Dialog */}
       <Dialog open={isDiscountOpen} onOpenChange={setIsDiscountOpen}>
         <DialogContent className="max-w-xs rounded-lg sm:rounded-lg">
           <DialogHeader>
             <DialogTitle>Konfigurasi Item</DialogTitle>
           </DialogHeader>
           <div className="grid gap-5 py-4 border-y border-slate-50">
+            {/* Quantity Adjuster */}
             <div className="flex flex-col gap-2">
               <Label className="text-[10px] uppercase text-gray-400 font-black tracking-widest text-center">Jumlah Item</Label>
               <div className="flex items-center justify-center gap-3">
@@ -414,6 +423,7 @@ export function MinimarketMode({
 
             <div className="h-px bg-slate-100 mx-4" />
 
+            {/* Discount Inputs */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-1">
                 <Label className="text-[10px] uppercase text-gray-400 font-black tracking-widest text-center">Diskon 1 (%)</Label>
@@ -459,6 +469,7 @@ export function MinimarketMode({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Camera Barcode Scanner */}
       <BarcodeScanner
         open={isScannerOpen}
         onOpenChange={setIsScannerOpen}

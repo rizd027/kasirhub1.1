@@ -137,6 +137,7 @@ export default function AbsensiPage() {
     const toastId = toast.loading('Memproses...');
 
     try {
+      // 1. Get Location
       let latitude: number | undefined;
       let longitude: number | undefined;
       
@@ -154,6 +155,7 @@ export default function AbsensiPage() {
         console.warn('Geolocation failed or timed out:', err.message || err);
       }
 
+      // 2. Upload to Cloudinary
       const imageFile = new File([imageBlob], `${selectedEmp.id}_${Date.now()}.jpg`, { type: 'image/jpeg' });
       const photoUrl = await uploadImage(imageFile);
 
@@ -162,6 +164,8 @@ export default function AbsensiPage() {
         return;
       }
 
+      // user_id harus UUID owner (auth.users), bukan ID karyawan.
+      // selectedEmp.user_id adalah kolom FK ke auth.users di tabel employees.
       const ownerUserId = selectedEmp.user_id;
       if (!ownerUserId) {
         toast.error('Data toko tidak valid, hubungi admin');
@@ -187,8 +191,10 @@ export default function AbsensiPage() {
 
       await db.attendance.add(newRecord);
       
+      // Add to background sync queue
       await addToSyncQueue('attendance', 'insert', recordId, newRecord);
       
+      // Trigger sync immediately
       runSync();
       
       setCameraActive(false);
@@ -228,6 +234,7 @@ export default function AbsensiPage() {
   const handleLogout = async () => {
     const toastId = toast.loading('Keluar...');
     try {
+      // Jika shift sudah selesai (absen masuk & pulang), logout langsung tanpa absensi lagi
       setCheckedIn(false);
       await clearAllLocalData();
       router.replace('/login');
@@ -286,9 +293,11 @@ export default function AbsensiPage() {
           <div className="flex-1 p-3 overflow-y-auto bg-slate-50/50">
             <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-4">
               
+              {/* PANEL KIRI: ACTION CENTER */}
               <div className="lg:col-span-7 flex flex-col space-y-6">
                 {selectedEmp ? (
                   <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-500">
+                    {/* Header Identitas - Compact & Balanced */}
                     <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm border border-slate-100 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6 relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full -mr-16 -mt-16 blur-2xl" />
                       
@@ -318,6 +327,7 @@ export default function AbsensiPage() {
                       </div>
                     </div>
 
+                    {/* Action Cards - Masuk / Pulang (2 columns on mobile) */}
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
                       <button
                         onClick={() => setAbsenType('in')}
@@ -366,6 +376,7 @@ export default function AbsensiPage() {
                       </button>
                     </div>
 
+                    {/* Big Action Button */}
                     <button
                       disabled={uploading || (!cameraActive && !absenType && !(hasCheckedInToday && hasCheckedOutToday))}
                       onClick={() => {
@@ -435,6 +446,7 @@ export default function AbsensiPage() {
                 )}
               </div>
 
+              {/* PANEL KANAN: LOG AKTIVITAS */}
               <div className="lg:col-span-5 flex flex-col min-h-0 bg-white rounded-lg border border-slate-100 shadow-sm p-4 lg:p-6 overflow-hidden relative">
                 <div className="absolute top-0 right-0 p-8 opacity-[0.02] pointer-events-none">
                   <Clock className="size-40 rotate-12" />
@@ -497,6 +509,7 @@ export default function AbsensiPage() {
           </div>
         )}
       </div>
+      {/* CAMERA OVERLAY - FULL SCREEN IMMERSIVE */}
       {cameraActive && (
         <div className="fixed inset-0 z-[110] bg-black">
           <CameraCapture 
@@ -505,12 +518,15 @@ export default function AbsensiPage() {
           />
         </div>
       )}
+      {/* SHIFT SUMMARY OVERLAY - PREMIUM REDESIGN */}
       {showSummary && summaryData && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xl animate-in fade-in duration-500">
           <div className="bg-white w-full max-w-md rounded-lg p-8 lg:p-12 flex flex-col items-center relative overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] border border-white">
+             {/* Decorative Background Element */}
              <div className="absolute -top-24 -right-24 size-48 bg-emerald-500/10 rounded-full blur-3xl" />
              <div className="absolute -bottom-24 -left-24 size-48 bg-indigo-500/10 rounded-full blur-3xl" />
              
+             {/* Success Icon Section */}
              <div className="relative mb-10">
                 <div className="absolute inset-0 bg-emerald-500 blur-2xl opacity-20 animate-pulse" />
                 <div className="relative size-24 rounded-md bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-xl shadow-emerald-200 rotate-6 transform transition-transform hover:rotate-0 duration-500">
@@ -525,6 +541,7 @@ export default function AbsensiPage() {
                 <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em]">Laporan Performa Hari Ini</p>
              </div>
              
+             {/* Stats Grid - Premium Cards */}
               <div className="w-full grid grid-cols-2 gap-4 mb-12">
                  <div className="bg-slate-50/80 border border-slate-100 p-6 rounded-md flex flex-col items-center group hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300">
                    <div className="size-10 rounded-md bg-white shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -543,6 +560,7 @@ export default function AbsensiPage() {
                  </div>
               </div>
 
+              {/* Action Button - Premium Gradient */}
               <button
                 onClick={async () => {
                   const toastId = toast.loading('Membersihkan sesi...');

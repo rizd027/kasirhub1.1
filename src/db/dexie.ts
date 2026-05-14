@@ -10,7 +10,7 @@ export interface LocalStockMutation {
   qty: number;
   note?: string;
   created_at: string;
-  synced: number;
+  synced: number; // 0 for no, 1 for yes
 }
 
 export interface LocalAttendance {
@@ -21,13 +21,13 @@ export interface LocalAttendance {
   photo_url: string;
   latitude?: number;
   longitude?: number;
-  is_verified: number;
+  is_verified: number; // 0 for no, 1 for yes
   note?: string;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
   sync_status: 'synced' | 'pending' | 'failed';
-  synced: number;
+  synced: number; // 0 for no, 1 for yes
 }
 
 export interface Category {
@@ -54,6 +54,8 @@ export interface Product {
     stock_store: number;
     stock_warehouse: number;
     note?: string;
+    batch_id?: string; // Marker for derived products from HPP batch
+    // Manufacturing / Pro HPP Fields
     prod_target_batch?: number;
     prod_output_qty?: number;
     prod_wastage_percent?: number;
@@ -93,7 +95,7 @@ export interface TransactionItem {
     product_id: string;
     quantity: number;
     price_at_time: number;
-    cost_at_time: number;
+    cost_at_time: number; // HPP saat transaksi
     name_at_time: string;
     discount_details?: any;
     user_id: string;
@@ -185,6 +187,7 @@ export interface Employee {
     sync_status?: 'synced' | 'pending' | 'failed';
 }
 
+// Aliases for legacy UI components
 export type LocalProduct = Product;
 export type LocalTransaction = Transaction;
 
@@ -227,7 +230,7 @@ export interface ProductIngredient {
     product_id: string;
     ingredient_id: string;
     quantity: number;
-    is_packaging?: number;
+    is_packaging?: number; // 0 for raw material, 1 for packaging
     created_at: string;
     updated_at: string;
     deleted_at?: string | null;
@@ -243,7 +246,7 @@ export interface HppBatch {
     raw_material_qty: number;
     raw_material_unit: string;
     batch_qty: number;
-    serving_size?: number;
+    serving_size?: number; // For culinary: 1 recipe = X portions
     wastage_pct?: number; 
     contingency_pct?: number; 
     tax_included?: boolean; 
@@ -252,12 +255,12 @@ export interface HppBatch {
     labor_rate?: number; // Precision labor
     shipping_cost?: number; 
     tax_import_cost?: number; 
-    insurance_cost?: number;
-    handling_fee?: number;
-    packaging_cost?: number;
-    marketing_insert_cost?: number;
-    utility_costs?: number;
-    maintenance_costs?: number;
+    insurance_cost?: number; // Reseller logistics
+    handling_fee?: number; // Reseller logistics
+    packaging_cost?: number; 
+    marketing_insert_cost?: number; // Thank you cards, etc
+    utility_costs?: number; // Gas, Water, Electricity
+    maintenance_costs?: number; // Tool depreciation
     ads_cost?: number;
     cod_fee_pct?: number;
     return_rate_pct?: number;
@@ -316,6 +319,7 @@ export class AppDB extends Dexie {
     product_ingredients!: Table<ProductIngredient>;
     customer_orders!: Table<any>;
     
+    // Legacy tables
     stock_mutations!: Table<LocalStockMutation>;
     attendance!: Table<LocalAttendance>;
     employees!: Table<Employee>;
@@ -326,21 +330,21 @@ export class AppDB extends Dexie {
     constructor() {
         super('KasirHubDB');
         this.version(28).stores({
-            categories: 'id, user_id, type, updated_at, sync_status',
-            products: 'id, user_id, sku, category_id, updated_at, sync_status, prod_name, prod_target_batch, batch_id',
-            transactions: 'id, user_id, employee_id, created_at, updated_at, sync_status',
-            transaction_items: 'id, transaction_id, product_id, user_id, sync_status, updated_at',
-            stock_logs: 'id, user_id, product_id, created_at',
+            categories: 'id, user_id, type, updated_at, sync_status, deleted_at',
+            products: 'id, user_id, sku, category_id, updated_at, sync_status, prod_name, prod_target_batch, batch_id, deleted_at',
+            transactions: 'id, user_id, employee_id, created_at, updated_at, sync_status, deleted_at',
+            transaction_items: 'id, transaction_id, product_id, user_id, sync_status, updated_at, deleted_at',
+            stock_logs: 'id, user_id, product_id, created_at, deleted_at',
             sync_queue: '++id, created_at, table_name, record_id, sync_status, next_retry_at',
             sync_errors: '++id, created_at, table_name, record_id',
             settings: 'user_id, updated_at',
             profiles: 'id, slug, updated_at',
-            expenses: 'id, user_id, category, created_at, updated_at, sync_status',
-            ingredients: 'id, user_id, name, type, sync_status, updated_at',
-            product_ingredients: 'id, user_id, product_id, ingredient_id, sync_status, updated_at',
-            customer_orders: 'id, user_id, status, updated_at, sync_status',
-            stock_mutations: 'id, remote_id, synced, product_id, created_at',
-            attendance: 'id, remote_id, created_at, employee_id, sync_status, updated_at',
+            expenses: 'id, user_id, category, created_at, updated_at, sync_status, deleted_at',
+            ingredients: 'id, user_id, name, type, sync_status, updated_at, deleted_at',
+            product_ingredients: 'id, user_id, product_id, ingredient_id, sync_status, updated_at, deleted_at',
+            customer_orders: 'id, user_id, status, updated_at, sync_status, deleted_at',
+            stock_mutations: '++id, remote_id, synced, product_id, created_at',
+            attendance: '++id, remote_id, created_at, employee_id, sync_status, updated_at, deleted_at',
             employees: 'id, updated_at, sync_status, deleted_at',
             hpp_batches: 'id, user_id, name, created_at, updated_at, sync_status, deleted_at',
             bundling: 'id, user_id, name, created_at, updated_at, sync_status, deleted_at',

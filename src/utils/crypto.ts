@@ -9,6 +9,12 @@
 export async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
+  
+  // Check if crypto.subtle is available (it requires a secure context: HTTPS or localhost)
+  if (!crypto || !crypto.subtle) {
+    throw new Error('Fitur keamanan (Crypto API) tidak tersedia. Pastikan Anda menggunakan koneksi aman (HTTPS) atau localhost.');
+  }
+
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');

@@ -63,6 +63,7 @@ export function CartOverlay({ open, onOpenChange, products, onProceedPay }: Cart
     };
 
     if (open) {
+      // Push state for hardware back button support
       window.history.pushState({ modal: 'cart' }, '');
       window.addEventListener('popstate', handlePopState);
     }
@@ -76,6 +77,7 @@ export function CartOverlay({ open, onOpenChange, products, onProceedPay }: Cart
 
   return (
     <div className="fixed inset-0 z-[90] flex flex-col bg-white animate-in slide-in-from-bottom duration-300 no-print">
+      {/* Header */}
       <div className="pt-6 pb-4 bg-white border-b flex items-center px-4 shrink-0 shadow-sm relative z-10">
         <button 
           onClick={() => onOpenChange(false)}
@@ -94,6 +96,7 @@ export function CartOverlay({ open, onOpenChange, products, onProceedPay }: Cart
         </Button>
       </div>
 
+      {/* Cart Items */}
       <div className="flex-1 overflow-y-auto">
         {items.map(item => {
           const product = products.find(p => p.id === item.id);
@@ -152,6 +155,7 @@ export function CartOverlay({ open, onOpenChange, products, onProceedPay }: Cart
         )}
       </div>
 
+      {/* Footer */}
       <div className="p-4 bg-white border-t shrink-0">
         <div className="max-w-md mx-auto">
           <Button 

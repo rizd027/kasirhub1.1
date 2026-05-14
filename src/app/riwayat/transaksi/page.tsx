@@ -238,7 +238,7 @@ export default function RiwayatTransaksiPage() {
         const q = searchQuery.toLowerCase();
         const matchesId = tx.id?.toString().toLowerCase().includes(q);
         const matchesCustomer = tx.customer_name?.toLowerCase().includes(q);
-        const matchesItems = tx.items.some(i => i.name_at_time.toLowerCase().includes(q));
+        const matchesItems = tx.items?.some(i => i.name_at_time.toLowerCase().includes(q)) || false;
         if (!matchesId && !matchesCustomer && !matchesItems) return false;
       }
 
@@ -430,7 +430,7 @@ export default function RiwayatTransaksiPage() {
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[10px] text-slate-400 font-medium italic">
-                        {tx.items.length} item pesanan
+                        {(tx.items?.length || 0)} item pesanan
                       </span>
                     </div>
                   </div>
@@ -469,15 +469,19 @@ export default function RiwayatTransaksiPage() {
                     <div className="border-t border-slate-50 pt-3 space-y-2">
                       <div className="text-[9px] font-semibold text-slate-300 uppercase tracking-[0.2em] mb-2">Detail Transaksi</div>
                       <div className="space-y-1.5">
-                        {tx.items.map((item: any, idx: number) => (
-                          <div key={idx} className="flex justify-between text-xs items-center">
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-slate-700">{item.name_at_time}</span>
-                              <span className="text-[10px] text-slate-400">{item.quantity || 0} x Rp {(item.price_at_time || 0).toLocaleString('id-ID')}</span>
+                        {tx.items && tx.items.length > 0 ? (
+                          tx.items.map((item: any, idx: number) => (
+                            <div key={idx} className="flex justify-between text-xs items-center">
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-slate-700">{item.name_at_time}</span>
+                                <span className="text-[10px] text-slate-400">{item.quantity || 0} x Rp {(item.price_at_time || 0).toLocaleString('id-ID')}</span>
+                              </div>
+                              <span className="font-semibold text-slate-600">Rp {((item.price_at_time || 0) * (item.quantity || 0)).toLocaleString('id-ID')}</span>
                             </div>
-                            <span className="font-semibold text-slate-600">Rp {((item.price_at_time || 0) * (item.quantity || 0)).toLocaleString('id-ID')}</span>
-                          </div>
-                        ))}
+                          ))
+                        ) : (
+                          <div className="text-[10px] text-slate-400 italic">Rincian item tidak tersedia di lokal</div>
+                        )}
                       </div>
 
                       {tx.discount_total > 0 && (

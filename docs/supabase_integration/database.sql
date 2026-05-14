@@ -369,19 +369,37 @@ BEGIN
   END LOOP;
 END $$;
 
--- Generic strict policy generator
+-- Generic strict policy generator (for Owner-only management)
 DO $$
 DECLARE tbl TEXT;
 BEGIN
   FOR tbl IN SELECT unnest(ARRAY[
-    'categories', 'products', 'ingredients', 'hpp_batches', 'bundling', 
-    'processing_costs', 'product_ingredients', 'transactions', 'transaction_items', 
-    'expenses', 'stock_logs', 'employees', 'attendance', 'customer_orders'
+    'categories', 'hpp_batches', 'bundling', 
+    'processing_costs', 'product_ingredients', 'employees', 'customer_orders'
   ]) LOOP
     EXECUTE format('DROP POLICY IF EXISTS "Users can manage own %I" ON public.%I', tbl, tbl);
     EXECUTE format('CREATE POLICY "Users can manage own %I" ON public.%I 
       FOR ALL TO authenticated 
       USING (auth.uid() = user_id AND deleted_at IS NULL) 
+      WITH CHECK (auth.uid() = user_id)', tbl, tbl);
+  END LOOP;
+END $$;
+
+-- Special cases for Transactions, Items, Expenses & Stock Logs (Public Insert/Update for Staff, Owner Read)
+DO $$
+DECLARE tbl TEXT;
+BEGIN
+  FOR tbl IN SELECT unnest(ARRAY['transactions', 'transaction_items', 'expenses', 'stock_logs']) LOOP
+    EXECUTE format('DROP POLICY IF EXISTS "Users can manage own %I" ON public.%I', tbl, tbl);
+    EXECUTE format('DROP POLICY IF EXISTS "Anyone can manage %I" ON public.%I', tbl, tbl);
+    
+    -- Anyone can insert & update (for staff soft-login & triggers)
+    EXECUTE format('CREATE POLICY "Anyone can manage %I" ON public.%I FOR ALL USING (true) WITH CHECK (true)', tbl, tbl);
+    
+    -- Only owner can manage via Auth (redundant but safe)
+    EXECUTE format('CREATE POLICY "Users can manage own %I" ON public.%I 
+      FOR ALL TO authenticated 
+      USING (auth.uid() = user_id) 
       WITH CHECK (auth.uid() = user_id)', tbl, tbl);
   END LOOP;
 END $$;
@@ -392,16 +410,38 @@ DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
 CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
 CREATE POLICY "Users can manage own profile" ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
--- Products & Categories (Public Read)
+-- Products, Ingredients & Bundling (Public Read & Update for Stock Triggers)
 DROP POLICY IF EXISTS "Users can manage own products" ON products;
 DROP POLICY IF EXISTS "Public products are viewable by everyone" ON products;
+DROP POLICY IF EXISTS "Anyone can update product stock" ON products;
 CREATE POLICY "Public products are viewable by everyone" ON products FOR SELECT USING (deleted_at IS NULL);
+CREATE POLICY "Anyone can update product stock" ON products FOR UPDATE USING (true) WITH CHECK (true);
 CREATE POLICY "Users can manage own products" ON products FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can manage own ingredients" ON ingredients;
+DROP POLICY IF EXISTS "Public ingredients viewable" ON ingredients;
+DROP POLICY IF EXISTS "Anyone can update ingredient stock" ON ingredients;
+CREATE POLICY "Public ingredients viewable" ON ingredients FOR SELECT USING (deleted_at IS NULL);
+CREATE POLICY "Anyone can update ingredient stock" ON ingredients FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Users can manage own ingredients" ON ingredients FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Users can manage own categories" ON categories;
 DROP POLICY IF EXISTS "Public categories are viewable by everyone" ON categories;
 CREATE POLICY "Public categories are viewable by everyone" ON categories FOR SELECT USING (deleted_at IS NULL);
 CREATE POLICY "Users can manage own categories" ON categories FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- Shared Data (Public Read)
+DROP POLICY IF EXISTS "Public bundling viewable" ON bundling;
+CREATE POLICY "Public bundling viewable" ON bundling FOR SELECT USING (deleted_at IS NULL);
+
+DROP POLICY IF EXISTS "Public product_ingredients viewable" ON product_ingredients;
+CREATE POLICY "Public product_ingredients viewable" ON product_ingredients FOR SELECT USING (deleted_at IS NULL);
+
+DROP POLICY IF EXISTS "Public hpp_batches viewable" ON hpp_batches;
+CREATE POLICY "Public hpp_batches viewable" ON hpp_batches FOR SELECT USING (deleted_at IS NULL);
+
+DROP POLICY IF EXISTS "Public processing_costs viewable" ON processing_costs;
+CREATE POLICY "Public processing_costs viewable" ON processing_costs FOR SELECT USING (deleted_at IS NULL);
 
 -- Employees (Public Read for login & selection)
 DROP POLICY IF EXISTS "Users can manage own employees" ON employees;
@@ -426,17 +466,11 @@ CREATE POLICY "Customers can insert their own orders" ON customer_orders FOR INS
 CREATE POLICY "Buyers can view their own orders" ON customer_orders FOR SELECT TO authenticated USING (buyer_id = auth.uid() OR auth.uid() = user_id);
 CREATE POLICY "Owners can manage orders" ON customer_orders FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
+-- Settings (Public Read)
 DROP POLICY IF EXISTS "Users can manage own settings" ON settings;
 DROP POLICY IF EXISTS "Public settings are viewable by everyone" ON settings;
 CREATE POLICY "Public settings are viewable by everyone" ON settings FOR SELECT USING (true);
 CREATE POLICY "Users can manage own settings" ON settings FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-
--- Other Shared Data (Public Read)
-CREATE POLICY "Public bundling viewable" ON bundling FOR SELECT USING (deleted_at IS NULL);
-CREATE POLICY "Public ingredients viewable" ON ingredients FOR SELECT USING (deleted_at IS NULL);
-CREATE POLICY "Public product_ingredients viewable" ON product_ingredients FOR SELECT USING (deleted_at IS NULL);
-CREATE POLICY "Public hpp_batches viewable" ON hpp_batches FOR SELECT USING (deleted_at IS NULL);
-CREATE POLICY "Public processing_costs viewable" ON processing_costs FOR SELECT USING (deleted_at IS NULL);
 
 -- 8. Realtime Configuration
 DO $$

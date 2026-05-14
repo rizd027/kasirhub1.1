@@ -1,7 +1,7 @@
 export const uploadImage = async (file: File | string) => {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('upload_preset', 'kasirhub_preset');
+  formData.append('upload_preset', 'kasirhub_preset'); // User needs to create this in Cloudinary
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dlnd3fzty';
   

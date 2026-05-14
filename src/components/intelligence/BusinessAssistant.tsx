@@ -102,11 +102,14 @@ export function BusinessAssistant() {
     };
   }, [isOpen]);
 
+  // Hide on certain pages to avoid obstruction or unnecessary presence
   const hiddenRoutes = ['/login', '/register', '/kasir', '/menu', '/absensi'];
   if (hiddenRoutes.some(route => pathname?.startsWith(route))) return null;
 
+  // IMPORTANT: Hide for staff to prevent access to sensitive financial analysis
   if (session?.role === 'staff') return null;
 
+  // Respect user preference for FAB visibility
   if (prefs && prefs.showChatbotFab === false) return null;
 
   const IconMap: Record<string, any> = {
@@ -223,10 +226,13 @@ export function BusinessAssistant() {
         style={{ opacity: (prefs?.chatbotFabOpacity || 100) / 100 }}
         className={cn(
           "fixed right-0 lg:right-6 rounded-full bg-indigo-600 text-white shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 z-50 group border-4 border-white",
+          // Position
           "bottom-24 lg:bottom-6",
+          // Size
           prefs?.chatbotFabSize === 'sm' && "size-10 lg:size-12",
           (prefs?.chatbotFabSize === 'md' || !prefs?.chatbotFabSize) && "size-14 lg:size-16",
           prefs?.chatbotFabSize === 'lg' && "size-18 lg:size-20",
+          // Visibility & Auto-Hide (Docking) logic
           isOpen ? "scale-0 opacity-0 pointer-events-none" : "scale-100",
           prefs?.chatbotFabAutoHide && !isOpen
             ? "translate-x-1/2 lg:translate-x-1/2 hover:translate-x-0 opacity-50 hover:opacity-100"
@@ -243,10 +249,12 @@ export function BusinessAssistant() {
         )} />
       </button>
 
+      {/* Assistant Panel */}
       <div className={cn(
         "fixed inset-y-0 right-0 w-full sm:w-[420px] bg-white/95 backdrop-blur-xl z-[60] flex flex-col sm:border-l sm:border-white/20 sm:shadow-[-20px_0_80px_rgba(0,0,0,0.15)]",
         !isOpen && "hidden"
       )}>
+        {/* Header */}
         <div className="py-3 px-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white shadow-lg">
           <div className="flex items-center gap-2.5">
             <div className="size-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-[0_0_15px_rgba(79,70,229,0.3)] border border-indigo-400/20">
@@ -271,6 +279,7 @@ export function BusinessAssistant() {
           </button>
         </div>
 
+        {/* Messages Area */}
         <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-slate-50/30"
@@ -352,6 +361,7 @@ export function BusinessAssistant() {
           </div>
         </div>
 
+        {/* Input Area */}
         <div className="px-4 pb-4 bg-white/80">
           <div className="relative group">
             <label htmlFor="ai-assistant-input" className="sr-only">Tanya asisten strategi</label>

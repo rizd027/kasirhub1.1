@@ -47,6 +47,7 @@ export default function KasirPage() {
   const [kasirUserId, setKasirUserId] = useState<string | null>(null);
   const [lastTx, setLastTx] = useState<LocalTransaction | null>(null);
   
+  // Reactive data fetching with useLiveQuery
   const rawProducts = useLiveQuery(() => db.products.toArray()) || [];
   const rawCategories = useLiveQuery(() => db.categories.toArray()) || [];
   const rawBundles = useLiveQuery(() => db.bundling.toArray()) || [];
@@ -76,16 +77,23 @@ export default function KasirPage() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const router = useRouter();
   
+  // Activate background sync
+  // useSync is now handled globally by SyncProvider in root layout
 
+  // Effect 1: Fetch admin owner_id (from session)
   useEffect(() => {
     if (session) {
       setKasirUserId(session.owner_id || session.id);
     }
   }, [session]);
 
+  // Effect 2: Subscribe to customer_orders Realtime (runs when kasirUserId is ready)
+  // Separated from Effect 1 so that .on() is always called BEFORE .subscribe(),
+  // avoiding the "cannot add callbacks after subscribe()" error from React Strict Mode.
   useEffect(() => {
     if (!kasirUserId) return;
 
+    // Initial pending count
     supabase
       .from('customer_orders')
       .select('id', { count: 'exact' })
@@ -93,6 +101,7 @@ export default function KasirPage() {
       .eq('status', 'pending')
       .then(({ count }) => setPendingOrderCount(count || 0));
 
+    // Realtime subscription — all .on() calls happen synchronously before .subscribe()
     const channel = supabase
       .channel(`kasir-inbox-badge-${kasirUserId}-${Date.now()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'customer_orders', filter: `user_id=eq.${kasirUserId}` }, () => {
@@ -109,6 +118,7 @@ export default function KasirPage() {
 
   const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
 
+  // Auth & Attendance Check
   useEffect(() => {
     if (!session) {
       router.push('/login');
@@ -124,8 +134,10 @@ export default function KasirPage() {
     router.prefetch('/pengaturan');
   }, []);
 
+  // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl + Enter to Pay or open Cart
       if (e.ctrlKey && e.key === 'Enter' && items.length > 0) {
         e.preventDefault();
         if (viewMode === 'resto') {
@@ -134,6 +146,7 @@ export default function KasirPage() {
           setPayDialogOpen(true);
         }
       }
+      // Esc to Reset
       if (e.key === 'Escape' && items.length > 0 && !payDialogOpen && !successDialogOpen) {
         setShowClearConfirm(true);
       }
@@ -149,6 +162,7 @@ export default function KasirPage() {
       setPayDialogOpen(false);
       setSuccessDialogOpen(true);
 
+      // Auto Print Logic
       const savedPrefs = localStorage.getItem('kasirhub_prefs');
       if (savedPrefs) {
         try {
@@ -161,6 +175,7 @@ export default function KasirPage() {
         } catch (e) {}
       }
       
+      // Immediate sync if online
       triggerSync().catch(console.error);
     }
   };
@@ -207,8 +222,10 @@ export default function KasirPage() {
 
   return (
     <div data-kasir-root className={cn("flex flex-col bg-background select-none overflow-hidden", isFullscreen ? "h-screen" : "h-[calc(100dvh-4rem)] lg:h-screen")}>
+      {/* Header */}
       {!isFullscreen && (
         <header className="flex items-center justify-between px-3 h-14 border-b bg-white shrink-0 no-print sticky top-0 z-50">
+          {/* Session Profile */}
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-2 hover:bg-slate-50 p-1.5 rounded-lg transition-all border border-transparent hover:border-slate-100 group outline-none">
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black border border-primary/10 text-xs shadow-sm group-hover:scale-105 transition-transform shrink-0">
@@ -240,6 +257,7 @@ export default function KasirPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Right Controls */}
           <div className="flex items-center gap-1.5">
             <SyncIndicator />
             <div className="flex items-center gap-0.5 bg-slate-50 p-1 rounded-lg border border-slate-100">
@@ -294,7 +312,9 @@ export default function KasirPage() {
         </header>
       )}
 
+      {/* Main Content Area - Responsive Split Layout */}
       <main className="flex-1 overflow-hidden flex lg:flex-row flex-col min-h-0 no-print bg-white">
+        {/* Left Side: Product Catalog / Modes */}
         <div className="flex-1 flex flex-col overflow-hidden min-h-0 border-r border-slate-100">
           <HoldOrderBar />
           <div className="flex-1 flex flex-col overflow-hidden min-h-0">
@@ -306,10 +326,12 @@ export default function KasirPage() {
           </div>
         </div>
 
+        {/* Right Side: Desktop Cart Sidebar (Visible only on lg+) */}
         <aside 
           data-desktop-cart
           className="hidden lg:flex w-[400px] flex-col bg-slate-50/50 shrink-0 overflow-hidden border-l border-slate-200/60 shadow-[inset_0_0_40px_rgba(0,0,0,0.02)]"
         >
+          {/* Header Sidebar */}
           <div className="h-16 px-6 border-b bg-white/80 backdrop-blur-sm flex items-center justify-between">
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-indigo-600/60 uppercase tracking-[0.2em] mb-1">Daftar Belanja</span>
@@ -350,6 +372,7 @@ export default function KasirPage() {
             </div>
           </div>
 
+          {/* Cart Items List - Desktop */}
           <div className="flex-1 overflow-y-auto px-6 py-2">
              {items.map((item) => (
                <div key={item.id} className="py-3 border-b border-slate-200/60 flex items-center gap-4 group transition-all">
@@ -381,6 +404,7 @@ export default function KasirPage() {
              )}
           </div>
 
+          {/* Sidebar Footer - Totals & Pay */}
           <div className="p-3 bg-white border-t border-slate-200/60 space-y-3 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
             <div className="space-y-1.5">
               {getOrderDiscountAmount() > 0 && (
@@ -409,6 +433,8 @@ export default function KasirPage() {
         </aside>
       </main>
 
+      {/* Footer / Mobile Summary Bar - Hidden on lg+ Desktop Sidebar */}
+      {/* Mobile Summary Bar - Fixed at bottom, above nav bar */}
       <div 
         data-mobile-cart-footer
         className={cn(
@@ -416,6 +442,7 @@ export default function KasirPage() {
           isFullscreen ? "bottom-0 pb-safe" : "bottom-16"
         )}
       >
+        {/* Total Row */}
         <div className="flex items-center justify-between px-4 pt-3 pb-2">
           <div className="flex flex-col gap-0.5">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
@@ -440,7 +467,9 @@ export default function KasirPage() {
           </div>
         </div>
 
+        {/* Action Buttons Row */}
         <div className="flex items-center gap-2 px-4 pb-3">
+          {/* Inbox */}
           <button
             onClick={() => setInboxOpen(true)}
             className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all active:scale-95"
@@ -457,6 +486,7 @@ export default function KasirPage() {
             )}
           </button>
 
+          {/* Void / Clear */}
           <button
             onClick={() => {
               const savedPin = localStorage.getItem('kasirhub_app_password');
@@ -470,6 +500,7 @@ export default function KasirPage() {
             <Trash2 className="h-4 w-4" />
           </button>
 
+          {/* Pay Button */}
           <Button 
             className="flex-1 h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm shadow-lg shadow-indigo-200 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2" 
             disabled={items.length === 0}
@@ -499,6 +530,7 @@ export default function KasirPage() {
         description="Pembatalan seluruh pesanan memerlukan verifikasi PIN Pemilik."
       />
 
+      {/* Resto Mode Cart Overlay */}
       <CartOverlay
         open={cartDialogOpen}
         onOpenChange={setCartDialogOpen}
@@ -506,6 +538,7 @@ export default function KasirPage() {
         onProceedPay={() => setPayDialogOpen(true)}
       />
 
+      {/* Payment Fullscreen Overlay */}
       <PaymentOverlay 
         open={payDialogOpen}
         onOpenChange={setPayDialogOpen}
@@ -514,6 +547,7 @@ export default function KasirPage() {
         onConfirm={(method: 'cash' | 'tempo' | 'qris' | 'transfer', paidAmount: number, customerName?: string) => handleCheckout(method, customerName)}
       />
 
+      {/* Success Fullscreen Overlay */}
       {lastTx && (
         <SuccessOverlay 
           open={successDialogOpen}
@@ -552,6 +586,7 @@ export default function KasirPage() {
         }}
       />
 
+      {/* Inbox Overlay */}
       <InboxOverlay
         open={inboxOpen}
         onOpenChange={setInboxOpen}

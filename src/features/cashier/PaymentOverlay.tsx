@@ -34,6 +34,7 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
       setCustomerName(initialCustomerName || '');
       setTableNumber('');
 
+      // Push state for hardware back button support
       window.history.pushState({ modal: 'payment' }, '');
       window.addEventListener('popstate', handlePopState);
     }
@@ -61,6 +62,7 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
     const paid = method === 'cash' ? (Number(paidAmount) || total) : total;
     if (method === 'cash' && paid < total) return;
     
+    // Combine name and table number for the existing onConfirm prop
     const finalIdentity = tableNumber 
       ? `${customerName}${customerName ? ' ' : ''}(Meja ${tableNumber})`
       : customerName;
@@ -72,9 +74,12 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
 
   return (
     <div className="fixed inset-0 z-[300] flex bg-white no-print items-center justify-center animate-in fade-in duration-300">
+      {/* Split Layout Container */}
       <div className="flex flex-col md:flex-row w-full h-full bg-white overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
         
+        {/* Left Side: Bill Summary (Now Indigo Accent) */}
         <div className="md:w-2/5 bg-indigo-600 p-6 md:p-12 flex flex-col justify-center relative overflow-hidden shrink-0">
+          {/* Decorative pattern */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-400/10 rounded-full -ml-10 -mb-10 blur-2xl" />
           
@@ -112,9 +117,11 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
           <div className="absolute -bottom-20 -left-20 size-80 bg-indigo-600/10 rounded-full blur-[100px]" />
         </div>
 
+        {/* Right Side: Inputs (Light/Gray) */}
         <div className="md:w-3/5 bg-white flex flex-col flex-1 min-h-0 overflow-y-auto md:overflow-hidden relative border-l border-slate-100">
           <div className="px-6 md:px-14 flex flex-col md:justify-center max-w-2xl mx-auto w-full space-y-6 py-8 md:py-6">
             
+            {/* 1. Customer Identity */}
             <section className="pb-4 border-b border-slate-200/60">
               <div className="grid grid-cols-3 gap-6">
                 <div className="col-span-2 flex flex-col gap-2">
@@ -138,6 +145,7 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
               </div>
             </section>
 
+            {/* 2. Payment Method */}
             <section className="pb-4 border-b border-slate-200/60">
               <div className="space-y-3">
                 <Label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em]">Metode Pembayaran</Label>
@@ -171,6 +179,7 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
               </div>
             </section>
 
+            {/* 3. Input Amount / QRIS Display */}
             <section className="min-h-[160px] flex flex-col justify-start pt-2">
               {method === 'cash' ? (
                 <div className="space-y-6">
@@ -262,6 +271,7 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
             </section>
           </div>
 
+          {/* Footer: Confirm Button */}
           <div className="p-6 md:p-8 bg-white border-t border-slate-200 mt-auto">
             <div className="max-w-2xl mx-auto flex gap-4 items-center">
               <Button 

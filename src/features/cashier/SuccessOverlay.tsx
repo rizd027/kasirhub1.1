@@ -30,6 +30,7 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
     };
 
     if (open) {
+      // Push state for hardware back button support
       window.history.pushState({ modal: 'success' }, '');
       window.addEventListener('popstate', handlePopState);
     }
@@ -45,6 +46,7 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
     <div className="fixed inset-0 z-[400] flex bg-white no-print overflow-hidden">
       <div className="w-full h-full flex flex-col md:flex-row overflow-hidden relative">
         
+        {/* Close Button Desktop */}
         <button 
           onClick={() => onOpenChange(false)}
           className="hidden md:flex absolute top-6 right-6 z-50 size-12 rounded-full bg-white/10 hover:bg-white/20 items-center justify-center text-white transition-all"
@@ -52,7 +54,9 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
           <X className="size-6" />
         </button>
 
+        {/* --- MOBILE LAYOUT --- */}
         <div className="md:hidden flex flex-col h-full w-full bg-slate-50">
+          {/* Mobile Header (Indigo) */}
           <div className="bg-indigo-600 p-6 pb-10 text-white text-center rounded-b-[2.5rem] shadow-lg relative shrink-0">
               <button 
                 onClick={() => onOpenChange(false)}
@@ -75,6 +79,7 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
               </div>
           </div>
 
+          {/* Mobile Receipt Content (Scrollable) */}
           <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
             <div className="w-full max-w-[300px]">
                <div className="relative">
@@ -92,6 +97,7 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
             <p className="mt-4 text-[9px] font-bold text-slate-400 uppercase tracking-widest">Pratinjau Struk</p>
           </div>
 
+          {/* Mobile Footer Actions (Sticky) */}
           <div className="p-5 bg-white border-t border-slate-100 space-y-4 shrink-0 pb-8">
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Ukuran Kertas</label>
@@ -140,6 +146,8 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
           </div>
         </div>
 
+        {/* --- DESKTOP LAYOUT --- */}
+        {/* Left Side: Receipt Preview */}
         <div className="hidden md:flex md:w-1/2 bg-slate-50 p-12 lg:p-20 flex-col items-center justify-center min-h-0 overflow-y-auto">
           <div className="w-full max-w-md">
             <div className="relative">
@@ -159,7 +167,9 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
           <p className="mt-8 text-xs font-bold text-slate-400 uppercase tracking-[0.3em] text-center">Pratinjau Struk Belanja</p>
         </div>
 
+        {/* Right Side: Success Status & Actions */}
         <div className="hidden md:flex md:w-1/2 bg-indigo-600 px-10 lg:px-24 flex-col justify-center relative overflow-hidden text-white shrink-0">
+          {/* Background Ornaments */}
           <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-white/5 rounded-full -ml-40 -mt-40 blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-indigo-400/10 rounded-full -mr-20 -mb-20 blur-2xl pointer-events-none" />
 
@@ -185,6 +195,7 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
             </div>
 
             <div className="space-y-4 lg:space-y-5">
+              {/* Desktop Paper Size Selector - BEAUTIFIED */}
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-indigo-200 uppercase tracking-[0.4em] px-1">Pilih Ukuran Kertas</label>
                 <Select value={paperSize} onValueChange={(val) => setPaperSize(val || '80mm')}>

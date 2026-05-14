@@ -19,15 +19,18 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
   const isPinVerifiedRef = useRef(false);
 
 
+  // Listen to Supabase Auth state changes and hydrate Zustand session
   useEffect(() => {
     let isMounted = true;
 
     const hydrateFromSupabase = async () => {
+      // 1. If offline, don't wait for Supabase, trust the local store
       if (!navigator.onLine) {
         setIsChecking(false);
         return;
       }
 
+      // 2. Safety timeout: 15 seconds to prevent getting stuck (naik dari 6s)
       const safetyTimeout = setTimeout(() => {
         if (isMounted) {
           console.warn('Auth session check timed out, proceeding with local state.');
@@ -39,27 +42,31 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
         const { data: { session: supaSession } } = await supabase.auth.getSession();
         
         if (isMounted && supaSession?.user) {
+          // IMPORTANT: Check if user STILL EXISTS in auth.users (server check)
           const { error: userError } = await supabase.auth.getUser();
           
           if (userError) {
             console.error('[AuthCheck] User verification failed (possibly expired):', userError);
             
+            // Explicitly handle invalid refresh token to avoid loops
             if (userError.message?.includes('Refresh Token Not Found') || userError.status === 400) {
                 console.warn('[AuthCheck] Invalid session detected, performing hard logout.');
             }
 
             setSession(null);
             await supabase.auth.signOut();
-            localStorage.clear();
+            localStorage.clear(); // Clear all to be safe
             window.location.href = '/login'; 
             return;
           }
 
+          // Trigger sync down with a small delay to avoid auth lock contention
           const { triggerSync } = await import('@/hooks/useSync');
           setTimeout(() => {
             triggerSync(supaSession.user.id).catch(console.error);
           }, 1500);
 
+          // Hydrate PIN from Settings if not set locally
           try {
             const settings = await db.settings.get(supaSession.user.id);
             if (settings?.pin_code) {
@@ -70,6 +77,7 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
           }
 
           if (!session) {
+            // If we have a supaSession but no local session, try to get profile
             let profile = null;
             let retryCount = 0;
             
@@ -83,6 +91,7 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
                   .maybeSingle();
 
                 if (profileErr?.code === '42703' || profileErr?.message?.includes('status')) {
+                  // Kolom status belum ada di tabel lama — fallback tanpa status
                   const { data: fallback } = await supabase
                     .from('profiles')
                     .select('full_name, role')
@@ -135,11 +144,13 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, supaSession) => {
       if (event === 'SIGNED_OUT') {
         setSession(null);
+        // DO NOT delete DB here to preserve offline data on session expiry
         router.replace('/login');
         return;
       }
 
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && supaSession?.user) {
+        // Double check existence on sign in / refresh
         const { error } = await supabase.auth.getUser();
         if (error) {
           await supabase.auth.signOut();
@@ -155,6 +166,7 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
             .maybeSingle();
 
           if (profileErr?.code === '42703' || profileErr?.message?.includes('status')) {
+            // Kolom status belum ada — fallback
             const { data: fallback } = await supabase
               .from('profiles')
               .select('full_name, role')
@@ -187,9 +199,11 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id]);
 
+  // Route guard
   useEffect(() => {
     if (!isHydrated || isChecking) return;
 
+    // 1. Public routes — allow access, redirect away if already logged in
     if (PUBLIC_ROUTES.includes(pathname)) {
       if (session) {
         if (session.role === 'staff' && !isCheckedIn) {
@@ -201,11 +215,13 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // 2. No session → go to login
     if (!session) {
-      router.replace('/login');
+      router.replace('/login'); // Use replace to avoid back-button loops
       return;
     }
 
+    // 3. Staff not checked in → force absensi
     if (session.role === 'staff' && !isCheckedIn) {
       if (pathname !== '/absensi' && pathname !== '/pengaturan/account') {
         router.replace('/absensi');
@@ -213,9 +229,11 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
     }
   }, [isHydrated, isChecking, session, isCheckedIn, pathname, router]);
 
+  // Global App Lock Effect (Separated to stabilize dependencies)
   useEffect(() => {
     if (!isHydrated || isChecking || !session) return;
 
+    // Don't lock on public routes
     if (PUBLIC_ROUTES.includes(pathname)) return;
 
     const savedPin = localStorage.getItem('kasirhub_app_password');
@@ -224,6 +242,7 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
     }
   }, [isHydrated, isChecking, session, pathname, isAppLocked]);
 
+  // Loading Splash Screen
   if (!isHydrated || isChecking) {
     return (
       <div className="fixed inset-0 bg-white flex flex-col items-center justify-center z-[9999]">
@@ -248,6 +267,8 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
       <PinDialog 
         isOpen={isAppLocked}
         onClose={() => {
+          // If locked, we can't really close without verifying
+          // but we can let them log out if needed
           setIsAppLocked(false);
           router.replace('/login');
         }}

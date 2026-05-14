@@ -6,7 +6,7 @@ export interface CartItem {
   id: string;
   name: string;
   price: number;
-  cost: number;
+  cost: number; // Harga modal
   quantity: number;
   disc1: number;
   disc2: number;
@@ -34,6 +34,7 @@ interface CartState {
   orderDiscount: OrderDiscount;
   customerName: string;
 
+  // Item actions
   addItem: (product: any) => void;
   addCustomItem: (name: string, price: number) => void;
   removeItem: (id: string) => void;
@@ -41,14 +42,18 @@ interface CartState {
   updateDiscount: (id: string, disc1: number, disc2: number, nominalDisc: number) => void;
   clearCart: () => void;
 
+  // Metadata actions
   setCustomerName: (name: string) => void;
 
+  // Order-level discount
   setOrderDiscount: (discount: OrderDiscount) => void;
 
+  // Hold order
   holdCart: (label?: string) => void;
   restoreCart: (id: string) => void;
   deleteHeldOrder: (id: string) => void;
 
+  // Calculations
   getTotal: () => number;
   getSubtotal: () => number;
   getOrderDiscountAmount: () => number;
@@ -97,7 +102,7 @@ export const useCartStore = create<CartState>()(
             id,
             name,
             price,
-            cost: 0,
+            cost: 0, // Item custom diasumsikan modal 0 atau bisa dikembangkan nanti
             quantity: 1,
             disc1: 0,
             disc2: 0,

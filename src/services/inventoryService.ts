@@ -2,11 +2,18 @@ import { db } from '@/db/dexie';
 
 export interface InventoryPrediction {
   daysRemaining: number;
-  burnRate: number;
+  burnRate: number; // Average units per day
   status: 'safe' | 'warning' | 'critical';
 }
 
+/**
+ * Service to calculate burn rates and predict stock depletion
+ */
 export const inventoryService = {
+  /**
+   * Calculate prediction for products and ingredients
+   * @param daysToAnalyze Default 7 days
+   */
   async getPredictions(daysToAnalyze: number = 7): Promise<{
     products: Record<string, InventoryPrediction>;
     ingredients: Record<string, InventoryPrediction>;
@@ -15,6 +22,7 @@ export const inventoryService = {
     startDate.setDate(startDate.getDate() - daysToAnalyze);
     const startDateStr = startDate.toISOString();
 
+    // 1. Fetch transactions in the window
     const recentTransactions = await db.transactions
       .where('created_at')
       .above(startDateStr)
@@ -26,11 +34,13 @@ export const inventoryService = {
       .anyOf(transactionIds)
       .toArray();
 
+    // 2. Map product usage
     const productUsage: Record<string, number> = {};
     items.forEach(item => {
       productUsage[item.product_id] = (productUsage[item.product_id] || 0) + item.quantity;
     });
 
+    // 3. Fetch all data needed for calculations
     const [products, ingredients, productIngs] = await Promise.all([
       db.products.toArray(),
       db.ingredients.toArray(),
@@ -40,6 +50,7 @@ export const inventoryService = {
     const productPredictions: Record<string, InventoryPrediction> = {};
     const ingredientPredictions: Record<string, InventoryPrediction> = {};
 
+    // 4. Calculate Product Predictions
     products.forEach(p => {
       const usage = productUsage[p.id] || 0;
       const burnRate = usage / daysToAnalyze;
@@ -55,8 +66,10 @@ export const inventoryService = {
       };
     });
 
+    // 5. Calculate Ingredient Predictions (based on product usage)
     const ingredientDailyBurn: Record<string, number> = {};
     
+    // Sum up burn from each product's recipe
     for (const productId in productUsage) {
       const dailyProductBurn = productUsage[productId] / daysToAnalyze;
       const recipe = productIngs.filter(pi => pi.product_id === productId);

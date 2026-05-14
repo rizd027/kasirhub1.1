@@ -96,11 +96,12 @@ export default function KaryawanPage() {
 
   const fetchEmpStats = async (empId: string) => {
     try {
-      const { data, error } = await supabase.from('transactions').select('total_amount').eq('employee_id', empId);
-      if (error) throw error;
-      const total = data?.reduce((sum, tx) => sum + Number(tx.total_amount), 0) || 0;
-      setEmpStats({ totalSales: total, txCount: data?.length || 0 });
-    } catch {}
+      const txData = await db.transactions.where('employee_id').equals(empId).toArray();
+      const total = txData.reduce((sum, tx) => sum + Number(tx.total_amount), 0) || 0;
+      setEmpStats({ totalSales: total, txCount: txData.length || 0 });
+    } catch (err) {
+      console.error('Fetch emp stats error:', err);
+    }
   };
 
   const fetchAttendanceAndPerformance = async (empId: string) => {

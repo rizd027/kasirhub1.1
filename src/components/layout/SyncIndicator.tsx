@@ -59,6 +59,7 @@ export function SyncIndicator() {
           <Cloud className="size-5 transition-transform hover:scale-110" />
         )}
         
+        {/* Status Dot */}
         <span className={cn(
           "absolute -top-2.5 -right-2.5 flex h-2 w-2 rounded-full border border-white",
           isOffline ? "bg-rose-500" : "bg-emerald-500"
@@ -68,12 +69,14 @@ export function SyncIndicator() {
           )}
         </span>
 
+        {/* Queue Count Badge */}
         {pendingCount > 0 && !isOffline && (
           <div className="absolute -bottom-3 -right-3 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-indigo-600 text-[9px] font-black text-white border-2 border-white shadow-sm">
             {pendingCount > 99 ? '99+' : pendingCount}
           </div>
         )}
 
+        {/* Failed Count Badge */}
         {failedCount > 0 && (
           <div className="absolute -top-3 -left-3 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-rose-600 text-[9px] font-black text-white border-2 border-white shadow-sm">
             {failedCount}

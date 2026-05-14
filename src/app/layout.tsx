@@ -64,6 +64,7 @@ export default function RootLayout({
             className: 'rounded-lg border-slate-100 shadow-2xl font-sans font-bold',
           }}
         />
+        {/* Service Worker Management - Unregister for Native to prevent update bugs */}
         <script
           dangerouslySetInnerHTML={{
             __html: `

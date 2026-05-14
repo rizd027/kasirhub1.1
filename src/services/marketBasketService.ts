@@ -4,9 +4,12 @@ export interface BundleSuggestion {
   productIds: string[];
   productNames: string[];
   count: number;
-  confidence: number;
+  confidence: number; // % of transactions containing A that also contain B
 }
 
+/**
+ * Service to analyze transaction history for product bundles
+ */
 export const marketBasketService = {
   async getSuggestions(minOccurrences: number = 2): Promise<BundleSuggestion[]> {
     const transactions = await db.transactions.toArray();
@@ -19,10 +22,12 @@ export const marketBasketService = {
     transactions.forEach(t => {
       const itemIds = Array.from(new Set(t.items.map(i => i.product_id))).sort();
       
+      // Count individual occurrences
       itemIds.forEach(id => {
         productCounts[id] = (productCounts[id] || 0) + 1;
       });
 
+      // Count pairs
       for (let i = 0; i < itemIds.length; i++) {
         for (let j = i + 1; j < itemIds.length; j++) {
           const pair = `${itemIds[i]}|${itemIds[j]}`;
@@ -38,6 +43,7 @@ export const marketBasketService = {
         const countA = productCounts[idA] || 1;
         const countB = productCounts[idB] || 1;
         
+        // Confidence is the max likelihood of buying A then B or vice versa
         const confidence = Math.max(count / countA, count / countB) * 100;
 
         return {
@@ -53,6 +59,7 @@ export const marketBasketService = {
   }
 };
 
+// Helper to avoid TypeScript error on Record constructor
 class Record<K extends string | number | symbol, V> {
   [key: string]: V;
   constructor(entries: [K, V][]) {

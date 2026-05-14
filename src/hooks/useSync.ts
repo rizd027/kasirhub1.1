@@ -11,6 +11,9 @@ import { db } from '@/db/dexie';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useStaffStore } from '@/store/useStaffStore';
 
+/**
+ * triggerSync — helper untuk dipanggil dari luar React
+ */
 export const triggerSync = async (userId?: string | boolean): Promise<void> => {
     if (typeof userId === 'string') {
         await triggerFullSync(userId);
@@ -19,16 +22,21 @@ export const triggerSync = async (userId?: string | boolean): Promise<void> => {
     }
 };
 
+/**
+ * useSync — hook untuk mendapatkan status sync dan memicu sync manual
+ */
 export const useSync = () => {
     const [isSyncing, setIsSyncing] = useState(false);
     const { session } = useStaffStore();
-    const userId = session?.id;
+    const userId = session?.owner_id || session?.id;
     const hasInitialized = useRef(false);
 
+    // Subscribe ke perubahan state push/pull
     useEffect(() => {
         return onSyncStateChange(setIsSyncing);
     }, []);
 
+    // Hitung pending count dari queue (live reactive)
     const pendingCount = useLiveQuery(
         () => db.sync_queue.where('sync_status').equals('pending').count(),
         [],
@@ -41,12 +49,15 @@ export const useSync = () => {
         }
     }, [pendingCount]);
 
+    // Hitung failed count
     const failedCount = useLiveQuery(
         () => db.sync_queue.where('sync_status').equals('failed').count(),
         [],
         0
     );
 
+    // Initial sync saat pertama kali login — didelegasikan ke syncManager
+    // syncManager akan memastikan full pull hanya jalan 1x per sesi via sessionStorage
     useEffect(() => {
         if (!userId || hasInitialized.current) return;
         hasInitialized.current = true;
@@ -56,6 +67,7 @@ export const useSync = () => {
         });
     }, [userId]);
 
+    // Reset flag jika user logout
     useEffect(() => {
         if (!userId) {
             hasInitialized.current = false;

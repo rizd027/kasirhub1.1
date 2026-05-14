@@ -1,6 +1,6 @@
 import { db } from '@/db/dexie';
 import { createId } from '@/utils/uuid';
-import { runSync } from '@/services/sync/syncManager';
+import { runSync, addToSyncQueue } from '@/services/sync/syncManager';
 import { useCartStore } from '@/store/useCartStore';
 import { useStaffStore } from '@/store/useStaffStore';
 
@@ -19,7 +19,7 @@ export const useCheckout = () => {
         const totalAmount = getTotal();
         const subtotal = getSubtotal();
         const discountTotal = getOrderDiscountAmount();
-        const userId = session.role === 'admin' ? session.id : (session as any).adminId || session.id; 
+        const userId = session.role === 'admin' ? session.id : session.owner_id || session.id; 
         // Note: userId should be the admin/store owner ID. 
         // If staff is logged in, we need the admin's ID. 
         // Let's assume session has the correct context.
@@ -139,59 +139,38 @@ export const useCheckout = () => {
                             });
 
                             // Add ingredient update to sync queue
-                            await db.sync_queue.add({
-                                table_name: 'ingredients',
-                                operation: 'update',
-                                record_id: bom.ingredient_id,
-                                payload: { 
-                                    stock_current: newIngStock, 
-                                    updated_at: now 
-                                },
-                                created_at: now,
-                                retry_count: 0
+                            await addToSyncQueue('ingredients', 'update', bom.ingredient_id, {
+                                stock_current: newIngStock,
+                                updated_at: now
                             });
                         }
                     }
                 }
 
                 // 3. Add Transaction to Sync Queue
-                await db.sync_queue.add({
-                    table_name: 'transactions',
-                    operation: 'insert',
-                    record_id: transactionId,
-                    payload: transaction,
-                    created_at: now,
-                    retry_count: 0
-                });
+                await addToSyncQueue('transactions', 'insert', transactionId, transaction);
                 
                 // 4. Add Items to Sync Queue
                 for (const item of items) {
                      const itemId = createId();
                      const isCustom = item.id.startsWith('custom-');
                      
-                     await db.sync_queue.add({
-                        table_name: 'transaction_items',
-                        operation: 'insert',
-                        record_id: itemId,
-                        payload: {
-                            id: itemId,
-                            transaction_id: transactionId,
-                            product_id: isCustom ? null : item.id,
-                            quantity: item.quantity,
-                            price_at_time: item.price,
-                            cost_at_time: item.cost,
-                            name_at_time: item.name,
-                            user_id: userId,
-                            created_at: now,
-                            updated_at: now,
-                            discount_details: {
-                                disc1: item.disc1,
-                                disc2: item.disc2,
-                                nominalDisc: item.nominalDisc
-                            }
-                        },
+                     await addToSyncQueue('transaction_items', 'insert', itemId, {
+                        id: itemId,
+                        transaction_id: transactionId,
+                        product_id: isCustom ? null : item.id,
+                        quantity: item.quantity,
+                        price_at_time: item.price,
+                        cost_at_time: item.cost,
+                        name_at_time: item.name,
+                        user_id: userId,
                         created_at: now,
-                        retry_count: 0
+                        updated_at: now,
+                        discount_details: {
+                            disc1: item.disc1,
+                            disc2: item.disc2,
+                            nominalDisc: item.nominalDisc
+                        }
                     });
                 }
             });
