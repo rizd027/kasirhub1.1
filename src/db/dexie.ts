@@ -325,7 +325,7 @@ export class AppDB extends Dexie {
 
     constructor() {
         super('KasirHubDB');
-        this.version(27).stores({
+        this.version(28).stores({
             categories: 'id, user_id, type, updated_at, sync_status',
             products: 'id, user_id, sku, category_id, updated_at, sync_status, prod_name, prod_target_batch, batch_id',
             transactions: 'id, user_id, employee_id, created_at, updated_at, sync_status',
@@ -339,8 +339,8 @@ export class AppDB extends Dexie {
             ingredients: 'id, user_id, name, type, sync_status, updated_at',
             product_ingredients: 'id, user_id, product_id, ingredient_id, sync_status, updated_at',
             customer_orders: 'id, user_id, status, updated_at, sync_status',
-            stock_mutations: '++id, remote_id, synced, product_id, created_at',
-            attendance: '++id, remote_id, created_at, employee_id, sync_status, updated_at',
+            stock_mutations: 'id, remote_id, synced, product_id, created_at',
+            attendance: 'id, remote_id, created_at, employee_id, sync_status, updated_at',
             employees: 'id, updated_at, sync_status, deleted_at',
             hpp_batches: 'id, user_id, name, created_at, updated_at, sync_status, deleted_at',
             bundling: 'id, user_id, name, created_at, updated_at, sync_status, deleted_at',
