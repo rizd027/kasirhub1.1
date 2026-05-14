@@ -84,19 +84,24 @@ export function BusinessAssistant() {
 
   // Handle back button to close assistant on mobile
   useEffect(() => {
-    const handlePopState = () => {
-      setIsOpen(false);
+    if (!isOpen) return;
+
+    const handlePopState = (e: PopStateEvent) => {
+      // If we popped back and the state is gone, close the assistant
+      if (!e.state?.assistantOpen) {
+        setIsOpen(false);
+      }
     };
 
-    if (isOpen) {
-      window.history.pushState({ assistantOpen: true }, '');
-      window.addEventListener('popstate', handlePopState);
-    }
+    // Add state to history so back button works
+    window.history.pushState({ assistantOpen: true }, '');
+    window.addEventListener('popstate', handlePopState);
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      // If we are unmounting or isOpen becomes false, and we still have our state, pop it
-      if (!isOpen && window.history.state?.assistantOpen) {
+      // If we are still in the 'assistantOpen' state when closing manually (not via back button)
+      // we should clean up the history state
+      if (window.history.state?.assistantOpen) {
         window.history.back();
       }
     };

@@ -121,6 +121,3 @@ export function MediaUploader({
     </div>
   );
 }
-    </div>
-  );
-}
