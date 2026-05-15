@@ -43,12 +43,12 @@ const PULL_LOCK_KEY  = 'kasirhub_pull_lock';
 const LOCK_TTL_MS    = 30_000;   // 30 detik (cukup untuk operasi panjang, tidak blokir refresh)
 const PUSH_BATCH     = 10;       // Supabase upsert efisien menangani 10-20 record
 const PULL_BATCH     = 100;      // record per iterasi pull
-const REQ_TIMEOUT_MS = 30_000;   // 30s lebih ideal untuk aplikasi web responsif
+const REQ_TIMEOUT_MS = 60_000;   // Ditingkatkan ke 60s agar tidak mudah timeout di Supabase Free Tier
 const PUSH_DELAY_MS  = 100;      // Delay kecil antar batch untuk stabilitas
 const MAX_RETRIES    = 5;
 const BACKOFF_MS     = [1_000, 3_000, 10_000, 30_000, 60_000];
 const FULL_SYNC_COOLDOWN_MS = 30_000;
-const WATCHDOG_INTERVAL_MS  = 300_000; // tetap 5 menit
+const WATCHDOG_INTERVAL_MS  = 30_000; // Dipercepat dari 5 menit menjadi 30 detik agar jika gagal cepat re-try tanpa refresh
 
 // ─── Table Configuration ──────────────────────────────────────────────────────
 export const TABLE_CONFIG: Record<string, {
@@ -507,7 +507,7 @@ const _runPushSyncCore = async (force: boolean, signal?: AbortSignal): Promise<v
                                         onConflict: config.pk,
                                         ignoreDuplicates: false,
                                     }).abortSignal(signal),
-                                    Math.min(REQ_TIMEOUT_MS, 15_000), // Lebih cepat untuk individual retry agar tidak stuck lama
+                                    REQ_TIMEOUT_MS, // Gunakan full timeout agar tidak premature abort
                                     signal
                                 );
 
