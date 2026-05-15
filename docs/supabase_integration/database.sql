@@ -250,6 +250,34 @@ BEGIN
   END LOOP;
 END $$;
 
+-- ── 3.1.1 Migration Patch: Specific column patches for ingredients table ─────
+-- Fixes: "Could not find the 'category_id' column of 'ingredients' in the schema cache"
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ingredients' AND column_name='category_id') THEN
+    ALTER TABLE public.ingredients ADD COLUMN category_id UUID REFERENCES categories(id) ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ingredients' AND column_name='type') THEN
+    ALTER TABLE public.ingredients ADD COLUMN type TEXT DEFAULT 'ingredient';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ingredients' AND column_name='barcode') THEN
+    ALTER TABLE public.ingredients ADD COLUMN barcode TEXT;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ingredients' AND column_name='barcode_type') THEN
+    ALTER TABLE public.ingredients ADD COLUMN barcode_type TEXT DEFAULT 'Code 128';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ingredients' AND column_name='sku') THEN
+    ALTER TABLE public.ingredients ADD COLUMN sku TEXT;
+  END IF;
+END $$;
+
+-- Reload PostgREST schema cache to pick up new columns immediately
+NOTIFY pgrst, 'reload schema';
+
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role TEXT DEFAULT 'admin',

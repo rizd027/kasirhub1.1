@@ -79,11 +79,10 @@ export async function analyzeImage(imageUrl: string, mode: AIAnalysisMode): Prom
 
   // 1. Try Gemini
   const geminiModels = [
+    { name: "gemini-2.5-flash-preview-04-17", version: "v1beta" },
     { name: "gemini-2.0-flash", version: "v1beta" },
-    { name: "gemini-2.0-flash-lite-preview-02-05", version: "v1beta" },
-    { name: "gemini-1.5-flash", version: "v1" },
-    { name: "gemini-1.5-flash-8b", version: "v1" },
-    { name: "gemini-1.5-pro", version: "v1" }
+    { name: "gemini-2.0-flash-exp", version: "v1beta" },
+    { name: "gemini-2.0-flash-lite", version: "v1beta" },
   ];
   for (const model of geminiModels) {
     try {
@@ -104,13 +103,18 @@ export async function analyzeImage(imageUrl: string, mode: AIAnalysisMode): Prom
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
         console.warn(`[AI] Gemini ${model.name} error:`, response.status, errJson);
+        // On 404, the model doesn't exist - skip immediately
+        // On 429, rate limited - skip to next model
         continue;
       }
 
       const data = await response.json();
       if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
         console.log(`[AI] Gemini ${model.name} success!`);
-        return JSON.parse(data.candidates[0].content.parts[0].text);
+        const rawText = data.candidates[0].content.parts[0].text;
+        // Strip markdown code fences if present
+        const cleaned = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+        return JSON.parse(cleaned);
       }
     } catch (err: any) {
       // Silently fail Gemini to try next model or fallback
