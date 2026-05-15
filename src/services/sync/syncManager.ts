@@ -419,7 +419,27 @@ const _runPushSyncCore = async (force: boolean, signal?: AbortSignal): Promise<v
                 }
                 const g = groups.get(job.table_name)!;
                 g.jobs.push(job);
-                g.payloads.push(preparePayload(job.payload ?? {}, job.table_name, job.operation));
+
+                let raw = job.payload ?? {};
+                const pk = TABLE_CONFIG[job.table_name]?.pk || 'id';
+
+                // Fetch full local record to satisfy NOT NULL constraints for upsert
+                try {
+                    const store = (db as any)[job.table_name];
+                    if (store && job.record_id) {
+                        const localRow = await store.get(job.record_id);
+                        if (localRow) {
+                            raw = { ...localRow, ...raw };
+                        }
+                    }
+                } catch (err) {
+                    console.warn(`[Sync Push] Failed to fetch local row for ${job.table_name}:${job.record_id}`);
+                }
+
+                // Ensure primary key is always present
+                raw[pk] = job.record_id;
+
+                g.payloads.push(preparePayload(raw, job.table_name, job.operation));
             }
 
             for (const [table, { jobs, payloads }] of groups) {
