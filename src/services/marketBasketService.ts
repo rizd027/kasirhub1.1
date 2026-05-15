@@ -20,7 +20,7 @@ export const marketBasketService = {
     const productCounts: Record<string, number> = {};
 
     transactions.forEach(t => {
-      const itemIds = Array.from(new Set(t.items.map(i => i.product_id))).sort();
+      const itemIds = Array.from(new Set((t.items || []).map(i => i.product_id))).sort();
       
       // Count individual occurrences
       itemIds.forEach(id => {
