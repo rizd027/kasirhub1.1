@@ -1644,8 +1644,10 @@ export function ProductForm({ initialData, onSuccess, onCancel }: ProductFormPro
                 </div>
               )}
 
-              {/* Section: Level Stok & Target */}
-              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+            </div>
+
+            {/* Section: Level Stok & Target */}
+            <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
                 <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2 bg-slate-50/50">
                   <div className="size-6 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-900 shadow-sm">
                     <Target className="size-3" />
@@ -1735,10 +1737,10 @@ export function ProductForm({ initialData, onSuccess, onCancel }: ProductFormPro
                     </div>
                   </div>
                 </div>
-              </div>
+            </div>
 
-              {/* Section: Catatan */}
-              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+            {/* Section: Catatan */}
+            <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
                 <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2 bg-slate-50/50">
                   <div className="size-6 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-900 shadow-sm">
                     <Info className="size-3" />
@@ -1763,7 +1765,6 @@ export function ProductForm({ initialData, onSuccess, onCancel }: ProductFormPro
                     <Sparkles className="absolute right-3 top-3 size-3 text-indigo-500 animate-pulse" />
                   )}
                 </div>
-              </div>
             </div>
           </div>
         </div>
