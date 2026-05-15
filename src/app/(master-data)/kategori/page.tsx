@@ -94,22 +94,31 @@ export default function KategoriPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Hapus kategori ini?')) return;
     try {
-      const deletedAt = new Date().toISOString();
-      // 1. Update lokal (Soft Delete)
-      await db.categories.update(id, { 
-        deleted_at: deletedAt, 
-        sync_status: 'pending' 
-      });
-      
-      // 2. Kirim ke antrean sinkronisasi sebagai UPDATE (bukan DELETE)
-      await addToSyncQueue('categories', 'update', id, { 
-        deleted_at: deletedAt,
-        user_id: userId 
-      });
+      const now = new Date().toISOString();
+
+      // Fetch minimal info needed for the sync payload BEFORE deleting locally
+      const category = await db.categories.get(id);
+      if (!category) return;
+
+      const minimalPayload = {
+        id,
+        name: category.name,
+        type: category.type || 'product',
+        user_id: userId,
+        deleted_at: now,
+        updated_at: now,
+      };
+
+      // Queue the soft-delete with a minimal but valid payload
+      await addToSyncQueue('categories', 'delete', id, minimalPayload);
+
+      // Remove from local DB immediately so the UI updates
+      await db.categories.delete(id);
 
       toast.success('Kategori berhasil dihapus');
-      triggerSync(userId).catch(console.error); // Trigger sync to cloud
+      triggerSync().catch(console.error);
     } catch (err) {
+      console.error('Delete error:', err);
       toast.error('Gagal menghapus kategori');
     }
   };

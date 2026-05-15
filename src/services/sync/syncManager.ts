@@ -40,15 +40,15 @@ export const resetInitialSync = (): void => {
 // ─── Constants ───────────────────────────────────────────────────────────────
 const PUSH_LOCK_KEY  = 'kasirhub_push_lock';
 const PULL_LOCK_KEY  = 'kasirhub_pull_lock';
-const LOCK_TTL_MS    = 30_000;   // 30 detik (cukup untuk operasi panjang, tidak blokir refresh)
+const LOCK_TTL_MS    = 60_000;   // 60 detik lock TTL agar aman untuk operasi panjang
 const PUSH_BATCH     = 10;       // Supabase upsert efisien menangani 10-20 record
 const PULL_BATCH     = 100;      // record per iterasi pull
-const REQ_TIMEOUT_MS = 60_000;   // Ditingkatkan ke 60s agar tidak mudah timeout di Supabase Free Tier
+const REQ_TIMEOUT_MS = 60_000;   // 60s — lebih toleran untuk koneksi lambat atau payload besar
 const PUSH_DELAY_MS  = 100;      // Delay kecil antar batch untuk stabilitas
 const MAX_RETRIES    = 5;
 const BACKOFF_MS     = [1_000, 3_000, 10_000, 30_000, 60_000];
 const FULL_SYNC_COOLDOWN_MS = 30_000;
-const WATCHDOG_INTERVAL_MS  = 30_000; // Dipercepat dari 5 menit menjadi 30 detik agar jika gagal cepat re-try tanpa refresh
+const WATCHDOG_INTERVAL_MS  = 120_000; // 120 detik — harus lebih besar dari REQ_TIMEOUT_MS agar tidak bentrok
 
 // ─── Table Configuration ──────────────────────────────────────────────────────
 export const TABLE_CONFIG: Record<string, {
@@ -181,14 +181,16 @@ const startWatchdog = (): void => {
                 }
             });
 
-            db.sync_queue.where('sync_status').equals('pending').limit(1).count().then(count => {
-                if (count > 0) {
-                    console.log('[Sync Watchdog] 🐕 Triggering background push for pending jobs');
+            db.sync_queue.where('sync_status').equals('pending').toArray().then(pending => {
+                const now = new Date().toISOString();
+                const readyJobs = pending.filter(j => !j.next_retry_at || j.next_retry_at <= now);
+                if (readyJobs.length > 0) {
+                    console.log(`[Sync Watchdog] 🐕 Triggering background push for ${readyJobs.length} ready jobs`);
                     runPushSync().catch(() => {});
                 }
             });
         }
-    }, 20_000); // cek setiap 20 detik
+    }, 10_000); // cek setiap 10 detik — responsif untuk recovery
 };
 
 if (typeof window !== 'undefined') {
@@ -224,6 +226,7 @@ const withTimeout = async <T>(
                 return await builderFn(ctrl.signal);
             } catch (err: any) {
                 if (err.name === 'AbortError' || ctrl.signal.aborted) {
+                    console.warn(`[Sync Timeout] Request aborted after ${ms}ms`);
                     throw new Error('TIMEOUT');
                 }
                 throw err;
@@ -284,7 +287,24 @@ const preparePayload = (
 
     if (op === 'delete') {
         if (config?.hasSoftDelete) {
-            return { [pk]: raw[pk], deleted_at: new Date().toISOString() };
+            // Minimal soft-delete payload — preserve original deleted_at and include user_id
+            // so the upsert satisfies RLS without sending the entire record.
+            const softDeletePayload: Record<string, any> = {
+                [pk]: raw[pk],
+                deleted_at: raw.deleted_at || new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            };
+            if (config.hasUserId && (raw.user_id || raw.payload?.user_id)) {
+                softDeletePayload.user_id = raw.user_id || raw.payload?.user_id;
+            }
+            // Include basic fields if available to satisfy non-nullable constraints
+            if (raw.name && table !== 'categories') softDeletePayload.name = raw.name;
+            if (raw.type && table === 'categories') softDeletePayload.type = raw.type;
+            if (raw.sku) softDeletePayload.sku = raw.sku;
+            if (raw.price_sell !== undefined) softDeletePayload.price_sell = raw.price_sell;
+            if (raw.category_id) softDeletePayload.category_id = raw.category_id;
+            
+            return softDeletePayload;
         }
         return { [pk]: raw[pk] };
     }
@@ -409,19 +429,34 @@ const _runPushSyncCore = async (force: boolean, signal?: AbortSignal): Promise<v
 
             if (queue.length === 0) break;
 
-            console.log(`[Sync Push] 📡 Batch #${iteration}: ${queue.length} jobs`);
+            console.log(`[Sync Push] 📡 Batch #${iteration}: ${queue.length} jobs`, queue.map(j => `${j.table_name}:${j.record_id}`));
 
-            // Group by table untuk batch upsert
-            const groups = new Map<string, { jobs: typeof queue; payloads: Record<string, any>[] }>();
+            // Group by table and operation type (upsert vs hard_delete)
+            const groups = new Map<string, { 
+                upsertJobs: typeof queue; 
+                upsertPayloads: Record<string, any>[];
+                deleteJobs: typeof queue;
+                deleteIds: string[];
+            }>();
+
             for (const job of queue) {
                 if (!groups.has(job.table_name)) {
-                    groups.set(job.table_name, { jobs: [], payloads: [] });
+                    groups.set(job.table_name, { upsertJobs: [], upsertPayloads: [], deleteJobs: [], deleteIds: [] });
                 }
                 const g = groups.get(job.table_name)!;
-                g.jobs.push(job);
+                const config = TABLE_CONFIG[job.table_name];
+                const pk = config?.pk || 'id';
+
+                // Check if this is a hard delete
+                if (job.operation === 'delete' && !config?.hasSoftDelete) {
+                    g.deleteJobs.push(job);
+                    g.deleteIds.push(job.record_id);
+                    continue;
+                }
+
+                g.upsertJobs.push(job);
 
                 let raw = job.payload ?? {};
-                const pk = TABLE_CONFIG[job.table_name]?.pk || 'id';
 
                 // Fetch full local record to satisfy NOT NULL constraints for upsert
                 try {
@@ -439,160 +474,217 @@ const _runPushSyncCore = async (force: boolean, signal?: AbortSignal): Promise<v
                 // Ensure primary key is always present
                 raw[pk] = job.record_id;
 
-                g.payloads.push(preparePayload(raw, job.table_name, job.operation));
+                g.upsertPayloads.push(preparePayload(raw, job.table_name, job.operation));
             }
 
-            for (const [table, { jobs, payloads }] of groups) {
+            for (const [table, g] of groups) {
                 if (signal?.aborted) break;
 
                 const config = TABLE_CONFIG[table];
                 if (!config) {
                     console.warn(`[Sync Push] ⚠️ Tabel "${table}" tidak terdaftar — skip & hapus`);
-                    await db.sync_queue.bulkDelete(jobs.map(j => j.id!));
+                    const allJobs = [...g.upsertJobs, ...g.deleteJobs];
+                    await db.sync_queue.bulkDelete(allJobs.map(j => j.id!));
                     continue;
                 }
 
-                const payloadSize = JSON.stringify(payloads).length;
+                // ==========================================
+                // 1. Process Hard Deletes
+                // ==========================================
+                if (g.deleteIds.length > 0) {
+                    try {
+                        const { error } = await withTimeout<any>(
+                            (signal) => supabase.from(table).delete().in(config.pk, g.deleteIds).abortSignal(signal),
+                            REQ_TIMEOUT_MS,
+                            signal
+                        );
 
-                try {
-                    if (payloadSize > 100000) {
-                        console.warn(`[Sync Push] ⚠️ Payload [${table}] besar: ${(payloadSize / 1024).toFixed(2)} KB`);
-                    }
+                        if (error) throw error;
 
-                    const { error } = await withTimeout<any>(
-                        (signal) => supabase.from(table).upsert(payloads, {
-                            onConflict: config.pk,
-                            ignoreDuplicates: false,
-                        }).abortSignal(signal),
-                        REQ_TIMEOUT_MS,
-                        signal
-                    );
-
-                    if (error) throw error;
-
-                    // Sukses: hapus dari queue & tandai synced di store lokal
-                    const store = (db as any)[table];
-                    await db.transaction('rw', [db.sync_queue, store], async () => {
-                        await db.sync_queue.bulkDelete(jobs.map(j => j.id!));
-
-                        if (store) {
-                            for (const job of jobs) {
-                                if (job.operation === 'delete') {
-                                    await store.delete(job.record_id).catch(() => { });
-                                } else {
-                                    await store.where(config.pk)
-                                        .equals(job.record_id)
-                                        .modify({ sync_status: 'synced' })
-                                        .catch(() => { });
+                        const store = (db as any)[table];
+                        await db.transaction('rw', [db.sync_queue, store], async () => {
+                            await db.sync_queue.bulkDelete(g.deleteJobs.map(j => j.id!));
+                            if (store) {
+                                for (const id of g.deleteIds) {
+                                    await store.delete(id).catch(() => {});
                                 }
                             }
-                        }
-                    });
-
-                    console.log(`[Sync Push] ✅ [${table}]: ${payloads.length} records`);
-                    
-                    if (PUSH_DELAY_MS > 0) await new Promise(r => setTimeout(r, PUSH_DELAY_MS));
-
-                } catch (err: any) {
-                    if (err.message === 'ABORTED') break;
-
-                    const errType = classifyError(err);
-                    if (errType === 'auth') {
-                        const msg = `Sinkronisasi ${table} gagal (Izin Ditolak). Hubungi Admin untuk perbaikan RLS.`;
-                        console.error(`[Sync Push] 🔐 Auth error pada ${table}:`, msg);
-                        toast.error(msg, { id: `sync-error-${table}` });
+                        });
+                        console.log(`[Sync Push] 🗑️ [${table}]: ${g.deleteIds.length} hard deletes processed`);
+                    } catch (err: any) {
+                        if (err.message === 'ABORTED') break;
+                        console.warn(`[Sync Push] ⚠️ Batch hard-delete failed for [${table}], marking jobs as failed... Error:`, err.message);
                         
-                        // Mark as failed so it doesn't cause an infinite loop
-                        for (const job of jobs) {
+                        for (const job of g.deleteJobs) {
                             await db.sync_queue.update(job.id!, {
                                 sync_status: 'failed',
-                                last_error: msg,
-                                error_type: 'auth',
+                                last_error: `[delete] ${err.message}`,
                                 failed_at: new Date().toISOString(),
                             });
                         }
-                        continue;
-
                     }
+                }
 
-                    console.warn(`[Sync Push] ⚠️ Batch failed for [${table}] (${payloads.length} records, ${(payloadSize/1024).toFixed(2)} KB), retrying individually... Error:`, err.message);
-                    if (err.message === 'TIMEOUT' || errType === 'network') {
-                        console.warn(`[Sync Push] ⏱️ Timeout/Network pada job ${jobs.length}. Skip & lanjutkan job berikutnya.`);
-                        
-                        for (const job of jobs) {
-                            const count = (job.retry_count || 0) + 1;
-                            await db.sync_queue.update(job.id!, {
-                                retry_count: count,
-                                next_retry_at: new Date(Date.now() + backoff(count)).toISOString(),
-                                last_error: `[${errType}] ${err.message}`,
-                                error_type: errType,
-                                last_attempt_at: new Date().toISOString(),
-                            });
+                if (signal?.aborted) break;
+
+                // ==========================================
+                // 2. Process Upserts (Inserts, Updates, Soft-Deletes)
+                // ==========================================
+                if (g.upsertPayloads.length > 0) {
+                    const payloads = g.upsertPayloads;
+                    const jobs = g.upsertJobs;
+                    const payloadSize = JSON.stringify(payloads).length;
+
+                    try {
+                        if (payloadSize > 100000) {
+                            console.warn(`[Sync Push] ⚠️ Payload [${table}] besar: ${(payloadSize / 1024).toFixed(2)} KB`);
                         }
-                        continue; // ✅ Lanjutkan ke tabel/job berikutnya
-                    }
 
-                    // INDIVIDUAL RETRY (Poison Pill Handling)
-                    for (const job of jobs) {
-                        const singlePayload = payloads.find(p => p[config.pk] === job.record_id) || preparePayload(job.payload ?? {}, table, job.operation);
-                        
-                        try {
-                            const { error: singleError } = await withTimeout<any>(
-                                    (signal) => supabase.from(table).upsert(singlePayload, {
-                                        onConflict: config.pk,
-                                        ignoreDuplicates: false,
-                                    }).abortSignal(signal),
-                                    REQ_TIMEOUT_MS, // Gunakan full timeout agar tidak premature abort
-                                    signal
-                                );
+                        console.log(`[Sync Push] Sending ${payloads.length} records to [${table}]`, payloads.map(p => p[config.pk]));
+                        const { error } = await withTimeout<any>(
+                            (signal) => supabase.from(table).upsert(payloads, {
+                                onConflict: config.pk,
+                                ignoreDuplicates: false,
+                            }).abortSignal(signal),
+                            REQ_TIMEOUT_MS,
+                            signal
+                        );
 
-                            if (singleError) throw singleError;
+                        if (error) throw error;
 
-                            const store = (db as any)[table];
-                            await db.transaction('rw', [db.sync_queue, store], async () => {
-                                await db.sync_queue.delete(job.id!);
-                                if (store) {
-                                    if (job.operation === 'delete') {
-                                        await store.delete(job.record_id).catch(() => {});
+                        // Sukses: hapus dari queue & tandai synced di store lokal
+                        const store = (db as any)[table];
+                        await db.transaction('rw', [db.sync_queue, store], async () => {
+                            await db.sync_queue.bulkDelete(jobs.map(j => j.id!));
+
+                            if (store) {
+                                for (const job of jobs) {
+                                    if (job.operation === 'delete') { // Soft delete locally too just in case
+                                        await store.delete(job.record_id).catch(() => { });
                                     } else {
-                                        await store.where(config.pk).equals(job.record_id).modify({ sync_status: 'synced' }).catch(() => {});
+                                        await store.where(config.pk)
+                                            .equals(job.record_id)
+                                            .modify({ sync_status: 'synced' })
+                                            .catch(() => { });
                                     }
                                 }
-                            });
-                            console.log(`[Sync Push] ✅ [${table}] Individual Success: ${job.record_id}`);
-                        } catch (singleErr: any) {
-                            if (singleErr.message === 'ABORTED') break;
-                            const singleErrType = classifyError(singleErr);
+                            }
+                        });
+
+                        console.log(`[Sync Push] ✅ [${table}]: ${payloads.length} records`);
+                        
+                        if (PUSH_DELAY_MS > 0) await new Promise(r => setTimeout(r, PUSH_DELAY_MS));
+
+                    } catch (err: any) {
+                        if (err.message === 'ABORTED') break;
+
+                        const errType = classifyError(err);
+                        if (errType === 'auth') {
+                            const msg = `Sinkronisasi ${table} gagal (Izin Ditolak). Hubungi Admin untuk perbaikan RLS.`;
+                            console.error(`[Sync Push] 🔐 Auth error pada ${table}:`, msg);
+                            toast.error(msg, { id: `sync-error-${table}` });
                             
-                            if (singleErrType === 'auth') {
+                            for (const job of jobs) {
                                 await db.sync_queue.update(job.id!, {
                                     sync_status: 'failed',
-                                    last_error: singleErr.message,
+                                    last_error: msg,
                                     error_type: 'auth',
                                     failed_at: new Date().toISOString(),
                                 });
-                                continue;
                             }
+                            continue;
+                        }
 
-                            const count = (job.retry_count || 0) + 1;
-                            if (isRetryable(singleErrType, count)) {
-                                await db.sync_queue.update(job.id!, {
-                                    retry_count: count,
-                                    next_retry_at: new Date(Date.now() + backoff(count)).toISOString(),
-                                    last_error: `[${singleErrType}] ${singleErr.message}`,
-                                    error_type: singleErrType,
-                                    last_attempt_at: new Date().toISOString(),
+                        console.warn(`[Sync Push] ⚠️ Batch failed for [${table}] (${payloads.length} records, ${(payloadSize/1024).toFixed(2)} KB), retrying individually... Error:`, err.message);
+                        console.log(`[Sync Push] Failed Payload for [${table}]:`, JSON.stringify(payloads, null, 2));
+                        if (err.message === 'TIMEOUT' || errType === 'network') {
+                            for (const job of jobs) {
+                                const count = (job.retry_count || 0) + 1;
+                                if (count >= MAX_RETRIES) {
+                                    // Stop retrying — mark as failed to prevent infinite watchdog loop
+                                    await db.sync_queue.update(job.id!, {
+                                        sync_status: 'failed',
+                                        retry_count: count,
+                                        last_error: `[${errType}] ${err.message} (max retries exceeded)`,
+                                        error_type: errType,
+                                        failed_at: new Date().toISOString(),
+                                        last_attempt_at: new Date().toISOString(),
+                                    });
+                                } else {
+                                    await db.sync_queue.update(job.id!, {
+                                        retry_count: count,
+                                        next_retry_at: new Date(Date.now() + backoff(count)).toISOString(),
+                                        last_error: `[${errType}] ${err.message}`,
+                                        error_type: errType,
+                                        last_attempt_at: new Date().toISOString(),
+                                    });
+                                }
+                            }
+                            continue;
+                        }
+
+                        // INDIVIDUAL RETRY (Poison Pill Handling)
+                        for (const job of jobs) {
+                            const singlePayload = payloads.find(p => p[config.pk] === job.record_id) || preparePayload(job.payload ?? {}, table, job.operation);
+                            
+                            try {
+                                console.log(`[Sync Push] Individual retry [${table}]: ${job.record_id}`);
+                                const { error: singleError } = await withTimeout<any>(
+                                        (signal) => supabase.from(table).upsert(singlePayload, {
+                                            onConflict: config.pk,
+                                            ignoreDuplicates: false,
+                                        }).abortSignal(signal),
+                                        REQ_TIMEOUT_MS,
+                                        signal
+                                    );
+
+                                if (singleError) throw singleError;
+
+                                const store = (db as any)[table];
+                                await db.transaction('rw', [db.sync_queue, store], async () => {
+                                    await db.sync_queue.delete(job.id!);
+                                    if (store) {
+                                        if (job.operation === 'delete') {
+                                            await store.delete(job.record_id).catch(() => {});
+                                        } else {
+                                            await store.where(config.pk).equals(job.record_id).modify({ sync_status: 'synced' }).catch(() => {});
+                                        }
+                                    }
                                 });
-                            } else {
-                                // Masuk DLQ
-                                await db.sync_queue.update(job.id!, {
-                                    sync_status: 'failed',
-                                    retry_count: count,
-                                    last_error: `[${singleErrType}] ${singleErr.message}`,
-                                    error_type: singleErrType,
-                                    failed_at: new Date().toISOString(),
-                                    last_attempt_at: new Date().toISOString(),
-                                });
+                                console.log(`[Sync Push] ✅ [${table}] Individual Success: ${job.record_id}`);
+                            } catch (singleErr: any) {
+                                if (singleErr.message === 'ABORTED') break;
+                                const singleErrType = classifyError(singleErr);
+                                
+                                if (singleErrType === 'auth') {
+                                    await db.sync_queue.update(job.id!, {
+                                        sync_status: 'failed',
+                                        last_error: singleErr.message,
+                                        error_type: 'auth',
+                                        failed_at: new Date().toISOString(),
+                                    });
+                                    continue;
+                                }
+
+                                const count = (job.retry_count || 0) + 1;
+                                if (isRetryable(singleErrType, count)) {
+                                    await db.sync_queue.update(job.id!, {
+                                        retry_count: count,
+                                        next_retry_at: new Date(Date.now() + backoff(count)).toISOString(),
+                                        last_error: `[${singleErrType}] ${singleErr.message}`,
+                                        error_type: singleErrType,
+                                        last_attempt_at: new Date().toISOString(),
+                                    });
+                                } else {
+                                    await db.sync_queue.update(job.id!, {
+                                        sync_status: 'failed',
+                                        retry_count: count,
+                                        last_error: `[${singleErrType}] ${singleErr.message}`,
+                                        error_type: singleErrType,
+                                        failed_at: new Date().toISOString(),
+                                        last_attempt_at: new Date().toISOString(),
+                                    });
+                                }
                             }
                         }
                     }

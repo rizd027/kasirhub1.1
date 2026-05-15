@@ -34,15 +34,30 @@ export default function BundlingListPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Hapus paket bundling ini?')) return;
     try {
-      const deleted_at = new Date().toISOString();
-      await db.bundling.update(id, { 
-        deleted_at, 
-        sync_status: 'pending' 
-      });
-      await addToSyncQueue('bundling', 'update', id, { deleted_at });
-      triggerSync(session?.id).catch(console.error);
+      const now = new Date().toISOString();
+      const bundle = await db.bundling.get(id);
+      if (!bundle) return;
+
+      const minimalPayload = {
+        id,
+        name: bundle.name,
+        price_sell: bundle.price_sell,
+        products: bundle.products, // Essential for validation
+        user_id: session?.id,
+        deleted_at: now,
+        updated_at: now
+      };
+
+      // Queue the delete with minimal but valid payload
+      await addToSyncQueue('bundling', 'delete', id, minimalPayload);
+
+      // Delete locally immediately
+      await db.bundling.delete(id);
+
+      triggerSync().catch(console.error);
       toast.success('Paket berhasil dihapus');
     } catch (err) {
+      console.error('Delete error:', err);
       toast.error('Gagal menghapus paket');
     }
   };

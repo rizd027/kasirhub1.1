@@ -43,11 +43,31 @@ export default function IngredientsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Hapus bahan baku ini?')) return;
     try {
-      await db.ingredients.update(id, { deleted_at: new Date().toISOString(), sync_status: 'pending' });
-      await addToSyncQueue('ingredients', 'update', id, { deleted_at: new Date().toISOString() });
-      triggerSync(session?.id).catch(console.error);
+      const now = new Date().toISOString();
+      const ingredient = await db.ingredients.get(id);
+      if (!ingredient) return;
+
+      const minimalPayload = {
+        id,
+        name: ingredient.name,
+        unit: ingredient.unit,
+        type: ingredient.type,
+        cost_per_unit: ingredient.cost_per_unit,
+        user_id: session?.id,
+        deleted_at: now,
+        updated_at: now
+      };
+
+      // Queue for cloud delete with minimal payload
+      await addToSyncQueue('ingredients', 'delete', id, minimalPayload);
+
+      // Delete locally immediately
+      await db.ingredients.delete(id);
+
+      triggerSync().catch(console.error);
       toast.success('Berhasil dihapus');
     } catch (err) {
+      console.error('Delete error:', err);
       toast.error('Gagal menghapus');
     }
   };

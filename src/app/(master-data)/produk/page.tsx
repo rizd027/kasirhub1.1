@@ -178,20 +178,34 @@ export default function ProdukPage() {
   const confirmDelete = async (id: string) => {
     try {
       const now = new Date().toISOString();
-      await db.products.update(id, {
-        deleted_at: now,
-        sync_status: 'pending'
-      });
 
+      // Fetch minimal info needed for the sync payload BEFORE deleting locally
       const product = await db.products.get(id);
-      if (product) {
-        await addToSyncQueue('products', 'update', id, product);
-      }
+      if (!product) return;
+
+      const minimalPayload = {
+        id,
+        name: product.name,
+        sku: product.sku,
+        price_sell: product.price_sell,
+        price_cost: product.price_cost,
+        category_id: product.category_id,
+        user_id: product.user_id,
+        deleted_at: now,
+        updated_at: now,
+      };
+
+      // Queue the soft-delete with a minimal but valid payload
+      await addToSyncQueue('products', 'delete', id, minimalPayload);
+
+      // Remove from local DB immediately so the UI updates
+      await db.products.delete(id);
 
       toast.success('Produk berhasil dihapus');
-      fetchData();
-      triggerSync(userId).catch(console.error); // Trigger sync to cloud
+      // triggerSync() will handle the background push
+      triggerSync().catch(console.error);
     } catch (error) {
+      console.error('Delete error:', error);
       toast.error('Gagal menghapus produk');
     }
   };
