@@ -304,6 +304,10 @@ const preparePayload = (
     Object.entries(raw).forEach(([key, value]) => {
         if (LOCAL_ONLY_FIELDS.has(key)) return;
         if (key === pk || key === 'user_id') return; // sudah ditambah di atas
+        
+        // Hapus 'category_id' jika tabel adalah 'ingredients' karena tidak ada di schema Supabase
+        if (table === 'ingredients' && key === 'category_id') return;
+        
         clean[key] = value;
     });
 
