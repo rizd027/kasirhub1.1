@@ -79,10 +79,7 @@ export async function analyzeImage(imageUrl: string, mode: AIAnalysisMode): Prom
 
   // 1. Try Gemini
   const geminiModels = [
-    { name: "gemini-2.5-flash-preview-04-17", version: "v1beta" },
     { name: "gemini-2.0-flash", version: "v1beta" },
-    { name: "gemini-2.0-flash-exp", version: "v1beta" },
-    { name: "gemini-2.0-flash-lite", version: "v1beta" },
   ];
   for (const model of geminiModels) {
     try {
