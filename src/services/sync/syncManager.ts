@@ -477,7 +477,18 @@ const _runPushSyncCore = async (force: boolean, signal?: AbortSignal): Promise<v
                         const msg = `Sinkronisasi ${table} gagal (Izin Ditolak). Hubungi Admin untuk perbaikan RLS.`;
                         console.error(`[Sync Push] 🔐 Auth error pada ${table}:`, msg);
                         toast.error(msg, { id: `sync-error-${table}` });
+                        
+                        // Mark as failed so it doesn't cause an infinite loop
+                        for (const job of jobs) {
+                            await db.sync_queue.update(job.id!, {
+                                sync_status: 'failed',
+                                last_error: msg,
+                                error_type: 'auth',
+                                failed_at: new Date().toISOString(),
+                            });
+                        }
                         continue;
+
                     }
 
                     console.warn(`[Sync Push] ⚠️ Batch failed for [${table}] (${payloads.length} records, ${(payloadSize/1024).toFixed(2)} KB), retrying individually... Error:`, err.message);
@@ -529,7 +540,15 @@ const _runPushSyncCore = async (force: boolean, signal?: AbortSignal): Promise<v
                             if (singleErr.message === 'ABORTED') break;
                             const singleErrType = classifyError(singleErr);
                             
-                            if (singleErrType === 'auth') continue;
+                            if (singleErrType === 'auth') {
+                                await db.sync_queue.update(job.id!, {
+                                    sync_status: 'failed',
+                                    last_error: singleErr.message,
+                                    error_type: 'auth',
+                                    failed_at: new Date().toISOString(),
+                                });
+                                continue;
+                            }
 
                             const count = (job.retry_count || 0) + 1;
                             if (isRetryable(singleErrType, count)) {
