@@ -80,7 +80,7 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
           </div>
 
           {/* Mobile Receipt Content (Scrollable) */}
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center overscroll-contain">
             <div className="w-full max-w-[300px]">
                <div className="relative">
                   <div className="absolute top-0 left-0 right-0 h-1 flex gap-1 px-1 z-10">
@@ -148,7 +148,7 @@ export function SuccessOverlay({ open, onOpenChange, transaction, onPrint, onSha
 
         {/* --- DESKTOP LAYOUT --- */}
         {/* Left Side: Receipt Preview */}
-        <div className="hidden md:flex md:w-1/2 bg-slate-50 p-12 lg:p-20 flex-col items-center justify-center min-h-0 overflow-y-auto">
+        <div className="hidden md:flex md:w-1/2 bg-slate-50 p-12 lg:p-20 flex-col items-center justify-center min-h-0 overflow-y-auto overscroll-contain">
           <div className="w-full max-w-md">
             <div className="relative">
               <div className="absolute top-0 left-0 right-0 h-1 flex gap-1 px-1 z-10">

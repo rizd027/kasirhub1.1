@@ -97,7 +97,7 @@ export function CartOverlay({ open, onOpenChange, products, onProceedPay }: Cart
       </div>
 
       {/* Cart Items */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto overscroll-contain">
         {items.map(item => {
           const product = products.find(p => p.id === item.id);
           const finalPrice = calculateTieredDiscount(item.price, item.disc1, item.disc2, item.nominalDisc);

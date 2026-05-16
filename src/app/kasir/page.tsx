@@ -373,7 +373,7 @@ export default function KasirPage() {
           </div>
 
           {/* Cart Items List - Desktop */}
-          <div className="flex-1 overflow-y-auto px-6 py-2">
+          <div className="flex-1 overflow-y-auto px-6 py-2 overscroll-contain">
              {items.map((item) => (
                <div key={item.id} className="py-3 border-b border-slate-200/60 flex items-center gap-4 group transition-all">
                  <div className="flex-1 min-w-0">

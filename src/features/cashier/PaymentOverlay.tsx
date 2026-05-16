@@ -118,7 +118,7 @@ export function PaymentOverlay({ open, onOpenChange, total, initialCustomerName,
         </div>
 
         {/* Right Side: Inputs (Light/Gray) */}
-        <div className="md:w-3/5 bg-white flex flex-col flex-1 min-h-0 overflow-y-auto md:overflow-hidden relative border-l border-slate-100">
+        <div className="md:w-3/5 bg-white flex flex-col flex-1 min-h-0 overflow-y-auto md:overflow-hidden relative border-l border-slate-100 overscroll-contain">
           <div className="px-6 md:px-14 flex flex-col md:justify-center max-w-2xl mx-auto w-full space-y-6 py-8 md:py-6">
             
             {/* 1. Customer Identity */}

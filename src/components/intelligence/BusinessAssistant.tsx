@@ -107,6 +107,21 @@ export function BusinessAssistant() {
     };
   }, [isOpen]);
 
+  // Lock body scroll when open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
+  }, [isOpen]);
+
   // Hide on certain pages to avoid obstruction or unnecessary presence
   const hiddenRoutes = ['/login', '/register', '/kasir', '/menu', '/absensi'];
   if (hiddenRoutes.some(route => pathname?.startsWith(route))) return null;
@@ -287,7 +302,7 @@ export function BusinessAssistant() {
         {/* Messages Area */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-slate-50/30"
+          className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-slate-50/30 overscroll-contain"
         >
           {messages.map((msg, idx) => (
             <div
@@ -345,7 +360,7 @@ export function BusinessAssistant() {
 
         {/* Quick Actions - Horizontal Scroll */}
         <div className="px-4 py-2.5 border-t border-slate-100 bg-white/50 backdrop-blur-sm overflow-hidden">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 overscroll-x-contain">
             {[
               { icon: TrendingUp, label: "Analisa Penjualan" },
               { icon: AlertCircle, label: "Cek Stok Menipis" },
