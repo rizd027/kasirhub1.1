@@ -28,7 +28,7 @@ import { SettingsLayout } from '@/features/settings/SettingsLayout';
 import { CameraCapture } from '@/features/absensi/CameraCapture';
 import { cn } from '@/lib/utils';
 import { uploadImage } from '@/services/cloudinary';
-import { addToSyncQueue, runSync } from '@/services/sync/syncManager';
+import { addToSyncQueue, runPushSync } from '@/services/sync/syncManager';
 import { createId } from '@/utils/uuid';
 
 export default function AbsensiPage() {
@@ -194,8 +194,8 @@ export default function AbsensiPage() {
       // Add to background sync queue
       await addToSyncQueue('attendance', 'insert', recordId, newRecord);
       
-      // Trigger sync immediately
-      runSync();
+      // Trigger sync immediately (force push to cloud)
+      await runPushSync(true);
       
       setCameraActive(false);
       toast.success(`${absenType === 'in' ? 'Check-in Berhasil' : 'Check-out Berhasil'}`, { id: toastId });
@@ -232,10 +232,15 @@ export default function AbsensiPage() {
   };
 
   const handleLogout = async () => {
-    const toastId = toast.loading('Keluar...');
+    const toastId = toast.loading('Mengunggah data dan keluar...');
     try {
       // Jika shift sudah selesai (absen masuk & pulang), logout langsung tanpa absensi lagi
       setCheckedIn(false);
+      try {
+        await runPushSync(true);
+      } catch (e) {
+        console.error('Sync before logout failed:', e);
+      }
       await clearAllLocalData();
       router.replace('/login');
       toast.success('Berhasil keluar', { id: toastId });
@@ -563,7 +568,13 @@ export default function AbsensiPage() {
               {/* Action Button - Premium Gradient */}
               <button
                 onClick={async () => {
-                  const toastId = toast.loading('Membersihkan sesi...');
+                  const toastId = toast.loading('Mengunggah data shift terakhir...');
+                  try {
+                    await runPushSync(true);
+                  } catch (e) {
+                    console.error('Sync before logout failed:', e);
+                  }
+                  toast.loading('Membersihkan sesi...', { id: toastId });
                   await clearAllLocalData();
                   router.replace('/login');
                   toast.success('Sampai jumpa besok!', { id: toastId });

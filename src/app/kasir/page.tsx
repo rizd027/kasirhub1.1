@@ -9,7 +9,7 @@ import { useCartStore } from '@/store/useCartStore';
 import { useCheckout } from '@/hooks/useCheckout';
 import { useSync, triggerSync } from '@/hooks/useSync';
 import { useLayoutStore } from '@/store/useLayoutStore';
-import { ShoppingCart, LayoutGrid, List, Check, Eye, Trash2, Settings, Printer, Share2, CheckCircle2, Tag, Maximize2, Lock, Inbox } from 'lucide-react';
+import { ShoppingCart, LayoutGrid, List, Check, Eye, Trash2, Settings, Printer, Share2, CheckCircle2, Tag, Maximize2, Lock, Inbox, RefreshCw } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { db, LocalProduct, LocalTransaction } from '@/db/dexie';
@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { useStaffStore } from '@/store/useStaffStore';
 import { supabase } from '@/services/supabase';
 import { clearAllLocalData } from '@/utils/auth';
+import { runPushSync } from '@/services/sync/syncManager';
 import { UserCircle2, ArrowRight } from 'lucide-react';
 
 
@@ -77,8 +78,29 @@ export default function KasirPage() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const router = useRouter();
   
-  // Activate background sync
-  // useSync is now handled globally by SyncProvider in root layout
+  // Activate sync hooks for cashier sync
+  const { isSyncing, performSync } = useSync();
+
+  // Auto-sync if IndexedDB is empty
+  useEffect(() => {
+    if (!kasirUserId || !navigator.onLine) return;
+
+    const checkAndSync = async () => {
+      try {
+        const count = await db.products.count();
+        if (count === 0) {
+          console.log('IndexedDB is empty, pulling products from cloud...');
+          const toastId = toast.loading('Mengunduh data pertama dari cloud...');
+          await performSync(kasirUserId);
+          toast.success('Data produk berhasil disinkronkan!', { id: toastId });
+        }
+      } catch (err) {
+        console.error('Auto-sync check failed:', err);
+      }
+    };
+
+    checkAndSync();
+  }, [kasirUserId, performSync]);
 
   // Effect 1: Fetch admin owner_id (from session)
   useEffect(() => {
@@ -293,6 +315,29 @@ export default function KasirPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              <div className="w-px h-4 bg-slate-200 mx-0.5" />
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={isSyncing}
+                onClick={async () => {
+                  if (!kasirUserId) return;
+                  const toastId = toast.loading('Menyinkronkan data...');
+                  try {
+                    await performSync(kasirUserId);
+                    toast.success('Data berhasil disinkronkan!', { id: toastId });
+                  } catch (err: any) {
+                    toast.error('Gagal sinkronisasi: ' + err.message, { id: toastId });
+                  }
+                }}
+                className={cn(
+                  "h-8 w-8 rounded-lg transition-all",
+                  isSyncing ? "text-indigo-600" : "text-slate-400 hover:bg-slate-100"
+                )}
+                title="Sinkronisasi Data"
+              >
+                <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
+              </Button>
               <div className="w-px h-4 bg-slate-200 mx-0.5" />
               <Button
                 variant="ghost"
@@ -580,8 +625,15 @@ export default function KasirPage() {
         cancelText="Batal"
         variant="destructive"
         onConfirm={async () => {
+          const toastId = toast.loading('Mengunggah data sebelum keluar...');
+          try {
+            await runPushSync(true);
+          } catch (e) {
+            console.error('Sync before logout failed:', e);
+          }
           await clearAllLocalData();
           router.replace('/login');
+          toast.success('Berhasil keluar', { id: toastId });
         }}
       />
 
