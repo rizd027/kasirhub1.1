@@ -98,8 +98,15 @@ export const printReceipt = (file: Blob) => {
   
   iframe.onload = () => {
     setTimeout(() => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
+      // Same fix: call the main window's AndroidPrintInterface if on Android WebView APK.
+      // iframe.contentWindow.print() is a separate JS context and won't trigger the bridge.
+      const androidBridge = (window as any).AndroidPrintInterface;
+      if (androidBridge && typeof androidBridge.print === 'function') {
+        androidBridge.print();
+      } else {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      }
       
       setTimeout(() => {
         document.body.removeChild(iframe);
@@ -191,13 +198,25 @@ export const printReceiptHTML = (elementId: string, paperSize: string = '80mm') 
   doc.close();
 
   // Print
+  // IMPORTANT: We must call window.print() on the TOP-LEVEL main window, NOT on
+  // iframe.contentWindow.print(). On Android WebView (APK builds), the native
+  // AndroidPrintInterface bridge is injected only into the main page's window context
+  // via onPageFinished. The iframe has a separate JS context where the override
+  // doesn't exist, so iframe.contentWindow.print() silently does nothing on Android.
   iframe.onload = () => {
     setTimeout(() => {
       try {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
+        // On Android WebView: call the native bridge directly if available
+        const androidBridge = (window as any).AndroidPrintInterface;
+        if (androidBridge && typeof androidBridge.print === 'function') {
+          androidBridge.print();
+        } else {
+          // On desktop browsers: use the main window.print() which will print the page.
+          // The iframe content is already loaded; the browser print dialog is universal.
+          window.print();
+        }
       } catch (err) {
-        console.error('Print iframe failed, falling back to window.print', err);
+        console.error('Print failed, fallback to window.print', err);
         window.print();
       }
       setTimeout(() => {
