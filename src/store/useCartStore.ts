@@ -13,6 +13,7 @@ export interface CartItem {
   nominalDisc: number;
   isCustom?: boolean;
   is_bundle?: boolean;
+  description?: string;
 }
 
 export interface HeldOrder {
@@ -90,6 +91,7 @@ export const useCartStore = create<CartState>()(
               nominalDisc: 0,
               isCustom: false,
               is_bundle: product.is_bundle || false,
+              description: product.description || '',
             }]
           });
         }

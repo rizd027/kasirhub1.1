@@ -310,6 +310,9 @@ export function MinimarketMode({
                     <span className="font-bold text-gray-800 truncate">{p.name}</span>
                     {(p as any).is_bundle && <Badge className="bg-indigo-600 text-[8px] h-3.5 px-1 uppercase tracking-widest font-black border-none">Paket</Badge>}
                   </div>
+                  {(p as any).is_bundle && (p as any).description && (
+                    <span className="text-[10px] text-indigo-500 font-medium block leading-tight mt-0.5">{(p as any).description}</span>
+                  )}
                   <span className="text-muted-foreground text-[10px] font-mono tracking-tighter">{p.sku || 'BUNDLING-CERDAS'}</span>
                 </div>
                 <div className="text-right shrink-0">
@@ -344,6 +347,9 @@ export function MinimarketMode({
                   <TableRow key={item.id} className="group hover:bg-gray-50/80 transition-colors h-14 border-b border-slate-50 last:border-none">
                     <TableCell onClick={() => openDiscount(item.id)} className="cursor-pointer pl-5 pr-2 py-1">
                       <div className="font-bold text-gray-900 leading-tight text-xs line-clamp-2">{item.name}</div>
+                      {item.is_bundle && item.description && (
+                        <div className="text-[10px] text-indigo-500 font-medium leading-tight mt-0.5">{item.description}</div>
+                      )}
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-[10px] font-bold text-indigo-600">
                           {item.quantity} <span className="text-slate-400">x</span> Rp {finalPrice.toLocaleString('id-ID')}

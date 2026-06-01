@@ -15,6 +15,7 @@ interface PublicProduct {
   category_id: string | null;
   is_bundle?: boolean;
   bundle_items?: any[];
+  description?: string;
 }
 
 interface CartItem {
@@ -145,16 +146,23 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
         let allProducts: PublicProduct[] = prodData || [];
 
         if (bundleData && bundleData.length > 0) {
-          const bundlesAsProducts = bundleData.map((bundle: any) => ({
-            id: `bundle-${bundle.id}`,
-            name: bundle.name,
-            price_sell: Number(bundle.price_sell),
-            image_url: null,
-            stock_store: 999999, // Bypass stock check for bundles
-            category_id: 'bundling',
-            is_bundle: true,
-            bundle_items: bundle.products
-          }));
+          const bundlesAsProducts = bundleData.map((bundle: any) => {
+            const description = bundle.products.map((item: any) => {
+              const prod = prodData?.find(p => p.id === item.product_id);
+              return `${item.qty}x ${prod ? prod.name : 'Produk'}`;
+            }).join(' + ');
+            return {
+              id: `bundle-${bundle.id}`,
+              name: bundle.name,
+              price_sell: Number(bundle.price_sell),
+              image_url: null,
+              stock_store: 999999, // Bypass stock check for bundles
+              category_id: 'bundling',
+              is_bundle: true,
+              bundle_items: bundle.products,
+              description: description
+            };
+          });
           allProducts = [...allProducts, ...bundlesAsProducts as any];
         }
 
@@ -372,6 +380,11 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
                           </span>
                         )}
                       </div>
+                      {product.is_bundle && (product as any).description && (
+                        <p className="text-[10px] text-indigo-500 font-medium leading-tight mt-0.5">
+                          {(product as any).description}
+                        </p>
+                      )}
                       <p className="text-base font-black text-indigo-600 mt-0.5">
                         Rp {product.price_sell.toLocaleString('id-ID')}
                       </p>
@@ -457,6 +470,11 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
               <div key={c.product.id} className="flex items-center gap-4 bg-slate-50 rounded-lg p-4 border border-slate-100">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-black text-slate-800 truncate">{c.product.name}</p>
+                  {c.product.is_bundle && (c.product as any).description && (
+                    <p className="text-[10px] text-indigo-500 font-medium leading-tight mb-1">
+                      {(c.product as any).description}
+                    </p>
+                  )}
                   <p className="text-xs font-black text-indigo-600">Rp {c.product.price_sell.toLocaleString('id-ID')} × {c.quantity}</p>
                 </div>
                 <div className="flex items-center gap-2">

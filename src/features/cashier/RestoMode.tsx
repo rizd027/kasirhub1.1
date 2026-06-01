@@ -230,6 +230,11 @@ export function RestoMode({
 
                 <CardContent className="p-3 bg-white">
                   <div className="text-[13px] font-bold text-gray-800 truncate mb-0.5 leading-tight">{product.name}</div>
+                  {(product as any).is_bundle && (product as any).description && (
+                    <div className="text-[10px] text-indigo-500 font-medium truncate mb-1 leading-tight">
+                      {(product as any).description}
+                    </div>
+                  )}
                   <div className="text-[11px] font-black text-indigo-600 mb-2">
                     Rp {product.price_sell.toLocaleString('id-ID')}
                   </div>

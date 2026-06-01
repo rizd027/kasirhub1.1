@@ -55,16 +55,23 @@ export default function KasirPage() {
 
   const products = useMemo(() => {
     const activeBundles = rawBundles.filter(bundle => bundle.is_active);
-    const bundlesAsProducts = activeBundles.map(bundle => ({
-      id: `bundle-${bundle.id}`,
-      name: bundle.name,
-      price_sell: bundle.price_sell,
-      price_cost: bundle.products.reduce((sum, item) => sum + (item.hpp * item.qty), 0),
-      category_id: 'bundling',
-      image_url: '',
-      is_bundle: true,
-      bundle_items: bundle.products
-    }));
+    const bundlesAsProducts = activeBundles.map(bundle => {
+      const description = bundle.products.map(item => {
+        const prod = rawProducts.find(p => p.id === item.product_id);
+        return `${item.qty}x ${prod ? prod.name : 'Produk'}`;
+      }).join(' + ');
+      return {
+        id: `bundle-${bundle.id}`,
+        name: bundle.name,
+        price_sell: bundle.price_sell,
+        price_cost: bundle.products.reduce((sum, item) => sum + (item.hpp * item.qty), 0),
+        category_id: 'bundling',
+        image_url: '',
+        is_bundle: true,
+        bundle_items: bundle.products,
+        description: description
+      };
+    });
     return [...rawProducts.filter(prod => !prod.deleted_at), ...bundlesAsProducts as any];
   }, [rawProducts, rawBundles]);
 
@@ -422,6 +429,9 @@ export default function KasirPage() {
                <div key={item.id} className="py-3 border-b border-slate-200/60 flex items-center gap-4 group transition-all">
                  <div className="flex-1 min-w-0">
                    <p className="text-[13px] font-bold text-slate-800 truncate leading-tight mb-1">{item.name}</p>
+                   {item.is_bundle && item.description && (
+                     <p className="text-[10px] text-indigo-500 font-medium leading-tight mb-1">{item.description}</p>
+                   )}
                    <div className="flex items-center gap-2">
                       <span className="text-[10px] font-black text-indigo-600">
                         {item.quantity}x

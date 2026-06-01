@@ -106,6 +106,9 @@ export function CartOverlay({ open, onOpenChange, products, onProceedPay }: Cart
               <div className="flex justify-between items-start gap-2">
                 <div className="flex-1">
                   <h3 className="font-bold text-sm text-slate-800 leading-tight">{item.name}</h3>
+                  {item.is_bundle && item.description && (
+                    <div className="text-[10px] text-indigo-500 font-medium leading-tight mt-0.5">{item.description}</div>
+                  )}
                   <div className="text-[10px] text-slate-400 font-bold mt-0.5">Rp {finalPrice.toLocaleString('id-ID')} / item</div>
                 </div>
                 <button 
