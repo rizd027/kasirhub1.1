@@ -6,6 +6,7 @@ import { Receipt } from "@/features/cashier/Receipt";
 import { LocalTransaction } from "@/db/dexie";
 import { Printer, Share2, X, ChevronLeft } from "lucide-react";
 import { generateReceiptPDF, printReceiptHTML } from "@/utils/receipt";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -27,11 +28,34 @@ export function ReprintModal({ open, onOpenChange, transaction }: ReprintModalPr
 
   if (!open || !transaction) return null;
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     try {
-      printReceiptHTML('receipt-reprint', paperSize);
+      const savedPrefs = localStorage.getItem('kasirhub_prefs');
+      let connectionType: 'none' | 'bluetooth' | 'usb' | 'network' = 'none';
+      
+      if (savedPrefs) {
+        try {
+          const prefs = JSON.parse(savedPrefs);
+          connectionType = prefs.printerConnection || 'none';
+        } catch (e) {}
+      }
+
+      if (connectionType === 'bluetooth' || connectionType === 'usb') {
+        const { printReceiptESC_POS } = await import('@/lib/printer');
+        const toastId = toast.loading(`Mengirim struk ke printer ${connectionType}...`);
+        try {
+          await printReceiptESC_POS(transaction, connectionType, paperSize);
+          toast.success('Struk berhasil dicetak!', { id: toastId });
+        } catch (err: any) {
+          console.error(err);
+          toast.error(`Gagal mencetak: ${err.message || 'Error printer'}`, { id: toastId });
+        }
+      } else {
+        printReceiptHTML('receipt-reprint', paperSize);
+      }
     } catch (error) {
       console.error('Print error:', error);
+      toast.error('Gagal mencetak nota.');
     }
   };
 

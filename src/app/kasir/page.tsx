@@ -197,8 +197,21 @@ export default function KasirPage() {
         try {
           const prefs = JSON.parse(savedPrefs);
           if (prefs.autoPrint) {
-            setTimeout(() => {
-              window.print();
+            setTimeout(async () => {
+              const connectionType = prefs.printerConnection || 'none';
+              const paperSize = prefs.paperSize || '58mm';
+              
+              if (connectionType === 'bluetooth' || connectionType === 'usb') {
+                const { printReceiptESC_POS } = await import('@/lib/printer');
+                try {
+                  await printReceiptESC_POS(tx, connectionType, paperSize);
+                } catch (err: any) {
+                  console.error('Auto print failed:', err);
+                  toast.error(`Auto-print gagal: ${err.message || 'Error printer'}`);
+                }
+              } else {
+                handlePrint(paperSize);
+              }
             }, 500);
           }
         } catch (e) {}
@@ -217,10 +230,38 @@ export default function KasirPage() {
     return 'receipt-content-mobile';
   };
 
-  const handlePrint = (size?: string) => {
+  const handlePrint = async (size?: string) => {
     try {
-      const elementId = getActiveReceiptId();
-      printReceiptHTML(elementId, size);
+      if (!lastTx) return;
+      
+      const savedPrefs = localStorage.getItem('kasirhub_prefs');
+      let connectionType: 'none' | 'bluetooth' | 'usb' | 'network' = 'none';
+      let paperSize = size || '58mm';
+      
+      if (savedPrefs) {
+        try {
+          const prefs = JSON.parse(savedPrefs);
+          connectionType = prefs.printerConnection || 'none';
+          if (!size) {
+            paperSize = prefs.paperSize || '58mm';
+          }
+        } catch (e) {}
+      }
+
+      if (connectionType === 'bluetooth' || connectionType === 'usb') {
+        const { printReceiptESC_POS } = await import('@/lib/printer');
+        const toastId = toast.loading(`Mengirim struk ke printer ${connectionType}...`);
+        try {
+          await printReceiptESC_POS(lastTx, connectionType, paperSize);
+          toast.success('Struk berhasil dicetak!', { id: toastId });
+        } catch (err: any) {
+          console.error(err);
+          toast.error(`Gagal mencetak: ${err.message || 'Error printer'}`, { id: toastId });
+        }
+      } else {
+        const elementId = getActiveReceiptId();
+        printReceiptHTML(elementId, paperSize);
+      }
     } catch (err: any) {
       console.error('Print failed:', err);
       window.print();
