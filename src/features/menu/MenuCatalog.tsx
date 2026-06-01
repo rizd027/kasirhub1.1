@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { anonSupabase } from '@/services/supabase';
-import { ShoppingCart, Plus, Minus, Trash2, Send, CheckCircle2, ChevronLeft, Package, HelpCircle, X } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, Send, CheckCircle2, ChevronLeft, Package, HelpCircle, X, Boxes } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { aiToast } from '@/services/aiService';
 
@@ -348,11 +348,17 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
                 const inCart = cart.find(c => c.product.id === product.id);
                 return (
                   <div key={product.id} className="bg-white rounded-lg border border-slate-100 flex items-center gap-4 p-4 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all group">
-                    <div className="w-20 h-20 rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0 overflow-hidden">
-                      {product.image_url ? (
+                    <div className="w-20 h-20 rounded-lg flex-shrink-0 overflow-hidden">
+                      {product.is_bundle ? (
+                        <PublicBundleImageCollage 
+                          productIds={product.bundle_items?.map((item: any) => item.product_id) || []}
+                          allProducts={products}
+                          className="w-full h-full"
+                        />
+                      ) : product.image_url ? (
                         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-full h-full flex items-center justify-center bg-slate-50 border border-slate-100 rounded-lg">
                           <Package className="size-8 text-slate-300" />
                         </div>
                       )}
@@ -503,6 +509,61 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
               {orderStatus === 'submitting' ? 'Mengirim...' : 'Kirim Pesanan'}
             </button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PublicBundleImageCollage({ 
+  productIds, 
+  allProducts, 
+  className 
+}: { 
+  productIds: string[]; 
+  allProducts: PublicProduct[]; 
+  className?: string;
+}) {
+  // Find images from the already loaded allProducts list
+  const foundImages = productIds
+    .map(id => allProducts.find(p => p.id === id)?.image_url)
+    .filter((img): img is string => !!img);
+
+  if (foundImages.length === 0) {
+    return (
+      <div className={cn("bg-slate-50 flex items-center justify-center rounded-lg border border-slate-100 group-hover:bg-indigo-50/50 transition-colors", className)}>
+        <Boxes className="size-6 text-slate-300 group-hover:text-indigo-400" />
+      </div>
+    );
+  }
+
+  const displayImages = foundImages.slice(0, 4);
+  const count = displayImages.length;
+
+  return (
+    <div className={cn("relative rounded-lg overflow-hidden border border-slate-100 bg-white grid", 
+      count === 1 ? "grid-cols-1" : "grid-cols-2",
+      className
+    )}>
+      {displayImages.map((src, idx) => (
+        <div 
+          key={idx} 
+          className={cn(
+            "relative overflow-hidden bg-slate-50",
+            count === 3 && idx === 0 ? "row-span-2 animate-in fade-in duration-300" : "animate-in fade-in duration-300"
+          )}
+        >
+          <img 
+            src={src} 
+            alt="Product" 
+            loading="lazy"
+            className="w-full h-full object-cover"
+          />
+        </div>
+      ))}
+      {foundImages.length > 4 && (
+        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+          <span className="text-[10px] font-black text-white">+{foundImages.length - 4}</span>
         </div>
       )}
     </div>
