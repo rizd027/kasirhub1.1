@@ -166,8 +166,13 @@ export const printReceiptHTML = (elementId: string, paperSize: string = '80mm') 
           padding: 0;
           background: white;
         }
+        /* Safeguard: Ensure the receipt root and body elements are visible */
+        body > * {
+          display: block !important;
+        }
       }
       #${elementId} {
+        display: block !important;
         width: ${printWidth} !important;
         max-width: ${printWidth} !important;
         margin: 0 auto !important;
