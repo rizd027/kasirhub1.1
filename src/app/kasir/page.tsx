@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { db, LocalProduct, LocalTransaction } from '@/db/dexie';
 import { useRouter } from 'next/navigation';
 import { Receipt } from '@/features/cashier/Receipt';
-import { generateReceiptPDF, shareReceipt, printReceipt } from '@/utils/receipt';
+import { generateReceiptPDF, shareReceipt, printReceipt, printReceiptHTML } from '@/utils/receipt';
 import dynamic from 'next/dynamic';
 
 const PaymentOverlay = dynamic(() => import('@/features/cashier/PaymentOverlay').then(mod => mod.PaymentOverlay), { ssr: false });
@@ -217,17 +217,10 @@ export default function KasirPage() {
     return 'receipt-content-mobile';
   };
 
-  const handlePrint = async (size?: string) => {
+  const handlePrint = (size?: string) => {
     try {
-      console.log('Generating PDF for Print...', size);
       const elementId = getActiveReceiptId();
-      const pdfBlob = await generateReceiptPDF(elementId, size);
-      
-      if (pdfBlob) {
-        printReceipt(pdfBlob);
-      } else {
-        window.print();
-      }
+      printReceiptHTML(elementId, size);
     } catch (err: any) {
       console.error('Print failed:', err);
       window.print();

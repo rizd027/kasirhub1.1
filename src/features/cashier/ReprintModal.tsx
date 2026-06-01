@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Receipt } from "@/features/cashier/Receipt";
 import { LocalTransaction } from "@/db/dexie";
 import { Printer, Share2, X, ChevronLeft } from "lucide-react";
-import { generateReceiptPDF } from "@/utils/receipt";
+import { generateReceiptPDF, printReceiptHTML } from "@/utils/receipt";
 import {
   Select,
   SelectContent,
@@ -27,13 +27,9 @@ export function ReprintModal({ open, onOpenChange, transaction }: ReprintModalPr
 
   if (!open || !transaction) return null;
 
-  const handlePrint = async () => {
+  const handlePrint = () => {
     try {
-      const blob = await generateReceiptPDF('receipt-reprint', paperSize);
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const win = window.open(url, '_blank');
-      win?.print();
+      printReceiptHTML('receipt-reprint', paperSize);
     } catch (error) {
       console.error('Print error:', error);
     }

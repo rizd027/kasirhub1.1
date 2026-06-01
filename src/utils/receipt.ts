@@ -36,7 +36,7 @@ export const generateReceiptPDF = async (elementId: string, paperSize: string = 
     html2canvas(element, { 
       useCORS: true, 
       allowTaint: true,
-      scale: 3,
+      scale: 2,
       logging: false,
       backgroundColor: '#ffffff',
       width: width,
@@ -106,6 +106,101 @@ export const printReceipt = (file: Blob) => {
         URL.revokeObjectURL(url);
       }, 3000);
     }, 500);
+  };
+};
+
+export const printReceiptHTML = (elementId: string, paperSize: string = '80mm') => {
+  const element = document.getElementById(elementId);
+  if (!element) {
+    window.print();
+    return;
+  }
+
+  // Determine width
+  let printWidth = '80mm';
+  if (paperSize === '58mm') printWidth = '58mm';
+  if (paperSize === '80mm') printWidth = '80mm';
+  if (paperSize === '1/8 Folio') printWidth = '85mm';
+  if (paperSize === '1/4 Folio') printWidth = '105mm';
+  if (paperSize === 'A5') printWidth = '148mm';
+  if (paperSize === '1/2 A5') printWidth = '165mm';
+  if (paperSize === '1/2 Folio') printWidth = '215mm';
+  if (paperSize === 'A4') printWidth = '210mm';
+
+  // Create iframe
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow?.document || iframe.contentDocument;
+  if (!doc) {
+    window.print();
+    return;
+  }
+
+  // Write content
+  doc.open();
+  doc.write('<html><head><title>Cetak Nota</title>');
+  
+  // Copy stylesheets
+  const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'));
+  stylesheets.forEach(sheet => {
+    doc.write(sheet.outerHTML);
+  });
+
+  // Inject custom print styles for the iframe
+  doc.write(`
+    <style>
+      @media print {
+        @page {
+          margin: 0;
+          size: auto;
+        }
+        body {
+          margin: 0;
+          padding: 0;
+          background: white;
+        }
+      }
+      #${elementId} {
+        width: ${printWidth} !important;
+        max-width: ${printWidth} !important;
+        margin: 0 auto !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 4mm !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    </style>
+  `);
+  doc.write('</head><body>');
+  doc.write(element.outerHTML);
+  doc.write('</body></html>');
+  doc.close();
+
+  // Print
+  iframe.onload = () => {
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.error('Print iframe failed, falling back to window.print', err);
+        window.print();
+      }
+      setTimeout(() => {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+      }, 1000);
+    }, 300);
   };
 };
 

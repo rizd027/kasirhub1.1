@@ -375,7 +375,7 @@ DECLARE tbl TEXT;
 BEGIN
   FOR tbl IN SELECT unnest(ARRAY[
     'categories', 'hpp_batches', 'bundling', 
-    'processing_costs', 'product_ingredients', 'employees', 'customer_orders'
+    'processing_costs', 'product_ingredients', 'employees'
   ]) LOOP
     EXECUTE format('DROP POLICY IF EXISTS "Users can manage own %I" ON public.%I', tbl, tbl);
     EXECUTE format('CREATE POLICY "Users can manage own %I" ON public.%I 
@@ -389,7 +389,7 @@ END $$;
 DO $$
 DECLARE tbl TEXT;
 BEGIN
-  FOR tbl IN SELECT unnest(ARRAY['transactions', 'transaction_items', 'expenses', 'stock_logs']) LOOP
+  FOR tbl IN SELECT unnest(ARRAY['transactions', 'transaction_items', 'expenses', 'stock_logs', 'customer_orders']) LOOP
     EXECUTE format('DROP POLICY IF EXISTS "Users can manage own %I" ON public.%I', tbl, tbl);
     EXECUTE format('DROP POLICY IF EXISTS "Anyone can manage %I" ON public.%I', tbl, tbl);
     
@@ -457,14 +457,13 @@ CREATE POLICY "Anyone can insert attendance" ON attendance FOR INSERT WITH CHECK
 CREATE POLICY "Anyone can view attendance" ON attendance FOR SELECT USING (deleted_at IS NULL);
 CREATE POLICY "Users can manage own attendance" ON attendance FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
--- Customer Orders (Public Insert & Buyer/Owner Read)
+-- Customer Orders (Public Insert & Buyer/Owner/Employee Read/Write)
 DROP POLICY IF EXISTS "Users can manage own customer_orders" ON customer_orders;
 DROP POLICY IF EXISTS "Customers can insert their own orders" ON customer_orders;
 DROP POLICY IF EXISTS "Buyers can view their own orders" ON customer_orders;
 DROP POLICY IF EXISTS "Owners can manage orders" ON customer_orders;
-CREATE POLICY "Customers can insert their own orders" ON customer_orders FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Buyers can view their own orders" ON customer_orders FOR SELECT TO authenticated USING (buyer_id = auth.uid() OR auth.uid() = user_id);
-CREATE POLICY "Owners can manage orders" ON customer_orders FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Anyone can manage customer_orders" ON customer_orders;
+CREATE POLICY "Anyone can manage customer_orders" ON customer_orders FOR ALL USING (true) WITH CHECK (true);
 
 -- Settings (Public Read)
 DROP POLICY IF EXISTS "Users can manage own settings" ON settings;
@@ -511,17 +510,11 @@ DROP POLICY IF EXISTS "Public products are viewable by everyone" ON products;
 CREATE POLICY "Public products are viewable by everyone" ON products
   FOR SELECT USING (deleted_at IS NULL);
 
--- 4. Customer Orders: Izinkan pelanggan (anonim) mengirim pesanan
+-- 4. Customer Orders: Izinkan siapa saja (termasuk karyawan & pelanggan) mengelola pesanan
 DROP POLICY IF EXISTS "Customers can insert their own orders" ON customer_orders;
-CREATE POLICY "Customers can insert their own orders" ON customer_orders
-  FOR INSERT TO authenticated
-  WITH CHECK (true);
-
--- 5. Customer Orders: Izinkan pembeli melihat pesanan mereka sendiri
 DROP POLICY IF EXISTS "Buyers can view their own orders" ON customer_orders;
-CREATE POLICY "Buyers can view their own orders" ON customer_orders
-  FOR SELECT TO authenticated
-  USING (buyer_id = auth.uid() OR auth.uid() = user_id);
+DROP POLICY IF EXISTS "Anyone can manage customer_orders" ON customer_orders;
+CREATE POLICY "Anyone can manage customer_orders" ON customer_orders FOR ALL USING (true) WITH CHECK (true);
 
 -- 6. Aktifkan Realtime untuk Pesanan (Sudah dikonfigurasi di bagian 8 di atas)
 -- Reload Schema Cache
