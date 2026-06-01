@@ -667,8 +667,8 @@ export default function QrMenuPage() {
             </div>
           ) : (
             /* Cloud Products Management Tab */
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col h-full min-h-[500px] overflow-hidden">
-              <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+            <div className="flex flex-col h-full min-h-[500px]">
+              <div className="pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-800">Daftar Produk Aktif di Cloud</h3>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
@@ -679,14 +679,14 @@ export default function QrMenuPage() {
                   <button 
                     onClick={handlePullAllToLocal}
                     disabled={cloudProducts.length === 0}
-                    className="h-10 px-4 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 font-black text-[9px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                    className="h-10 px-4 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 font-black text-[9px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-sm"
                   >
                     <RefreshCw className="size-3.5" />
                     Tarik Semua ke Lokal
                   </button>
                   <button 
                     onClick={() => { fetchCloudProducts(); fetchLocalProducts(); }}
-                    className="h-10 w-10 bg-white border border-slate-200 text-slate-600 rounded-lg flex items-center justify-center hover:bg-slate-50 transition-colors active:scale-95"
+                    className="h-10 w-10 bg-white border border-slate-200 text-slate-600 rounded-lg flex items-center justify-center hover:bg-slate-50 shadow-sm transition-colors active:scale-95"
                     title="Muat Ulang"
                   >
                     <RefreshCw className="size-4" />
@@ -694,7 +694,7 @@ export default function QrMenuPage() {
                 </div>
               </div>
 
-              <div className="p-6 border-b border-slate-100 shrink-0">
+              <div className="pb-6 shrink-0">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
                   <input 
@@ -702,12 +702,12 @@ export default function QrMenuPage() {
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Cari produk cloud berdasarkan nama atau SKU..."
-                    className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:bg-white focus:border-indigo-500 outline-none transition-all" 
+                    className="w-full h-11 pl-10 pr-4 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 shadow-sm focus:bg-white focus:border-indigo-500 outline-none transition-all" 
                   />
                 </div>
               </div>
 
-              <div className="p-6 flex-1 overflow-y-auto max-h-[calc(100vh-320px)] min-h-[300px]">
+              <div className="pb-6 flex-1 overflow-y-auto max-h-[calc(100vh-340px)] min-h-[300px]">
                 {isLoadingCloud ? (
                   <div className="flex flex-col items-center justify-center py-20 gap-3">
                     <Loader2 className="size-8 text-indigo-600 animate-spin" />
