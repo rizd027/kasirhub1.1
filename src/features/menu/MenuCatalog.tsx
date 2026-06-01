@@ -13,6 +13,8 @@ interface PublicProduct {
   image_url: string | null;
   stock_store: number;
   category_id: string | null;
+  is_bundle?: boolean;
+  bundle_items?: any[];
 }
 
 interface CartItem {
@@ -130,7 +132,33 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
           .order('name');
 
         if (prodError) throw prodError;
-        setProducts(prodData || []);
+
+        // Fetch bundles
+        const { data: bundleData, error: bundleError } = await anonSupabase
+          .from('bundling')
+          .select('*')
+          .eq('user_id', activeUid)
+          .eq('is_active', true)
+          .is('deleted_at', null)
+          .order('name');
+
+        let allProducts: PublicProduct[] = prodData || [];
+
+        if (bundleData && bundleData.length > 0) {
+          const bundlesAsProducts = bundleData.map((bundle: any) => ({
+            id: `bundle-${bundle.id}`,
+            name: bundle.name,
+            price_sell: Number(bundle.price_sell),
+            image_url: null,
+            stock_store: 999999, // Bypass stock check for bundles
+            category_id: 'bundling',
+            is_bundle: true,
+            bundle_items: bundle.products
+          }));
+          allProducts = [...allProducts, ...bundlesAsProducts as any];
+        }
+
+        setProducts(allProducts);
       } catch (err: any) {
         setError('Gagal memuat katalog. Periksa koneksi internet Anda.');
       } finally {
@@ -330,7 +358,14 @@ export function MenuCatalog({ initialUid, slug }: MenuCatalogProps) {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-black text-slate-800 truncate">{product.name}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-sm font-black text-slate-800 truncate">{product.name}</p>
+                        {product.is_bundle && (
+                          <span className="shrink-0 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest bg-indigo-600 text-white rounded-md">
+                            Paket
+                          </span>
+                        )}
+                      </div>
                       <p className="text-base font-black text-indigo-600 mt-0.5">
                         Rp {product.price_sell.toLocaleString('id-ID')}
                       </p>
