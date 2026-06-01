@@ -1,0 +1,181 @@
+================================================================================
+KASIRHUB: ANALISIS DATABASE, STORAGE CLOUDINARY, DAN ALUR KERJA APLIKASI (WORKFLOW)
+================================================================================
+
+Dokumen ini disusun untuk memetakan arsitektur penyimpanan data (Offline-First
+berbasis Dexie DB & Supabase) serta penyimpanan file media (Cloudinary),
+dilengkapi dengan Alur Kerja (Workflow) utama dari aplikasi KasirHub POS.
+
+--------------------------------------------------------------------------------
+BAGIAN 1: ANALISIS DATABASE (Dexie DB Offline & Supabase Online)
+--------------------------------------------------------------------------------
+KasirHub menggunakan arsitektur Offline-First yang andal. Semua perubahan data 
+disimpan terlebih dahulu secara lokal di browser melalui Dexie DB (IndexedDB)
+sebelum disinkronkan secara otomatis ke Supabase di cloud melalui SyncManager.
+
+Tabel-tabel database yang aktif beserta fungsi datanya:
+
+1.  categories (Kategori)
+    *   Fungsi: Menyimpan pengelompokan produk, bahan baku, atau kemasan.
+    *   Detail Data: ID Kategori, ID User (pemilik), Nama Kategori, Tipe Kategori
+        ('product' | 'ingredient' | 'packaging'), timestamp.
+
+2.  products (Produk)
+    *   Fungsi: Data barang dagangan utama yang dijual melalui kasir.
+    *   Detail Data: ID Produk, SKU (Barcode), Nama Produk, ID Kategori, Harga
+        Beli (HPP), Harga Jual, URL Gambar (dari Cloudinary), Stok Toko (Store),
+        Stok Gudang (Warehouse), Detail HPP manufaktur (target batch, output qty,
+        wastage percent, operational costs), timestamp.
+
+3.  transactions (Transaksi Penjualan)
+    *   Fungsi: Record utama setiap invoice/nota belanja yang terjadi di kasir.
+    *   Detail Data: ID Transaksi, ID User, ID Karyawan (kasir), Total Belanja,
+        Subtotal, Nominal Pajak, Nominal Service Charge, Total Diskon, Metode
+        Pembayaran ('cash' | 'tempo' | 'qris' | 'transfer'), Status Pembayaran
+        ('paid' | 'unpaid' | 'partial'), Nama Pelanggan, Nama Kasir, timestamp,
+        beserta item-item belanja di dalamnya.
+
+4.  transaction_items (Detail Item Transaksi)
+    *   Fungsi: Rincian barang belanjaan dalam setiap transaksi (relasi many-to-one).
+    *   Detail Data: ID Detail, ID Transaksi, ID Produk, Kuantitas barang, Harga
+        satuan saat transaksi, Harga HPP satuan saat transaksi, Nama produk saat
+        transaksi, detail diskon per item, timestamp.
+
+5.  stock_logs (Riwayat Stok)
+    *   Fungsi: Pencatatan mutasi stok keluar-masuk secara otomatis.
+    *   Detail Data: ID Log, ID Produk, Jumlah perubahan (+/-), Tipe mutasi
+        (misal: penjualan, restock, transfer), Lokasi mutasi ('store' | 'warehouse'),
+        ID Referensi (misal: ID Transaksi), timestamp.
+
+6.  expenses (Pengeluaran Operasional)
+    *   Fungsi: Pencatatan biaya operasional toko di luar pembelian stok/HPP.
+    *   Detail Data: ID Pengeluaran, Jumlah uang (Amount), Kategori pengeluaran,
+        Catatan tambahan, Bukti nota (URL gambar Cloudinary), timestamp.
+
+7.  ingredients (Bahan Baku / Raw Materials)
+    *   Fungsi: Bahan mentah atau kemasan untuk resep produk (skema F&B/Manufaktur).
+    *   Detail Data: ID Bahan, Nama bahan, Satuan (misal: gr, pcs, ml), Harga beli
+        per unit, Stok minimal aman, Stok terkini, Tipe ('ingredient' | 'packaging'),
+        URL Gambar (Cloudinary), timestamp.
+
+8.  product_ingredients (Resep / BOM - Bill of Materials)
+    *   Fungsi: Relasi penghubung produk dengan bahan baku penyusunnya.
+    *   Detail Data: ID Resep, ID Produk, ID Bahan Baku, Jumlah takaran (Quantity),
+        Tipe ('raw material' | 'packaging'), timestamp.
+
+9.  employees (Data Karyawan / Staff)
+    *   Fungsi: Data otorisasi hak akses untuk kasir dan staf absen.
+    *   Detail Data: ID Karyawan, Nama, Username, Password (terenkripsi), Hak
+        akses/Role (staf/admin), Hak melihat laporan (boolean), Status aktif,
+        No WA/Telepon, Alamat, Foto Profil (Cloudinary), timestamp.
+
+10. attendance (Kehadiran Karyawan)
+    *   Fungsi: Record absensi masuk/pulang karyawan.
+    *   Detail Data: ID Absen, ID Karyawan, Tipe ('in' | 'out'), Foto Selfie Absen
+        (URL Cloudinary), Koordinat GPS (Latitude/Longitude), Status Verifikasi,
+        timestamp.
+
+11. hpp_batches (Kalkulasi HPP Premium)
+    *   Fungsi: Menyimpan kalkulasi HPP tingkat lanjut dari Kalkulator HPP.
+    *   Detail Data: ID Batch, Nama batch kalkulasi, Bahan mentah utama, Biaya/Qty
+        bahan mentah, Model bisnis ('production' | 'reseller' | 'culinary' | 'ads_cod'
+        | 'marketplace' | 'service' | 'quick' | 'market_price'), Detail resep,
+        Biaya operasional tambahan (logistik, ads, admin fee, dll), derived products
+        (produk turunan beserta markup profit), timestamp.
+
+12. bundling (Paket Produk)
+    *   Fungsi: Menyimpan paket gabungan beberapa produk dengan harga khusus.
+    *   Detail Data: ID Bundling, Nama paket, Daftar produk di dalam paket beserta
+        kuantitasnya, Harga Jual Paket, Status aktif, timestamp.
+
+13. settings (Pengaturan Toko & Preferensi)
+    *   Fungsi: Menyimpan konfigurasi dasar identitas usaha Anda.
+    *   Detail Data: ID User, Informasi Toko (Nama toko, Alamat, No Telepon, Logo
+        Toko Cloudinary), Kode PIN keamanan aplikasi, Preferensi cetak nota,
+        timestamp.
+
+14. sync_queue & sync_errors (Manajemen Sinkronisasi)
+    *   Fungsi: Antrean data lokal yang tertunda (pending) untuk dikirim ke cloud.
+    *   Detail Data: ID Queue, Nama tabel, Aksi ('insert' | 'update' | 'delete'),
+        Payload data mentah, Jumlah percobaan ulang (retry count), Pesan error.
+
+--------------------------------------------------------------------------------
+BAGIAN 2: ANALISIS STORAGE CLOUDINARY (Media Files)
+--------------------------------------------------------------------------------
+Cloudinary digunakan sebagai CDN (Content Delivery Network) utama untuk menghosting
+file gambar/foto yang diunggah oleh user atau staf dari dalam aplikasi. 
+Cloudinary menerima file melalui endpoint upload API REST dengan preset 'kasirhub_preset'.
+
+Berikut adalah jenis media dan asalnya yang masuk ke Cloudinary:
+
+1.  Foto Produk (Products Image)
+    *   Asal Upload: Fitur tambah/edit produk (`ProductForm.tsx`).
+    *   Fungsi: Menampilkan visual produk di menu kasir/POS agar kasir dapat
+        memilih produk dengan cepat tanpa salah tekan.
+
+2.  Foto Bahan Baku (Ingredients Image)
+    *   Asal Upload: Modul manajemen bahan baku (`bahan-baku/add/page.tsx`).
+    *   Fungsi: Menampilkan visual bahan baku mentah atau kemasan di inventaris.
+
+3.  Foto Selfie Absensi (Attendance Selfie)
+    *   Asal Upload: Kamera modul absensi karyawan (`absensi/page.tsx`).
+    *   Fungsi: Verifikasi wajah staf saat Check-In/Check-Out untuk mencegah kecurangan.
+
+4.  Foto Bukti Pengeluaran (Expense Receipts)
+    *   Asal Upload: Formulir pencatatan pengeluaran (`laporan/pengeluaran/page.tsx`).
+    *   Fungsi: Menyimpan gambar bukti transfer, nota fisik belanja pasar, atau
+        struk belanja sebagai lampiran laporan keuangan operasional.
+
+5.  Logo Toko (Store Logo)
+    *   Asal Upload: Pengaturan profil toko (`(master-data)/toko/page.tsx`).
+    *   Fungsi: Logo bisnis Anda yang dicetak di atas struk/nota transaksi kasir
+        serta kop laporan PDF/Word.
+
+6.  Foto Profil Karyawan & Owner (Profile Photo)
+    *   Asal Upload: Profil akun dan edit karyawan (`pengaturan/account/page.tsx`,
+        `(master-data)/karyawan/page.tsx`).
+    *   Fungsi: Tampilan visual identitas pengguna di aplikasi.
+
+--------------------------------------------------------------------------------
+BAGIAN 3: ALUR KERJA APLIKASI (WORKFLOW)
+--------------------------------------------------------------------------------
+
+1.  ALUR UTAMA: AUTENTIKASI & ABSENSI KARYAWAN
+    [Login] -> Admin/Owner masuk menggunakan Email & Password (langsung terhubung online).
+            -> Karyawan masuk menggunakan Username & Sandi khusus karyawan.
+    [Absensi] -> Staf wajib melakukan selfie (kamera menyala) & GPS dicatat.
+              -> Foto selfie diunggah ke Cloudinary, record disimpan di Dexie.
+              -> Sukses absen -> Masuk ke layar POS Kasir.
+
+2.  ALUR UTAMA: TRANSAKSI KASIR & OFFLINE-FIRST SYNC
+    [Kasir POS] -> Kasir memilih produk (atau scan barcode).
+                -> Memasukkan diskon/pajak -> Pilih Pembayaran (Tunai, QRIS, Transfer).
+    [Bayar]     -> Transaksi disimpan ke Dexie lokal secara instan (0.1 detik).
+                -> Stok produk otomatis berkurang di Dexie. Mutasi dicatat di stock_logs.
+                -> Struk/nota otomatis tercetak (Thermal Printer support).
+    [Syncing]   -> Entri transaksi baru dimasukkan ke `sync_queue`.
+                -> SyncManager mendeteksi sinyal internet.
+                -> Jika online: Queue otomatis di-push ke Supabase online. Status sinkronisasi
+                   berubah menjadi 'synced'.
+                -> Jika offline: Transaksi tetap berjalan normal di lokal, queue akan terus
+                   dicoba dikirim ulang secara otomatis saat internet kembali tersambung.
+
+3.  ALUR UTAMA: KALKULASI HPP PREMIUM & MANUFAKTUR (Pro HPP)
+    [Bahan Mentah] -> Admin menginput daftar bahan baku beserta harga beli per unit.
+    [Formula Resep]-> Admin mengaitkan produk dengan bahan baku pembentuknya (BOM)
+                     (misal: 1 Porsi Nasi Goreng butuh 100gr Nasi, 1 Butir Telur, 1 Pcs Kotak Dus).
+    [Hitung HPP]   -> Sistem menghitung harga pokok produksi (HPP) otomatis dari akumulasi
+                     harga bahan baku ditambah biaya operasional per unit (gas, listrik, tenaga kerja).
+    [Penetapan Jual] -> Sistem memberikan saran harga jual berdasarkan persentase markup profit 
+                       dan merekomendasikan harga terbaik untuk di-update langsung ke daftar produk aktif.
+
+4.  ALUR UTAMA: PELAPORAN KEUANGAN & EKSPOR
+    [Dashboard]   -> Mengambil data transaksi dan pengeluaran dari Dexie (real-time).
+                  -> Menyajikan grafik omset bersih, HPP, pengeluaran, dan laba kotor.
+    [Ekspor Data] -> Data laporan dapat diunduh ke PDF (menggunakan jsPDF) atau
+                     Word .docx (menggunakan docx.js) secara langsung dari peramban client,
+                     lengkap dengan kop toko, logo toko, dan grafik penjualan.
+
+================================================================================
+KASIRHUB - POS & PREMIUM SYSTEM SOLUTION 2026
+================================================================================

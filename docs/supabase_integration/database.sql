@@ -250,34 +250,6 @@ BEGIN
   END LOOP;
 END $$;
 
--- ── 3.1.1 Migration Patch: Specific column patches for ingredients table ─────
--- Fixes: "Could not find the 'category_id' column of 'ingredients' in the schema cache"
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ingredients' AND column_name='category_id') THEN
-    ALTER TABLE public.ingredients ADD COLUMN category_id UUID REFERENCES categories(id) ON DELETE SET NULL;
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ingredients' AND column_name='type') THEN
-    ALTER TABLE public.ingredients ADD COLUMN type TEXT DEFAULT 'ingredient';
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ingredients' AND column_name='barcode') THEN
-    ALTER TABLE public.ingredients ADD COLUMN barcode TEXT;
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ingredients' AND column_name='barcode_type') THEN
-    ALTER TABLE public.ingredients ADD COLUMN barcode_type TEXT DEFAULT 'Code 128';
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ingredients' AND column_name='sku') THEN
-    ALTER TABLE public.ingredients ADD COLUMN sku TEXT;
-  END IF;
-END $$;
-
--- Reload PostgREST schema cache to pick up new columns immediately
-NOTIFY pgrst, 'reload schema';
-
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role TEXT DEFAULT 'admin',
@@ -501,17 +473,56 @@ CREATE POLICY "Public settings are viewable by everyone" ON settings FOR SELECT 
 CREATE POLICY "Users can manage own settings" ON settings FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- 8. Realtime Configuration
+-- NOTE: In Method 2 (Local-First + Manual Sync), realtime publication is disabled for general tables
+-- to save connection resources. Realtime is ONLY enabled for customer_orders (for Inbox Kasir/Menu Digital).
+ALTER TABLE public.customer_orders REPLICA IDENTITY FULL;
+
 DO $$
-DECLARE
-  t RECORD;
 BEGIN
-  FOR t IN (SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('attendance', 'transactions', 'products', 'categories', 'ingredients', 'hpp_batches', 'bundling', 'processing_costs', 'product_ingredients', 'transaction_items', 'expenses', 'customer_orders')) LOOP
-    IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = t.table_name) THEN
-      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE %I', t.table_name);
-    END IF;
-    -- Mengubah Replica Identity menjadi FULL agar payload realtime menangkap data lama saat UPDATE/DELETE
-    EXECUTE format('ALTER TABLE public.%I REPLICA IDENTITY FULL', t.table_name);
-  END LOOP;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'customer_orders') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.customer_orders;
+  END IF;
 END $$;
 
+NOTIFY pgrst, 'reload schema';
+
+-- Fix: RLS Policies & Column Migration for Digital Menu
+-- JALANKAN SKRIP INI DI SQL EDITOR SUPABASE
+
+-- 1. Pastikan tabel dan kolom-kolom utama ada
+CREATE TABLE IF NOT EXISTS public.customer_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+);
+
+ALTER TABLE public.customer_orders ADD COLUMN IF NOT EXISTS user_id UUID;
+ALTER TABLE public.customer_orders ADD COLUMN IF NOT EXISTS buyer_id UUID;
+ALTER TABLE public.customer_orders ADD COLUMN IF NOT EXISTS table_number TEXT;
+ALTER TABLE public.customer_orders ADD COLUMN IF NOT EXISTS customer_name TEXT;
+ALTER TABLE public.customer_orders ADD COLUMN IF NOT EXISTS items JSONB DEFAULT '[]';
+ALTER TABLE public.customer_orders ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
+
+-- 2. Profiles: Izinkan siapa saja (publik) membaca info dasar toko
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
+CREATE POLICY "Public profiles are viewable by everyone" ON profiles
+  FOR SELECT USING (true);
+
+-- 3. Products: Izinkan siapa saja membaca produk yang aktif
+DROP POLICY IF EXISTS "Public products are viewable by everyone" ON products;
+CREATE POLICY "Public products are viewable by everyone" ON products
+  FOR SELECT USING (deleted_at IS NULL);
+
+-- 4. Customer Orders: Izinkan pelanggan (anonim) mengirim pesanan
+DROP POLICY IF EXISTS "Customers can insert their own orders" ON customer_orders;
+CREATE POLICY "Customers can insert their own orders" ON customer_orders
+  FOR INSERT TO authenticated
+  WITH CHECK (true);
+
+-- 5. Customer Orders: Izinkan pembeli melihat pesanan mereka sendiri
+DROP POLICY IF EXISTS "Buyers can view their own orders" ON customer_orders;
+CREATE POLICY "Buyers can view their own orders" ON customer_orders
+  FOR SELECT TO authenticated
+  USING (buyer_id = auth.uid() OR auth.uid() = user_id);
+
+-- 6. Aktifkan Realtime untuk Pesanan (Sudah dikonfigurasi di bagian 8 di atas)
+-- Reload Schema Cache
 NOTIFY pgrst, 'reload schema';

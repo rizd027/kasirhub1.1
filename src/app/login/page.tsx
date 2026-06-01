@@ -11,6 +11,7 @@ import { supabase } from '@/services/supabase';
 import { useStaffStore } from '@/store/useStaffStore';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { AppLogo } from '@/components/ui/AppLogo';
 
 export default function LoginPage() {
   const [role, setRole] = useState<'admin' | 'staff'>('admin');
@@ -99,9 +100,7 @@ export default function LoginPage() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-10 landscape:mb-6">
-            <div className="size-12 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-2xl font-black shadow-2xl shadow-indigo-500/20">
-              K
-            </div>
+            <AppLogo variant="desktop-brand" />
             <div>
               <h1 className="text-3xl font-black text-white tracking-tighter leading-none">KasirHub</h1>
               <p className="text-indigo-400/60 text-[10px] font-black uppercase tracking-[0.4em] mt-1.5">Premium POS Solution</p>
@@ -149,9 +148,7 @@ export default function LoginPage() {
 
         {/* Mobile Logo */}
         <div className="lg:hidden flex flex-col items-center gap-3 mb-10 pt-4">
-          <div className="size-16 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-2xl shadow-indigo-200 active:scale-95 transition-transform">
-            K
-          </div>
+          <AppLogo variant="mobile-brand" />
           <div className="text-center">
             <h1 className="text-2xl font-black text-slate-900 tracking-tighter leading-none">KasirHub</h1>
             <p className="text-indigo-600/40 text-[9px] font-black uppercase tracking-[0.4em] mt-2">Premium POS</p>

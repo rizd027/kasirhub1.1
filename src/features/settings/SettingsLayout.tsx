@@ -2,17 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, CloudCheck, CloudOff, CloudUpload, HardDrive, RefreshCw } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { db } from '@/db/dexie';
 import { supabase } from '@/services/supabase';
-import { triggerSync } from '@/hooks/useSync';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 import { useStaffStore } from '@/store/useStaffStore';
 import { usePathname } from 'next/navigation';
-import { SyncIndicator } from '@/components/layout/SyncIndicator';
 
 export function SettingsLayout({
   title,
@@ -32,10 +28,8 @@ export function SettingsLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { session } = useStaffStore();
-  const [pendingSync, setPendingSync] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isAccountLinked, setIsAccountLinked] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     if (session?.role === 'staff') {
@@ -47,26 +41,7 @@ export function SettingsLayout({
     }
   }, [session, pathname, router]);
 
-  const handleManualSync = async () => {
-    if (isSyncing) return;
-    setIsSyncing(true);
-    const toastId = toast.loading('Menyinkronkan data ke awan...');
-    try {
-      await triggerSync(true);
-      toast.success('Data berhasil disinkronkan!', { id: toastId });
-    } catch (err: any) {
-      toast.error(`Gagal sinkron: ${err.message || 'Koneksi bermasalah'}`, { id: toastId });
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   useEffect(() => {
-    const updateSyncStatus = async () => {
-      const pending = await db.transactions.where('sync_status').equals('pending').count();
-      setPendingSync(pending);
-    };
-
     const hydrateLinkedAccount = async () => {
       const { data } = await supabase.auth.getUser();
       setIsAccountLinked(Boolean(data.user?.id));
@@ -76,8 +51,6 @@ export function SettingsLayout({
 
     handleOnlineStatus();
     hydrateLinkedAccount();
-    updateSyncStatus();
-    const interval = setInterval(updateSyncStatus, 3000);
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -87,7 +60,6 @@ export function SettingsLayout({
     window.addEventListener('offline', handleOnlineStatus);
 
     return () => {
-      clearInterval(interval);
       subscription.unsubscribe();
       window.removeEventListener('online', handleOnlineStatus);
       window.removeEventListener('offline', handleOnlineStatus);
@@ -122,7 +94,6 @@ export function SettingsLayout({
         </div>
 
         <div className="ml-auto flex min-w-0 shrink items-center gap-2 sm:gap-3">
-          <SyncIndicator />
           {rightAction}
         </div>
       </header>

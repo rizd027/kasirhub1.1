@@ -19,6 +19,7 @@ import { useStaffStore } from '@/store/useStaffStore';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/services/supabase';
 import { clearAllLocalData } from '@/utils/auth';
+import { AppLogo } from '@/components/ui/AppLogo';
 
 const navItems = [
   { label: 'Kasir', href: '/kasir', icon: ReceiptText },
@@ -62,9 +63,7 @@ export function SidebarNav() {
         isSidebarCollapsed ? "justify-center" : "px-8"
       )}>
         <div className="flex items-center gap-3">
-          <div className="size-11 bg-indigo-600 rounded-[1.25rem] flex items-center justify-center shadow-xl shadow-indigo-100 shrink-0">
-            <span className="text-2xl font-black text-white">K</span>
-          </div>
+          <AppLogo variant="sidebar" />
           {!isSidebarCollapsed && (
             <div className="flex flex-col">
               <span className="text-lg font-black text-slate-800 tracking-tighter leading-none">

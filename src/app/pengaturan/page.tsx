@@ -16,8 +16,7 @@ import { useStaffStore } from '@/store/useStaffStore';
 import { supabase } from '@/services/supabase';
 import { clearAllLocalData } from '@/utils/auth';
 import { Badge } from '@/components/ui/badge';
-import { Cloud, CloudOff, Loader2 } from 'lucide-react';
-import { SyncIndicator } from '@/components/layout/SyncIndicator';
+
 
 const settingMenus = [
   { title: 'Toko Saya', desc: 'Atur informasi toko', icon: Store, href: '/toko', protected: true },
@@ -119,7 +118,6 @@ export default function SettingsPage() {
         </div>
         <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-800">Setting</h1>
         <div className="flex-1 flex justify-end">
-          <SyncIndicator />
         </div>
       </header>
       <div className="flex-1 overflow-auto overflow-x-hidden">

@@ -3,17 +3,44 @@
 import { useState, useEffect, useRef } from 'react';
 import { SettingsLayout } from '@/features/settings/SettingsLayout';
 import { supabase } from '@/services/supabase';
-import { QrCode, Copy, Download, ExternalLink, CheckCircle2, Smartphone, ShieldCheck, Zap } from 'lucide-react';
+import { QrCode, Copy, Download, ExternalLink, CheckCircle2, Smartphone, ShieldCheck, Zap, CloudUpload, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { runPushSync } from '@/services/sync/syncManager';
+import { db } from '@/db/dexie';
+import { useLiveQuery } from 'dexie-react-hooks';
 
 export default function QrMenuPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [slug, setSlug] = useState<string | null>(null);
   const [shopName, setShopName] = useState<string>('Toko Saya');
+  const [isSyncingKatalog, setIsSyncingKatalog] = useState(false);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
+
+  const pendingProducts = useLiveQuery(
+    () => db.sync_queue.where('sync_status').equals('pending').count(),
+    [],
+    0
+  );
+
+  const handleUploadKatalog = async () => {
+    if (!userId) {
+      toast.error('Anda harus login terlebih dahulu.');
+      return;
+    }
+    setIsSyncingKatalog(true);
+    const toastId = toast.loading('Mengunggah katalog produk ke Cloud...');
+    try {
+      await runPushSync(true); // force = true to bypass manual mode guard and sync instantly
+      toast.success('Katalog berhasil diunggah! Menu pelanggan kini terupdate.', { id: toastId });
+    } catch (err: any) {
+      toast.error(`Gagal mengunggah: ${err.message || 'Periksa koneksi internet'}`, { id: toastId });
+    } finally {
+      setIsSyncingKatalog(false);
+    }
+  };
 
   const getBaseUrl = () => {
     if (typeof window === 'undefined') return '';
@@ -183,6 +210,64 @@ export default function QrMenuPage() {
             {/* Right Column: Actions & Guide */}
             <div className="lg:col-span-7 flex flex-col gap-4 lg:gap-6">
               
+              {/* Cloud Sync Warning/Action Card for Method 2 */}
+              <div className={cn(
+                "rounded-xl p-5 border shadow-sm transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
+                pendingProducts > 0 
+                  ? "bg-amber-50 border-amber-200 text-amber-900" 
+                  : "bg-emerald-50/50 border-emerald-100 text-emerald-900"
+              )}>
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className={cn(
+                    "size-10 rounded-xl flex items-center justify-center shrink-0 border",
+                    pendingProducts > 0 
+                      ? "bg-amber-100 border-amber-200 text-amber-600" 
+                      : "bg-emerald-100 border-emerald-200 text-emerald-600"
+                  )}>
+                    {pendingProducts > 0 ? (
+                      <AlertTriangle className="size-5 animate-pulse" />
+                    ) : (
+                      <CheckCircle2 className="size-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Status Katalog Cloud</h4>
+                    <p className="font-black text-slate-800 text-xs truncate">
+                      {pendingProducts > 0 
+                        ? `${pendingProducts} Perubahan Belum Diunggah` 
+                        : 'Katalog Sudah Sinkron dengan Cloud'}
+                    </p>
+                    <p className="text-[9px] text-slate-500 font-bold leading-normal mt-0.5 max-w-md">
+                      {pendingProducts > 0 
+                        ? 'Ada produk baru/perubahan lokal yang belum diunggah. Menu digital pelanggan saat ini mungkin kosong atau tidak lengkap.' 
+                        : 'Semua produk terbaru Anda sudah terunggah ke Cloud. Pelanggan dapat melihat menu dengan benar.'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleUploadKatalog}
+                  disabled={isSyncingKatalog || !userId}
+                  className={cn(
+                    "h-10 px-4 rounded-lg font-black text-[9px] uppercase tracking-widest flex items-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0",
+                    pendingProducts > 0 
+                      ? "bg-amber-600 hover:bg-amber-700 text-white shadow-md shadow-amber-200" 
+                      : "bg-white hover:bg-slate-50 text-slate-700 border border-slate-200"
+                  )}
+                >
+                  {isSyncingKatalog ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      Mengunggah...
+                    </>
+                  ) : (
+                    <>
+                      <CloudUpload className="size-3.5" />
+                      Unggah Katalog
+                    </>
+                  )}
+                </button>
+              </div>
+
               {/* Action Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button

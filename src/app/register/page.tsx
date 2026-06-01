@@ -10,6 +10,7 @@ import { User, Lock, Mail, ArrowRight, Loader2, Sparkles, CheckCircle2, Rocket, 
 import { supabase } from '@/services/supabase';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { AppLogo } from '@/components/ui/AppLogo';
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
@@ -77,9 +78,7 @@ export default function RegisterPage() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-10 landscape:mb-6">
-            <div className="size-12 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-2xl font-black shadow-2xl shadow-indigo-500/20">
-              K
-            </div>
+            <AppLogo variant="desktop-brand" />
             <div>
               <h1 className="text-3xl font-black text-white tracking-tighter leading-none">KasirHub</h1>
               <p className="text-emerald-400/60 text-[10px] font-black uppercase tracking-[0.4em] mt-1.5">Empowering Small Business</p>
@@ -127,9 +126,7 @@ export default function RegisterPage() {
 
         {/* Mobile Logo */}
         <div className="lg:hidden flex flex-col items-center gap-3 mb-6 pt-4">
-          <div className="size-16 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-2xl shadow-indigo-200 active:scale-95 transition-transform">
-            K
-          </div>
+          <AppLogo variant="mobile-brand" />
           <div className="text-center">
             <h1 className="text-2xl font-black text-slate-900 tracking-tighter leading-none">KasirHub</h1>
             <p className="text-emerald-500/50 text-[9px] font-black uppercase tracking-[0.4em] mt-2">Empowering Small Business</p>

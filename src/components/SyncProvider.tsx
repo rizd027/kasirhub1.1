@@ -34,10 +34,12 @@ export function SyncProvider() {
         }
     }, []);
 
-    // Realtime: satu tempat, satu subscription
-    useRealtimeSync();
+    // Realtime: satu tempat, satu subscription — Disabled in Method 2 (manual backup/restore)
+    // useRealtimeSync();
 
-    // Background polling + online recovery
+    // Background polling + online recovery — Disabled in Method 2 (manual backup/restore)
+    // All sync activities are now triggered manually by the user via the "Penyimpanan" menu.
+    /*
     useEffect(() => {
         if (!userId) return;
 
@@ -66,6 +68,7 @@ export function SyncProvider() {
         };
         // userId bukan userId + isSyncing — agar interval tidak dibuat ulang saat sync
     }, [userId]);
+    */
 
     return null;
 }

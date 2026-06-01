@@ -7,6 +7,7 @@ import { supabase } from '@/services/supabase';
 import { Loader2 } from 'lucide-react';
 import { PinDialog } from '@/components/ui/PinDialog';
 import { db } from '@/db/dexie';
+import { AppLogo } from '@/components/ui/AppLogo';
 
 const PUBLIC_ROUTES = ['/login', '/register', '/menu'];
 
@@ -247,9 +248,7 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
     return (
       <div className="fixed inset-0 bg-white flex flex-col items-center justify-center z-[9999]">
         <div className="flex flex-col items-center gap-4">
-          <div className="size-16 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-indigo-100 animate-pulse">
-            K
-          </div>
+          <AppLogo variant="splash" />
           <div className="flex flex-col items-center">
             <h1 className="text-xl font-black text-slate-800 tracking-tighter">KasirHub</h1>
             <div className="flex items-center gap-2 mt-2">

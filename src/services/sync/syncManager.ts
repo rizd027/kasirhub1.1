@@ -171,8 +171,6 @@ const startWatchdog = (): void => {
             notifyState();
         }
         
-        // Background Auto-Retry: Trigger push jika ada pending jobs yang siap
-        if (!isPushActive && !isPullActive) {
             // Recovery: Jika ada job tanpa status (stuck), set ke pending
             db.sync_queue.where('sync_status').equals('').toArray().then(stuck => {
                 if (stuck.length > 0) {
@@ -181,15 +179,8 @@ const startWatchdog = (): void => {
                 }
             });
 
-            db.sync_queue.where('sync_status').equals('pending').toArray().then(pending => {
-                const now = new Date().toISOString();
-                const readyJobs = pending.filter(j => !j.next_retry_at || j.next_retry_at <= now);
-                if (readyJobs.length > 0) {
-                    console.log(`[Sync Watchdog] 🐕 Triggering background push for ${readyJobs.length} ready jobs`);
-                    runPushSync().catch(() => {});
-                }
-            });
-        }
+            // Note: Background Auto-Retry disabled in manual sync model (Metode 2).
+            // Users will manually click "Backup to Cloud" from the storage settings menu.
     }, 10_000); // cek setiap 10 detik — responsif untuk recovery
 };
 
@@ -341,6 +332,12 @@ const preparePayload = (
 
 // ─── Push: Local → Cloud ──────────────────────────────────────────────────────
 export const runPushSync = async (force = false, signal?: AbortSignal): Promise<void> => {
+    if (!force) {
+        // In Method 2 (manual backup/restore), auto-sync is disabled.
+        // We only allow manual sync with force = true.
+        return;
+    }
+
     if (isPushActive || isPullActive) { // Cegah tabrakan dengan pull
         if (!force) needsAnotherPush = true;
         return;
@@ -902,10 +899,11 @@ export const addToSyncQueue = async (
         console.error('[Sync Queue] ❌ addToSyncQueue error:', err);
     }
 
-    // Trigger push dengan delay kecil (debounce alami)
-    if (!isPushActive) {
-        setTimeout(() => runPushSync().catch(() => { }), 500);
-    }
+    // Note: Automatic background push disabled in manual sync model (Metode 2).
+    // All inputs will save purely to local Dexie DB and sync_queue, and only sync on demand.
+    // if (!isPushActive) {
+    //     setTimeout(() => runPushSync().catch(() => { }), 500);
+    // }
 };
 
 /**
@@ -920,6 +918,12 @@ export const addToSyncQueue = async (
  * Dengan ini: perpindahan halaman TIDAK memicu pull ulang — data sudah ada di IndexedDB.
  */
 export const triggerFullSync = async (userId: string, force = false): Promise<void> => {
+    if (!force) {
+        // In Method 2 (manual backup/restore), auto-sync is disabled.
+        // We only allow manual sync with force = true.
+        return;
+    }
+
     // Setelah initial sync selesai: hanya push, skip full pull
     if (hasCompletedInitialSync() && !force) {
         runPushSync().catch(() => { });

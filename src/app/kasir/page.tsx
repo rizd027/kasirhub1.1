@@ -32,7 +32,7 @@ import { useStaffStore } from '@/store/useStaffStore';
 import { supabase } from '@/services/supabase';
 import { clearAllLocalData } from '@/utils/auth';
 import { UserCircle2, ArrowRight } from 'lucide-react';
-import { SyncIndicator } from '@/components/layout/SyncIndicator';
+
 
 export default function KasirPage() {
   const { isFullscreen, toggleFullscreen } = useLayoutStore();
@@ -259,7 +259,6 @@ export default function KasirPage() {
 
           {/* Right Controls */}
           <div className="flex items-center gap-1.5">
-            <SyncIndicator />
             <div className="flex items-center gap-0.5 bg-slate-50 p-1 rounded-lg border border-slate-100">
               <DropdownMenu>
                 <DropdownMenuTrigger 

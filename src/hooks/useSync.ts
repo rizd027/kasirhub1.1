@@ -43,11 +43,7 @@ export const useSync = () => {
         0
     );
 
-    useEffect(() => {
-        if (pendingCount > 0) {
-            console.log('[Sync] Queue count:', pendingCount);
-        }
-    }, [pendingCount]);
+    // Queue count is monitored silently for UI display only (no auto-sync in Method 2)
 
     // Hitung failed count
     const failedCount = useLiveQuery(
@@ -56,15 +52,14 @@ export const useSync = () => {
         0
     );
 
-    // Initial sync saat pertama kali login — didelegasikan ke syncManager
-    // syncManager akan memastikan full pull hanya jalan 1x per sesi via sessionStorage
+    // Initial sync saat pertama kali login — disabled in manual sync model (Metode 2)
     useEffect(() => {
         if (!userId || hasInitialized.current) return;
         hasInitialized.current = true;
 
-        triggerFullSync(userId).catch(err => {
-            console.error('[useSync] Initial sync error:', err);
-        });
+        // triggerFullSync(userId).catch(err => {
+        //     console.error('[useSync] Initial sync error:', err);
+        // });
     }, [userId]);
 
     // Reset flag jika user logout
@@ -77,7 +72,8 @@ export const useSync = () => {
     const performSync = useCallback(async (uid?: string) => {
         const targetId = uid || userId;
         if (!targetId) return;
-        await triggerFullSync(targetId);
+        // force = true: this is a manual user-initiated sync from the UI
+        await triggerFullSync(targetId, true);
     }, [userId]);
 
     return {
